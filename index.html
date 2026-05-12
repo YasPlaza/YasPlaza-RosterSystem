@@ -212,6 +212,28 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 /* ════ FILTER BAR ════ */
 .fb{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
 
+/* ════ REQUEST POPUPS & ARCHIVES ════ */
+#requestPopup{position:fixed;inset:0;background:rgba(8,15,30,.58);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:2500;padding:18px}
+#requestPopup.show{display:flex}
+.req-pop-card{width:min(520px,100%);background:#fff;border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.28);overflow:hidden;border:1px solid rgba(15,30,53,.08);animation:fadeUp .18s ease both}
+.req-pop-head{padding:16px 18px;background:linear-gradient(135deg,var(--navy),var(--navy2));color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.req-pop-body{padding:18px}
+.req-pop-badge{display:inline-flex;align-items:center;gap:6px;background:var(--gold-l);color:var(--amber);border:1px solid rgba(230,92,0,.25);border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;margin-bottom:10px}
+.req-toast-wrap{position:fixed;right:18px;bottom:18px;display:grid;gap:10px;z-index:2400;max-width:min(420px,calc(100vw - 24px))}
+.req-toast{background:#fff;border-radius:16px;border:1px solid rgba(15,30,53,.08);box-shadow:0 18px 54px rgba(15,30,53,.18);padding:14px 14px 12px;animation:fadeUp .2s ease both}
+.req-toast-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.req-toast-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:var(--navy)}
+.req-toast-text{font-size:11px;color:var(--slate);line-height:1.55;margin-top:4px}
+.req-toast-actions{display:flex;gap:6px;margin-top:10px}
+.archive-grid{display:grid;grid-template-columns:320px 1fr;gap:14px}
+.archive-list{display:grid;gap:8px;max-height:70vh;overflow:auto;padding-right:2px}
+.archive-item{background:var(--ice2);border:1.5px solid #dde3f0;border-radius:12px;padding:12px;cursor:pointer;transition:.2s}
+.archive-item:hover{border-color:var(--gold);transform:translateY(-1px)}
+.archive-item.active{background:var(--gold-l);border-color:var(--gold);box-shadow:0 10px 30px rgba(201,150,58,.12)}
+.archive-meta{font-size:10px;color:var(--slate2);margin-top:4px;line-height:1.5}
+.archive-preview-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+#sinanLogo img{object-fit:cover;object-position:center}
+
 /* ════ EMP PORTAL ════ */
 #empPortal{position:fixed;inset:0;background:linear-gradient(135deg,#070E1A,#0F1E35 50%,#0B1A30);display:none;align-items:center;justify-content:center;z-index:800;flex-direction:column;padding:20px}
 #empPortal.show{display:flex}
@@ -267,12 +289,20 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .btn-role:hover{background:rgba(255,255,255,.1);color:#fff}
 .btn-role.active{background:rgba(201,150,58,.2);border-color:var(--gold);color:var(--gold2)}
 
+@media(max-width:900px){
+  .archive-grid{grid-template-columns:1fr}
+  #page-requests > .req-grid{grid-template-columns:1fr !important}
+}
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
   .estats{grid-template-columns:1fr 1fr}
   .wgrid{grid-template-columns:repeat(4,1fr)}
-  .topbar{padding:0 10px}
+  .topbar{padding:10px;flex-wrap:wrap;height:auto}
+  .topbar-r{width:100%;flex-wrap:wrap;justify-content:flex-start}
   .page{padding:13px 11px}
+  .el,.ed{max-width:100%}
+  .ehdr{align-items:flex-start;flex-wrap:wrap}
+  .req-toast-wrap{left:12px;right:12px;bottom:12px;max-width:none}
 }
 </style>
 </head>
@@ -290,6 +320,19 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
   <div class="status-dot" id="statusDot"></div>
   <span id="statusText">Connecting…</span>
 </div>
+<div id="requestToastWrap" class="req-toast-wrap"></div>
+<div id="requestPopup">
+  <div class="req-pop-card">
+    <div class="req-pop-head">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800">📋 New Request Alert</div>
+        <div style="font-size:11px;opacity:.75;margin-top:2px">Open the request directly from here</div>
+      </div>
+      <button class="exit-btn" onclick="hideRequestPopup()">✕</button>
+    </div>
+    <div class="req-pop-body" id="requestPopupBody"></div>
+  </div>
+</div>
 
 <!-- ══ LANDING ══ -->
 <div id="landing">
@@ -300,7 +343,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
   <div class="land-card">
     <div class="land-logo">🏨</div>
     <div class="land-title">Yas Plaza Hotels</div>
-    <div class="land-sub">Front Office · Housekeeping · Recreation<br>Staff Roster — Live Sync Enabled</div>
+    <div class="land-sub">Front Office · Housekeeping · Recreation · F&amp;B · Kitchen · Engineering<br>Staff Roster — Live Sync Enabled</div>
     <button class="btn-emp" onclick="openEmpPortal()">
       👤 View My Roster<br>
       <small style="font-weight:400;opacity:.75;font-size:11px">Enter your Employee ID</small>
@@ -406,7 +449,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('schedule')" id="btnTabSchedule">📅 Schedule</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('swap')" id="btnTabSwap">🔄 Swap Board</button>
-      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('leave')" id="btnTabLeave">🏖 Requests</button>
+      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('leave')" id="btnTabLeave">🏖 Leave / Training</button>
     </div>
 
     <!-- SCHEDULE TAB -->
@@ -448,7 +491,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
     <!-- LEAVE REQUEST TAB -->
     <div id="empTabLeave" style="display:none">
       <div class="esmbox" style="background:rgba(75,180,130,.12);border-color:rgba(75,180,130,.3)">
-        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#4ADE80;margin-bottom:10px">🏖 Request Leave</div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#4ADE80;margin-bottom:10px">🏖 Request Leave / Training</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
           <div><label class="lbl" style="color:rgba(255,255,255,.5)">From Day</label>
             <select class="inp" id="leaveFrom" style="background:rgba(255,255,255,.07);border-color:rgba(75,180,130,.3);color:#fff"></select>
@@ -463,6 +506,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
               <option value="AL">Annual Leave</option>
               <option value="EX">Extra Off</option>
               <option value="UNP">Unpaid Leave</option>
+              <option value="TRN">Training</option>
             </select>
           </div>
           <div><label class="lbl" style="color:rgba(255,255,255,.5)">Reason (optional)</label>
@@ -491,6 +535,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
       <button class="tab"        data-p="staff"    onclick="switchPage('staff')">👥 Staff</button>
       <button class="tab"        data-p="coverage" onclick="switchPage('coverage')">⚠️ Coverage</button>
       <button class="tab"        data-p="requests" onclick="switchPage('requests')">📋 Requests</button>
+      <button class="tab"        data-p="archives" onclick="switchPage('archives')">🗄️ Archives</button>
       <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Settings</button>
     </div>
     <div class="topbar-r">
@@ -513,7 +558,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 
   <div class="page active" id="page-dash">
     <div class="g4" id="dashStats"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="req-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div class="card"><div class="ch"><div class="ct">🏨 Staff by Hotel</div></div><div style="padding:14px" id="hotelBreak"></div></div>
       <div class="card"><div class="ch"><div class="ct">🏢 Staff by Department</div></div><div style="padding:14px" id="deptBreak"></div></div>
     </div>
@@ -569,7 +614,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
   </div>
 
   <div class="page" id="page-requests">
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+    <div class="req-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
       <div class="card">
         <div class="ch"><div class="ct">🔄 Shift Swap Requests</div><span id="swapCount" style="font-size:11px;color:var(--slate2)">0 pending</span></div>
         <div style="padding:14px" id="adminSwapList"></div>
@@ -577,6 +622,38 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
       <div class="card">
         <div class="ch"><div class="ct">🏖 Leave Requests</div><span id="leaveCount" style="font-size:11px;color:var(--slate2)">0 pending</span></div>
         <div style="padding:14px" id="adminLeaveList"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="page" id="page-archives">
+    <div class="archive-grid">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">🗄️ Roster Archives</div>
+          <span style="font-size:11px;color:var(--slate2)">Monthly history snapshots</span>
+        </div>
+        <div style="padding:14px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="btn btn-gold btn-sm" onclick="archiveMonthSnapshot(YEAR, MONTH, 'manual snapshot')">💾 Save Current Month</button>
+            <button class="btn btn-ghost btn-sm" onclick="renderArchives()">↻ Refresh</button>
+          </div>
+          <div class="archive-list" id="archiveList"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div style="padding:14px">
+          <div class="archive-preview-head">
+            <div>
+              <div class="ct" style="margin-bottom:4px">📅 Archived Roster Preview</div>
+              <div id="archivePreviewMeta" style="font-size:11px;color:var(--slate2)">Select an archive on the left.</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="selectLatestArchive()">Latest</button>
+            </div>
+          </div>
+          <div id="archivePreview"></div>
+        </div>
       </div>
     </div>
   </div>
@@ -809,6 +886,7 @@ let DEPT_POS = {
   "Engineering":["Chief Engineer","Assistant Chief Engineer","Engineering Supervisor",
     "Mechanical Technician","Electrical Technician","HVAC Technician","Plumber",
     "Carpenter","Painter","General Technician","Engineering Coordinator"],
+  "Kitchen":["Executive Chef","Sous Chef","Chef de Partie","Demi Chef de Partie","Commis Chef","Stewarding Supervisor","Kitchen Steward"],
 };
 
 // Dept colour palette — auto-assigned for new depts
@@ -825,6 +903,7 @@ let DEPT_C = {
   "Recreation":  {bg:"#FBE9E7",color:"#BF360C"},
   "F&B":         {bg:"#FFF3E0",color:"#E65100"},
   "Engineering": {bg:"#EDE7F6",color:"#4A148C"},
+  "Kitchen":     {bg:"#FCE4EC",color:"#AD1457"},
 };
 function getDeptColor(dept) {
   if(DEPT_C[dept]) return DEPT_C[dept];
@@ -852,6 +931,7 @@ const SHIFTS = {
   EX:{label:"Extra Off",  time:"—",          hours:0, bg:"#F3E5F5",color:"#6A1B9A",border:"#CE93D8"},
   UNP:{label:"Unpaid",    time:"—",          hours:0, bg:"#FFEBEE",color:"#B71C1C",border:"#FFCDD2"},
   SH:{label:"Half Day",   time:"—",          hours:4, bg:"#C8E6C9",color:"#1B5E20",border:"#66BB6A"},
+  TRN:{label:"Training",  time:"School / Training", hours:8, bg:"#DBEAFE",color:"#1D4ED8",border:"#60A5FA"},
 };
 
 // ═══════════════════════════════════════════════════
@@ -979,7 +1059,9 @@ let settingsData = {};  // {adminPass, ...}
 let hotelData = {};     // {empId: {"YYYY-M": {day: hotelId}}}
 let swapRequests = {};  // {id: {fromEmp, toEmp, day, status: "pending"|"partner_approved"|"admin_approved"|"rejected", created}}
 let leaveRequests = {}; // {id: {empId, fromDay, toDay, type, reason, status: "pending"|"approved"|"rejected", created}}
-
+let archiveData = {};   // {YYYY-M: archived snapshot}
+let currentArchiveKey = "";
+let pendingRequestSignature = "";
 let activeEmpListener = null;
 
 function seedStaffIfEmpty() {
@@ -1077,6 +1159,148 @@ function showEmpTab(tab) {
   if (tab === "leave") { populateLeaveForm(); renderLeaveList(); }
 }
 
+function reqTypeLabel(type) {
+  return {AL:"🏖 Annual Leave", EX:"✨ Extra Off", UNP:"💸 Unpaid", TRN:"🎓 Training"}[type] || type;
+}
+function shiftIsOffCode(code) {
+  return ["OFF","AL","EX","UNP"].includes(code);
+}
+function cloneData(obj) { return JSON.parse(JSON.stringify(obj || {})); }
+function archiveDbKey(key) { return String(key).replace(/[^a-zA-Z0-9]/g, "_"); }
+function parseArchiveKey(key) { const [y,m] = String(key).split("-").map(Number); return {year:y, month:m}; }
+function formatArchiveMonth(key) { const p=parseArchiveKey(key); return MONTHS[p.month] + " " + p.year; }
+function buildArchiveSnapshot(y, m, reason="") {
+  const key = schKey(y,m);
+  const schedules = {};
+  const hotels = {};
+  Object.keys(staffData).forEach(id => {
+    if (schedData[id] && schedData[id][key]) schedules[id] = cloneData(schedData[id][key]);
+    if (hotelData[id] && hotelData[id][key]) hotels[id] = cloneData(hotelData[id][key]);
+  });
+  const existing = archiveData[key] || {};
+  return {
+    key, year:y, month:m,
+    createdAt: existing.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    reason: reason || existing.reason || "auto snapshot",
+    staff: cloneData(staffData),
+    schedules,
+    hotels,
+    deptConfig: cloneData({depts:DEPT_POS, deptColors:DEPT_C})
+  };
+}
+async function archiveMonthSnapshot(y=YEAR, m=MONTH, reason="manual snapshot") {
+  const snap = buildArchiveSnapshot(y, m, reason);
+  archiveData[snap.key] = snap;
+  currentArchiveKey = snap.key;
+  saveLocal();
+  if (db) { try { await db.ref("archives/" + archiveDbKey(snap.key)).set(snap); } catch(e) {} }
+  if (document.querySelector('.tab.active')?.dataset.p === 'archives') renderArchives();
+  return snap;
+}
+let archiveSaveTimer = null;
+function queueArchiveSnapshot(key=schKey(), reason="auto update") {
+  const p = parseArchiveKey(key);
+  clearTimeout(archiveSaveTimer);
+  archiveSaveTimer = setTimeout(() => { archiveMonthSnapshot(p.year, p.month, reason); }, 400);
+}
+function selectLatestArchive() {
+  const keys = Object.keys(archiveData).sort((a,b)=>{ const pa=parseArchiveKey(a), pb=parseArchiveKey(b); return new Date(pb.year,pb.month,1)-new Date(pa.year,pa.month,1); });
+  if (!keys.length) { archiveMonthSnapshot(YEAR, MONTH, 'first snapshot'); return; }
+  currentArchiveKey = keys[0];
+  renderArchives();
+}
+function openRequestCenter() {
+  hideRequestPopup();
+  if (document.getElementById('app').classList.contains('show')) switchPage('requests');
+}
+function hideRequestPopup() {
+  const el = document.getElementById('requestPopup');
+  if (el) el.classList.remove('show');
+}
+function pushToast(title, text, actionLabel="Open Requests") {
+  const wrap = document.getElementById('requestToastWrap'); if (!wrap) return;
+  const toast = document.createElement('div');
+  toast.className = 'req-toast';
+  toast.innerHTML = `<div class="req-toast-top"><div><div class="req-toast-title">${title}</div><div class="req-toast-text">${text}</div></div><button class="exit-btn" style="padding:4px 8px" onclick="this.closest('.req-toast').remove()">✕</button></div><div class="req-toast-actions"><button class="btn btn-gold btn-xs" onclick="openRequestCenter();this.closest('.req-toast').remove()">${actionLabel}</button></div>`;
+  wrap.prepend(toast);
+  setTimeout(() => { if (toast && toast.parentNode) toast.remove(); }, 7000);
+}
+function showRequestPopup(item) {
+  const body = document.getElementById('requestPopupBody');
+  const popup = document.getElementById('requestPopup');
+  if (!body || !popup) return;
+  body.innerHTML = `<div class="req-pop-badge">${item.kind === 'swap' ? '🔄 Shift swap request' : '🏖 Leave / Training request'}</div><div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--navy);margin-bottom:8px">${item.title}</div><div style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px">${item.text}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-gold" onclick="openRequestCenter()">Open Requests</button><button class="btn btn-ghost" onclick="hideRequestPopup()">Later</button></div>`;
+  popup.classList.add('show');
+}
+function buildPendingRequestItems() {
+  const swapItems = Object.values(swapRequests).filter(r => r.status === 'partner_approved').map(r => {
+    const from = staffData[r.fromEmp] || {}; const to = staffData[r.toEmp] || {};
+    return {id:r.id, created:r.created || 0, kind:'swap', title:`Swap request · Day ${r.day}`, text:`${from.name || r.fromEmp} wants to swap with ${to.name || r.toEmp}.`};
+  });
+  const leaveItems = Object.values(leaveRequests).filter(r => r.status === 'pending').map(r => {
+    const emp = staffData[r.empId] || {};
+    return {id:r.id, created:r.created || 0, kind:'leave', title:`${reqTypeLabel(r.type)} · ${emp.name || r.empId}`, text:`Day ${r.fromDay}${r.fromDay !== r.toDay ? '–' + r.toDay : ''}${r.reason ? ' · ' + r.reason : ''}`};
+  });
+  return [...swapItems, ...leaveItems].sort((a,b)=>b.created-a.created);
+}
+function handleRequestPopups() {
+  if (!document.getElementById('app')?.classList.contains('show')) return;
+  const items = buildPendingRequestItems();
+  const signature = items.map(i=>i.id).join('|');
+  if (!pendingRequestSignature) { pendingRequestSignature = signature; return; }
+  if (signature !== pendingRequestSignature && items.length) {
+    const latest = items[0];
+    pushToast(latest.title, latest.text);
+    showRequestPopup(latest);
+  }
+  pendingRequestSignature = signature;
+}
+function renderArchives() {
+  const list = document.getElementById('archiveList');
+  const preview = document.getElementById('archivePreview');
+  const meta = document.getElementById('archivePreviewMeta');
+  if (!list || !preview || !meta) return;
+  const keys = Object.keys(archiveData).sort((a,b)=>{ const pa=parseArchiveKey(a), pb=parseArchiveKey(b); return new Date(pb.year,pb.month,1)-new Date(pa.year,pa.month,1); });
+  if (!keys.length) {
+    list.innerHTML = `<div style="font-size:12px;color:var(--slate2);padding:12px 4px">No archives yet. Save the current month to start building history.</div>`;
+    preview.innerHTML = `<div style="padding:28px 10px;text-align:center;color:var(--slate2)">No archived roster selected.</div>`;
+    meta.textContent = 'Save a snapshot to create history.';
+    return;
+  }
+  if (!currentArchiveKey || !archiveData[currentArchiveKey]) currentArchiveKey = keys[0];
+  list.innerHTML = keys.map(key => {
+    const snap = archiveData[key];
+    const staffCount = Object.keys(snap.staff || {}).length;
+    return `<div class="archive-item ${key===currentArchiveKey?'active':''}" onclick="currentArchiveKey='${key}';renderArchives()"><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--navy)">${formatArchiveMonth(key)}</div><div class="archive-meta">${staffCount} employees archived<br>Updated ${new Date(snap.updatedAt || Date.now()).toLocaleString()}</div></div>`;
+  }).join('');
+  const snap = archiveData[currentArchiveKey];
+  meta.textContent = `${formatArchiveMonth(currentArchiveKey)} · ${Object.keys(snap.staff || {}).length} employees`;
+  const numDays = getDIM(snap.year, snap.month);
+  const days = Array.from({length:numDays}, (_,i)=>i+1);
+  const hf = document.getElementById('hotelFilter')?.value || 'all';
+  const df = document.getElementById('deptFilter')?.value || 'all';
+  let staff = Object.values(snap.staff || {});
+  if (df !== 'all') staff = staff.filter(e => e.department === df);
+  if (hf !== 'all') staff = staff.filter(e => e.hotel === hf || e.hotel === 'all');
+  const legend = Object.entries(SHIFTS).map(([k,v])=>`<span class="sp sp-${k}" style="cursor:default;font-size:8px">${k}<span style="font-weight:400"> ${shiftTimeOrLabel(v)}</span></span>`).join('');
+  const rows = staff.map((emp, idx) => {
+    const sch = (snap.schedules && snap.schedules[emp.id]) || {};
+    const stats = calcStats(emp, sch);
+    const dc = (snap.deptConfig?.deptColors && snap.deptConfig.deptColors[emp.department]) || getDeptColor(emp.department);
+    const hotel = HOTELS.find(h => h.id === emp.hotel);
+    const cells = days.map(d => {
+      const code = sch[d] || '';
+      const sh = SHIFTS[code];
+      const dow = new Date(snap.year, snap.month, d).getDay();
+      return `<td class="${dow===6?'sat-td':''}" style="padding:2px 1px;text-align:center"><div class="sp ${sh?'sp-'+code:'sp-empty'}" style="cursor:default" title="${sh?sh.label+' '+sh.time:''}">${code || '—'}</div></td>`;
+    }).join('');
+    return `<tr style="${idx%2?'background:#FAFBFD':''}"><td class="sc-col" style="min-width:160px;padding:7px 10px;${idx%2?'background:#FAFBFD':''}"><div style="font-weight:600;font-size:11px">${emp.name || '—'}</div><div style="font-size:9px;color:${hotel?.color || '#888'};margin-top:1px">${hotel?.name || emp.hotel || '—'}</div></td><td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td><td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position || ''}</td>${cells}<td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${stats.work}</td><td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${stats.hrs}h</td></tr>`;
+  }).join('');
+  const dths = days.map(d => { const dow = new Date(snap.year, snap.month, d).getDay(); return `<th class="${dow===6?'sat-th':''}" style="text-align:center;min-width:34px;padding:6px 1px"><div style="font-size:9px;font-weight:800">${d}</div><div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div></th>`; }).join('');
+  preview.innerHTML = `<div style="padding:9px 13px;background:var(--ice);display:flex;flex-wrap:wrap;gap:5px;border:1px solid #dde3f0;border-bottom:none;border-radius:12px 12px 0 0">${legend}</div><div class="tw" style="border:1px solid #dde3f0;border-top:none;border-radius:0 0 12px 12px"><table><thead><tr><th class="sc-col" style="min-width:160px">EMPLOYEE</th><th style="min-width:80px">DEPT</th><th style="min-width:120px">POSITION</th>${dths}<th style="text-align:center;background:#1B5E20;min-width:40px">DAYS</th><th style="text-align:center;background:#004D40;min-width:44px">HRS</th></tr></thead><tbody>${rows || `<tr><td colspan="100" style="text-align:center;padding:34px;color:var(--slate2)">No archived employees for this filter.</td></tr>`}</tbody></table></div>`;
+}
+
 // ─── SWAP FUNCTIONS ───
 function populateSwapForm() {
   if (!currentEmpId) return;
@@ -1147,6 +1371,7 @@ async function submitSwapRequest() {
   saveLocal();
 
   document.getElementById("swapPreview").innerHTML = `<div style="color:var(--green)">✅ Request sent! Waiting for ${staffData[partnerId]?.name?.split(" ")[0]} to approve…</div>`;
+  pushToast("Swap request sent", `Waiting for ${staffData[partnerId]?.name?.split(" ")[0] || "partner"} to approve.` , "Close");
   renderSwapList();
 }
 
@@ -1244,7 +1469,8 @@ async function submitLeaveRequest() {
   if (db) { try { await db.ref("leaves/" + reqId).set(req); } catch(e) {} }
   saveLocal();
 
-  document.getElementById("leaveList").innerHTML = `<div style="color:var(--green);padding:10px">✅ Leave request submitted! Waiting for admin approval…</div>`;
+  document.getElementById("leaveList").innerHTML = `<div style="color:var(--green);padding:10px">✅ Request submitted! Waiting for admin approval…</div>`;
+  pushToast("Request submitted", `${reqTypeLabel(type)} request is waiting for approval.`, "Close");
   setTimeout(renderLeaveList, 1500);
 }
 
@@ -1260,7 +1486,7 @@ function renderLeaveList() {
 
   el.innerHTML = myReqs.map(r => {
     const statusColors = {pending: "var(--gold)", approved: "var(--green)", rejected: "var(--red)"};
-    const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid"};
+    const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training"};
     return `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:700">${typeLabels[r.type]}</span>
@@ -1312,7 +1538,7 @@ function renderAdminRequests() {
   else {
     leaveEl.innerHTML = pendingLeaves.map(r => {
       const emp = staffData[r.empId];
-      const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid"};
+      const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training"};
       const days = r.toDay - r.fromDay + 1;
       const alLeft = (emp?.annualLeave || 0) - (emp?.alUsed || 0);
       return `<div style="background:var(--ice2);border:1.5px solid #4ADE80;border-radius:10px;padding:12px;margin-bottom:8px">
@@ -1362,6 +1588,7 @@ async function adminApproveSwap(reqId) {
   if (db) { try { await db.ref("swaps/" + reqId + "/status").set("admin_approved"); } catch(e) {} }
   saveLocal();
   renderAdminRequests();
+  queueArchiveSnapshot(k, "swap approved");
   renderRoster();
 }
 
@@ -1400,6 +1627,7 @@ async function adminApproveLeave(reqId) {
   if (db) { try { await db.ref("leaves/" + reqId + "/status").set("approved"); } catch(e) {} }
   saveLocal();
   renderAdminRequests();
+  queueArchiveSnapshot(k, "request approved");
   renderRoster();
   renderDash();
 }
@@ -1422,6 +1650,7 @@ function saveLocal() {
       hotels: hotelData,
       swaps: swapRequests,
       leaves: leaveRequests,
+      archives: archiveData,
       settings: { 
         adminPass: adminPass, 
         managerPass: managerPass, 
@@ -1446,6 +1675,7 @@ function reloadLocal() {
     if(stored.hotels)    hotelData    = stored.hotels;
     if(stored.swaps)     swapRequests = stored.swaps;
     if(stored.leaves)    leaveRequests = stored.leaves;
+    if(stored.archives)  archiveData = stored.archives;
     if(stored.settings)  settingsData = stored.settings;
     if(settingsData && settingsData.adminPass) adminPass = settingsData.adminPass;
     if(settingsData && settingsData.managerPass) managerPass = settingsData.managerPass;
@@ -1489,6 +1719,7 @@ function setupRealtimeListeners() {
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       renderSwapList();
     }
+    handleRequestPopups();
   });
 
   // Leave requests listener
@@ -1500,6 +1731,7 @@ function setupRealtimeListeners() {
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       renderLeaveList();
     }
+    handleRequestPopups();
   });
 
 // Staff listener
@@ -1528,6 +1760,13 @@ function setupRealtimeListeners() {
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
+  });
+
+  db.ref("archives").on("value", snap => {
+    const raw = snap.val() || {};
+    archiveData = {};
+    Object.values(raw).forEach(item => { if (item && item.key) archiveData[item.key] = item; });
+    if (document.querySelector(".tab.active")?.dataset.p === "archives") renderArchives();
   });
 
   // Settings
@@ -1798,6 +2037,7 @@ function _switchPageOriginal(name) {
   if(name==="coverage") renderCoverage();
   if(name==="dash")     renderDash();
   if(name==="requests") renderAdminRequests();
+  if(name==="archives") renderArchives();
   if(name==="settings") renderSettings();
 }
 let switchPage = _switchPageOriginal;
@@ -1875,6 +2115,7 @@ function changeDept(dept) {
 }
 
 function changeMonth(d) {
+  archiveMonthSnapshot(YEAR, MONTH, "month switched");
   MONTH+=d; if(MONTH<0){MONTH=11;YEAR--;} if(MONTH>11){MONTH=0;YEAR++;}
   document.getElementById("monthLabel").textContent=`${MONTHS[MONTH]} ${YEAR}`;
   renderAll();
@@ -2013,6 +2254,7 @@ async function processImport() {
   }
 
   saveLocal();
+  queueArchiveSnapshot(k, "import staff");
   fillAllSelects();
   renderStaff();
   renderDash();
@@ -2028,6 +2270,7 @@ function initAdmin() {
   if (!db) reloadLocal();
   fillAllSelects();
   document.getElementById("monthLabel").textContent=`${MONTHS[MONTH]} ${YEAR}`;
+  if (!archiveData[schKey()]) archiveMonthSnapshot(YEAR, MONTH, "admin opened");
   renderAll();
 }
 function fillAllSelects() {
@@ -2139,6 +2382,8 @@ function renderAll() {
   if(active==="roster")   renderRoster();
   if(active==="staff")    renderStaff();
   if(active==="coverage") renderCoverage();
+  if(active==="requests") renderAdminRequests();
+  if(active==="archives") renderArchives();
   if(active==="settings") renderSettings();
 }
 
@@ -2157,8 +2402,7 @@ function calcStats(emp, sch) {
     else if(c==="AL")al++;
     else if(c==="EX")ex++;
     else if(c==="UNP")unp++;
-    else if(c==="SH"){work++;hrs+=4;}
-    else{work++;hrs+=emp.shiftHours||8;}
+    else { work++; hrs += (SHIFTS[c]?.hours ?? emp.shiftHours ?? 8); }
   });
   return{work,off,al,ex,unp,hrs,alRem:emp.annualLeave-emp.alUsed};
 }
@@ -2205,7 +2449,7 @@ function renderDash() {
     </div>`;
   }).join("")||`<p style="font-size:12px;color:var(--slate2);text-align:center;padding:20px">No staff yet. Add employees in the Staff tab.</p>`;
 
-  document.getElementById("deptBreak").innerHTML=["Front Office","Housekeeping","Recreation"].map(d=>{
+  document.getElementById("deptBreak").innerHTML=getAllDepts().map(d=>{
     const dc=getDeptColor(d); const cnt=staffList().filter(e=>e.department===d).length;
     return`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--ice)">
       <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30">${d}</span>
@@ -2236,6 +2480,7 @@ function setHotelAssignment(empId, y, m, d, hotelId) {
   if (db) {
     db.ref("hotels/" + empId + "/" + schKey(y,m) + "/" + d).set(hotelId).catch(()=>{});
   }
+  queueArchiveSnapshot(schKey(y,m), "hotel assignment changed");
   saveLocal();
 }
 function renderHotelPill(empId, day) {
@@ -2387,6 +2632,7 @@ async function selectShift(code) {
     if(!schedData[popEmpId]) schedData[popEmpId]={};
     if(!schedData[popEmpId][key]) schedData[popEmpId][key]={};
     schedData[popEmpId][key][popDay]=code;
+    queueArchiveSnapshot(key, "shift changed");
     if(db) {
       try { await db.ref("schedules/"+popEmpId+"/"+key+"/"+popDay).set(code); }
       catch(e) { saveLocal(); }
@@ -2909,6 +3155,7 @@ async function applyBulk() {
     for(let d=from;d<=Math.min(to,numDays);d++) schedData[emp.id][k][d]=code;
   });
   if(db) { try { await db.ref().update(updates); } catch(e){} }
+  queueArchiveSnapshot(k, "bulk fill");
   closeModal("bulkModal");
   renderRoster();
 }
@@ -3018,6 +3265,8 @@ function loginEmp() {
   if(!emp){document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";return;}
   currentEmpId=id;
   showEmpDash(emp);
+  renderSwapList();
+  renderLeaveList();
 }
 
 function logoutEmp() {
@@ -3097,6 +3346,7 @@ window.addEventListener("load", function() {
   try {
     reloadLocal();      // Load saved data immediately (works offline)
     seedStaffIfEmpty();    // Pre-load 100 employees if first time
+    archiveMonthSnapshot(YEAR, MONTH, "boot snapshot");
     tryAutoConnect();      // Try Firebase in background if config exists
   } catch(e) {
     console.warn("Boot error:", e);
@@ -3104,5 +3354,6 @@ window.addEventListener("load", function() {
   }
 });
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
