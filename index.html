@@ -37,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 @keyframes syncPulse{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1);opacity:0}}
 #sinanLogo{position:fixed;bottom:16px;left:16px;z-index:500;opacity:0.55;transition:opacity .3s;cursor:default;pointer-events:none}
 #sinanLogo:hover{opacity:0.9}
-#sinanLogo img{width:44px;height:44px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.4);display:block;object-fit:cover;object-position:center}
+#sinanLogo img{width:44px;height:44px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.4);display:block}
 #sinanLogo span{display:block;text-align:center;font-size:7px;font-weight:700;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.3px;font-family:'DM Sans',sans-serif}
 #onlineStatus{position:fixed;bottom:16px;right:16px;background:var(--navy2);border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:6px 14px;font-size:11px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px;z-index:500;box-shadow:var(--sh-lg);transition:.3s}
 .status-dot{width:8px;height:8px;border-radius:50%;background:#aaa}
@@ -1247,10 +1247,12 @@ function buildPendingRequestItems() {
 }
 function handleRequestPopups() {
   if (!document.getElementById('app')?.classList.contains('show')) return;
+  // Only admins should see incoming-request popups
+  if (typeof currentRole !== 'undefined' && currentRole === 'employee') return;
   const items = buildPendingRequestItems();
   const signature = items.map(i=>i.id).join('|');
-  if (!pendingRequestSignature) { pendingRequestSignature = signature; return; }
-  if (signature !== pendingRequestSignature && items.length) {
+  if (signature === pendingRequestSignature) return;
+  if (items.length) {
     const latest = items[0];
     pushToast(latest.title, latest.text);
     showRequestPopup(latest);
@@ -1720,6 +1722,7 @@ function setupRealtimeListeners() {
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       renderSwapList();
     }
+    handleRequestPopups();
   });
 
   // Leave requests listener
@@ -1768,7 +1771,6 @@ function setupRealtimeListeners() {
     Object.values(raw).forEach(item => { if (item && item.key) archiveData[item.key] = item; });
     if (document.querySelector(".tab.active")?.dataset.p === "archives") renderArchives();
   });
-    handleRequestPopups();
 
   // Settings
   db.ref("settings").on("value", snap => {
@@ -1990,6 +1992,7 @@ function checkPass() {
     console.log("[YPH] Checking developer password");
     if (input === developerPass || input === adminPass) {
       console.log("[YPH] Developer login success");
+      CURRENT_DEPT = "all"; // developer sees everything
       enterAdmin();
     } else {
       console.log("[YPH] Developer login failed");
@@ -2273,11 +2276,15 @@ function initAdmin() {
   document.getElementById("monthLabel").textContent=`${MONTHS[MONTH]} ${YEAR}`;
   if (!archiveData[schKey()]) archiveMonthSnapshot(YEAR, MONTH, "admin opened");
   renderAll();
-
-  handleRequestPopups();}
+}
 function fillAllSelects() {
   const depts = getAllDepts();
-  const deptOpts = '<option value="all">All Departments</option>' + depts.map(d=>`<option>${d}</option>`).join("");
+  // ISOLATION: Department users only see their own department in dropdowns
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
+  const visibleDepts = isDeptUser ? depts.filter(d => d === CURRENT_DEPT) : depts;
+  const deptOpts = isDeptUser
+    ? `<option value="${CURRENT_DEPT}">${CURRENT_DEPT}</option>`
+    : '<option value="all">All Departments</option>' + depts.map(d=>`<option>${d}</option>`).join("");
   const hotelOptsAll = '<option value="all">All Hotels</option>' + HOTELS.filter(h=>h.id!=="all").map(h=>`<option value="${h.id}">${h.name}</option>`).join("");
   const hotelOptsNoAll = HOTELS.filter(h=>h.id!=="all").map(h=>`<option value="${h.id}">${h.name}</option>`).join("");
 
@@ -2290,14 +2297,16 @@ function fillAllSelects() {
   const fh=document.getElementById("f-hotel");
   if(fh) fh.innerHTML = hotelOptsNoAll;
 
-  // Dept selects (filters)
+  // Dept selects (filters) — locked to user's dept if dept user
   ["rDeptF","sDeptF"].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.innerHTML = deptOpts;
+    if (isDeptUser) { el.value = CURRENT_DEPT; el.disabled = true; el.style.opacity = "0.6"; el.title = "Locked to your department"; }
+    else { el.disabled = false; el.style.opacity = "1"; el.title = ""; }
   });
-  // Dept in modal
+  // Dept in modal — only allowed depts
   const fd=document.getElementById("f-dept");
-  if(fd) fd.innerHTML = depts.map(d=>`<option>${d}</option>`).join("");
+  if(fd) fd.innerHTML = visibleDepts.map(d=>`<option>${d}</option>`).join("");
 
   // Position filters
   const allPos = getAllPos();
