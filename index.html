@@ -305,6 +305,8 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
   .ehdr{align-items:flex-start;flex-wrap:wrap}
   .req-toast-wrap{left:12px;right:12px;bottom:12px;max-width:none}
 }
+
+@keyframes fadeOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-10px)}}
 </style>
 </head>
 <body>
@@ -477,7 +479,15 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
             <select class="inp" id="swapMyDay" style="background:rgba(255,255,255,.07);border-color:rgba(201,150,58,.3);color:#fff" onchange="updateSwapPreview()"></select>
           </div>
           <div><label class="lbl" style="color:rgba(255,255,255,.5)">Swap With (Employee)</label>
-            <select class="inp" id="swapPartner" style="background:rgba(255,255,255,.07);border-color:rgba(201,150,58,.3);color:#fff" onchange="updateSwapPreview()"></select>
+            <!-- Searchable colleague picker -->
+            <div style="position:relative">
+              <input class="inp" id="swapPartnerSearch" placeholder="🔍 Type name or ID…" 
+                style="background:rgba(255,255,255,.07);border-color:rgba(201,150,58,.3);color:#fff;margin-bottom:4px"
+                oninput="filterSwapPartners(this.value)" onclick="showSwapPartnerDropdown()">
+              <div id="swapPartnerDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;max-height:200px;overflow-y:auto;background:#1B2D4A;border:1px solid rgba(201,150,58,.4);border-radius:8px;z-index:100;margin-top:2px;box-shadow:0 8px 32px rgba(0,0,0,.4)"></div>
+              <input type="hidden" id="swapPartner" value="">
+              <div id="swapPartnerSelected" style="font-size:10px;color:var(--gold2);margin-top:2px;min-height:14px"></div>
+            </div>
           </div>
         </div>
         <div id="swapPreview" style="background:rgba(0,0,0,.2);border-radius:8px;padding:10px;margin-bottom:10px;font-size:11px;color:rgba(255,255,255,.7);display:none"></div>
@@ -1220,12 +1230,44 @@ function hideRequestPopup() {
   if (el) el.classList.remove('show');
 }
 function pushToast(title, text, actionLabel="Open Requests") {
-  const wrap = document.getElementById('requestToastWrap'); if (!wrap) return;
-  const toast = document.createElement('div');
-  toast.className = 'req-toast';
-  toast.innerHTML = `<div class="req-toast-top"><div><div class="req-toast-title">${title}</div><div class="req-toast-text">${text}</div></div><button class="exit-btn" style="padding:4px 8px" onclick="this.closest('.req-toast').remove()">✕</button></div><div class="req-toast-actions"><button class="btn btn-gold btn-xs" onclick="openRequestCenter();this.closest('.req-toast').remove()">${actionLabel}</button></div>`;
-  wrap.prepend(toast);
-  setTimeout(() => { if (toast && toast.parentNode) toast.remove(); }, 7000);
+  // Show as top alert banner instead of bottom toast
+  showSwapAlert(title, text, actionLabel);
+}
+
+// New: Top alert banner for swap requests (replaces bottom toast)
+function showSwapAlert(title, text, actionLabel) {
+  // Remove any existing alert first
+  const existing = document.getElementById('swapAlertBanner');
+  if (existing) existing.remove();
+
+  const alert = document.createElement('div');
+  alert.id = 'swapAlertBanner';
+  alert.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:3000;max-width:420px;width:92vw;animation:fadeUp .3s ease both;';
+  alert.innerHTML = `
+    <div style="background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:2px solid var(--gold);border-radius:16px;padding:16px 18px;box-shadow:0 12px 40px rgba(0,0,0,.5);backdrop-filter:blur(12px)">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="width:40px;height:40px;border-radius:12px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">🔄</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;margin-bottom:4px">${title}</div>
+          <div style="font-size:12px;color:rgba(255,255,255,.7);line-height:1.5;margin-bottom:10px">${text}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-gold btn-sm" onclick="openRequestCenter();dismissSwapAlert()">${actionLabel}</button>
+            <button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:none" onclick="dismissSwapAlert()">Dismiss</button>
+          </div>
+        </div>
+        <button onclick="dismissSwapAlert()" style="background:none;border:none;color:rgba(255,255,255,.4);cursor:pointer;font-size:16px;padding:0;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;transition:.2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='none'">✕</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(alert);
+}
+
+function dismissSwapAlert() {
+  const alert = document.getElementById('swapAlertBanner');
+  if (alert) {
+    alert.style.animation = 'fadeOut .2s ease both';
+    setTimeout(() => alert.remove(), 250);
+  }
 }
 function showRequestPopup(item) {
   const body = document.getElementById('requestPopupBody');
@@ -1312,16 +1354,72 @@ function populateSwapForm() {
   const sch = getEmpSch(currentEmpId);
   const numDays = getDaysInMonth();
   const myDaySel = document.getElementById("swapMyDay");
-  const partnerSel = document.getElementById("swapPartner");
-  if (!myDaySel || !partnerSel) return;
+  if (!myDaySel) return;
 
   // My available days (working days only)
   myDaySel.innerHTML = Object.entries(sch).filter(([d,c]) => c && c!=="OFF" && c!=="AL" && c!=="EX" && c!=="UNP")
     .map(([d,c]) => `<option value="${d}">Day ${d} (${c})</option>`).join("") || '<option>No working days</option>';
 
-  // Partners: same department, different person
-  const partners = Object.values(staffData).filter(e => e.department===emp.department && e.id!==currentEmpId);
-  partnerSel.innerHTML = partners.map(e => `<option value="${e.id}">${e.name} (${e.id})</option>`).join("") || '<option>No colleagues</option>';
+  // Build partner list for search
+  window._swapPartners = Object.values(staffData).filter(e => e.department===emp.department && e.id!==currentEmpId);
+  renderSwapPartnerDropdown(window._swapPartners);
+  updateSwapPreview();
+}
+
+function renderSwapPartnerDropdown(partners) {
+  const dropdown = document.getElementById("swapPartnerDropdown");
+  if (!dropdown) return;
+  if (!partners.length) {
+    dropdown.innerHTML = '<div style="padding:10px;color:rgba(255,255,255,.4);font-size:11px;text-align:center">No colleagues found</div>';
+    return;
+  }
+  dropdown.innerHTML = partners.map(e => `
+    <div class="swap-partner-item" data-id="${e.id}" onclick="selectSwapPartner('${e.id}', '${e.name.replace(/'/g, "\'")}')" 
+      style="padding:8px 12px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);transition:.15s;display:flex;align-items:center;gap:8px"
+      onmouseover="this.style.background='rgba(201,150,58,.2)'" onmouseout="this.style.background='transparent'">
+      <div style="width:28px;height:28px;border-radius:8px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0">${e.name.charAt(0)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.name}</div>
+        <div style="font-size:9px;color:rgba(255,255,255,.4)">${e.id} · ${e.position}</div>
+      </div>
+    </div>
+  `).join("");
+}
+
+function showSwapPartnerDropdown() {
+  const dropdown = document.getElementById("swapPartnerDropdown");
+  if (dropdown) dropdown.style.display = "block";
+}
+
+function hideSwapPartnerDropdown() {
+  const dropdown = document.getElementById("swapPartnerDropdown");
+  if (dropdown) dropdown.style.display = "none";
+}
+
+function filterSwapPartners(query) {
+  const q = query.toLowerCase().trim();
+  const partners = window._swapPartners || [];
+  const filtered = q ? partners.filter(e => 
+    e.name.toLowerCase().includes(q) || 
+    e.id.toLowerCase().includes(q) ||
+    e.position.toLowerCase().includes(q)
+  ) : partners;
+  renderSwapPartnerDropdown(filtered);
+  showSwapPartnerDropdown();
+  // Clear selection if query doesn't match current
+  const currentId = document.getElementById("swapPartner")?.value;
+  if (currentId && !filtered.find(e => e.id === currentId)) {
+    document.getElementById("swapPartner").value = "";
+    document.getElementById("swapPartnerSelected").textContent = "";
+    updateSwapPreview();
+  }
+}
+
+function selectSwapPartner(id, name) {
+  document.getElementById("swapPartner").value = id;
+  document.getElementById("swapPartnerSearch").value = name;
+  document.getElementById("swapPartnerSelected").innerHTML = `<span style="color:var(--gold2)">✓ Selected: ${name}</span>`;
+  hideSwapPartnerDropdown();
   updateSwapPreview();
 }
 
@@ -1329,7 +1427,11 @@ function updateSwapPreview() {
   const myDay = document.getElementById("swapMyDay")?.value;
   const partnerId = document.getElementById("swapPartner")?.value;
   const preview = document.getElementById("swapPreview");
-  if (!myDay || !partnerId || !preview) return;
+  if (!myDay || !preview) return;
+  if (!partnerId) {
+    preview.style.display = "none";
+    return;
+  }
 
   const myShift = getEmpSch(currentEmpId)[myDay] || "—";
   const partner = staffData[partnerId];
@@ -1356,7 +1458,8 @@ function updateSwapPreview() {
 async function submitSwapRequest() {
   const myDay = document.getElementById("swapMyDay")?.value;
   const partnerId = document.getElementById("swapPartner")?.value;
-  if (!myDay || !partnerId) { alert("Please select a day and partner"); return; }
+  if (!myDay) { alert("Please select a day to swap"); return; }
+  if (!partnerId) { alert("Please select a colleague to swap with"); return; }
 
   const reqId = "SWAP_" + Date.now();
   const req = {
@@ -2653,7 +2756,15 @@ async function selectShift(code) {
   closePop();
 }
 function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; }
-document.addEventListener("click",e=>{ if(!document.getElementById("shiftPop").contains(e.target)) closePop(); });
+document.addEventListener("click",e=>{ 
+  if(!document.getElementById("shiftPop").contains(e.target)) closePop();
+  // Close swap partner dropdown when clicking outside
+  const swapDropdown = document.getElementById("swapPartnerDropdown");
+  const swapSearch = document.getElementById("swapPartnerSearch");
+  if (swapDropdown && swapSearch && !swapDropdown.contains(e.target) && e.target !== swapSearch) {
+    hideSwapPartnerDropdown();
+  }
+});
 
 // ═══════════════════════════════════════════════════
 // STAFF
