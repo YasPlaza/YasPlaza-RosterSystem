@@ -37,7 +37,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 @keyframes syncPulse{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1);opacity:0}}
 #sinanLogo{position:fixed;bottom:16px;left:16px;z-index:500;opacity:0.55;transition:opacity .3s;cursor:default;pointer-events:none}
 #sinanLogo:hover{opacity:0.9}
-#sinanLogo img{width:44px;height:44px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.4);display:block}
+#sinanLogo img{width:44px;height:44px;border-radius:8px;box-shadow:0 2px 12px rgba(0,0,0,.4);display:block;object-fit:cover;object-position:center}
 #sinanLogo span{display:block;text-align:center;font-size:7px;font-weight:700;color:rgba(255,255,255,.5);margin-top:2px;letter-spacing:.3px;font-family:'DM Sans',sans-serif}
 #onlineStatus{position:fixed;bottom:16px;right:16px;background:var(--navy2);border:1px solid rgba(255,255,255,.15);border-radius:100px;padding:6px 14px;font-size:11px;font-weight:600;color:#fff;display:flex;align-items:center;gap:6px;z-index:500;box-shadow:var(--sh-lg);transition:.3s}
 .status-dot{width:8px;height:8px;border-radius:50%;background:#aaa}
@@ -162,6 +162,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .sp-EX{background:#F3E5F5;color:#6A1B9A;border-color:#CE93D8}
 .sp-UNP{background:#FFEBEE;color:#B71C1C;border-color:#FFCDD2}
 .sp-SH{background:#C8E6C9;color:#1B5E20;border-color:#66BB6A}
+.sp-TRN{background:#DBEAFE;color:#1D4ED8;border-color:#60A5FA}
 .sp-empty{background:#f5f5f5;color:#bbb;border-color:#e0e0e0}
 /* Hotel assignment pills */
 .hp{display:inline-flex;align-items:center;gap:3px;border-radius:4px;font-size:8px;font-weight:700;padding:1px 4px;cursor:pointer;transition:.15s;border:1.5px solid transparent;white-space:nowrap}
@@ -1719,7 +1720,6 @@ function setupRealtimeListeners() {
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       renderSwapList();
     }
-    handleRequestPopups();
   });
 
   // Leave requests listener
@@ -1768,6 +1768,7 @@ function setupRealtimeListeners() {
     Object.values(raw).forEach(item => { if (item && item.key) archiveData[item.key] = item; });
     if (document.querySelector(".tab.active")?.dataset.p === "archives") renderArchives();
   });
+    handleRequestPopups();
 
   // Settings
   db.ref("settings").on("value", snap => {
@@ -2272,7 +2273,8 @@ function initAdmin() {
   document.getElementById("monthLabel").textContent=`${MONTHS[MONTH]} ${YEAR}`;
   if (!archiveData[schKey()]) archiveMonthSnapshot(YEAR, MONTH, "admin opened");
   renderAll();
-}
+
+  handleRequestPopups();}
 function fillAllSelects() {
   const depts = getAllDepts();
   const deptOpts = '<option value="all">All Departments</option>' + depts.map(d=>`<option>${d}</option>`).join("");
