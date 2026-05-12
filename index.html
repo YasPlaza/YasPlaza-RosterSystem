@@ -1422,10 +1422,17 @@ function saveLocal() {
       hotels: hotelData,
       swaps: swapRequests,
       leaves: leaveRequests,
-      settings: { adminPass, managerPass, developerPass, deptPasswords },
+      settings: { 
+        adminPass: adminPass, 
+        managerPass: managerPass, 
+        developerPass: developerPass, 
+        deptPasswords: deptPasswords 
+      },
       deptConfig: { depts: DEPT_POS, deptColors: DEPT_C },
     }));
-  } catch(e) { console.warn("localStorage save failed:", e); }
+  } catch(e) { 
+    console.warn("localStorage save failed:", e); 
+  }
 }
 
 
