@@ -163,6 +163,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .sp-UNP{background:#FFEBEE;color:#B71C1C;border-color:#FFCDD2}
 .sp-SH{background:#C8E6C9;color:#1B5E20;border-color:#66BB6A}
 .sp-TRN{background:#DBEAFE;color:#1D4ED8;border-color:#60A5FA}
+.sp-SPL{background:#FEF3C7;color:#92400E;border-color:#F59E0B}
 .sp-empty{background:#f5f5f5;color:#bbb;border-color:#e0e0e0}
 /* Hotel assignment pills */
 .hp{display:inline-flex;align-items:center;gap:3px;border-radius:4px;font-size:8px;font-weight:700;padding:1px 4px;cursor:pointer;transition:.15s;border:1.5px solid transparent;white-space:nowrap}
@@ -173,10 +174,18 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .hp-bay{background:#E3F2FD;color:#0D47A1;border-color:#42A5F5}
 .hp-crowne{background:#FBE9E7;color:#BF360C;border-color:#FF8A65}
 .hp-staybridge{background:#EDE7F6;color:#4A148C;border-color:#AB47BC}
+.hp-yph{background:#EDE7F6;color:#7B5EA7;border-color:#9C27B0}
 .hp-none{background:#f5f5f5;color:#999;border-color:#ddd}
 
 .sat-th{background:rgba(183,28,28,.4)!important;color:#FFD54F!important;border-left:2px solid #c62828!important}
 .sat-td{border-left:1px solid rgba(198,40,40,.2)!important}
+
+/* ════ SETTINGS PAGE ════ */
+#page-settings{padding:20px 22px}
+.settings-panel[style*="display: none"]{display:none!important}
+.dev-only-btn[style*="display: none"]{display:none!important}
+.dev-only-btn{display:block}
+button.dev-only-btn{display:inline-flex}
 
 /* ════ SHIFT POPUP ════ */
 .spop{position:fixed;z-index:800;background:#fff;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.22);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:190px;border:1.5px solid var(--ice);animation:popIn .12s ease both}
@@ -293,20 +302,202 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 @media(max-width:900px){
   .archive-grid{grid-template-columns:1fr}
   #page-requests > .req-grid{grid-template-columns:1fr !important}
+  #page-sections .card[style*="grid-column:1/-1"]{grid-column:1 !important}
+  #page-sections > div{grid-template-columns:1fr !important}
 }
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
   .estats{grid-template-columns:1fr 1fr}
   .wgrid{grid-template-columns:repeat(4,1fr)}
-  .topbar{padding:10px;flex-wrap:wrap;height:auto}
-  .topbar-r{width:100%;flex-wrap:wrap;justify-content:flex-start}
-  .page{padding:13px 11px}
+  .topbar{padding:8px 12px;flex-wrap:wrap;height:auto;gap:8px}
+  .nav{flex-wrap:nowrap;overflow-x:auto;gap:2px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .nav::-webkit-scrollbar{height:2px}
+  .tab{font-size:10px;padding:5px 10px;white-space:nowrap}
+  .topbar-r{width:100%;flex-wrap:wrap;justify-content:flex-start;gap:5px}
+  .topbar-r .mnav{margin-left:0}
+  .mlbl{min-width:90px;font-size:11px}
+  .page{padding:12px 10px}
   .el,.ed{max-width:100%}
   .ehdr{align-items:flex-start;flex-wrap:wrap}
-  .req-toast-wrap{left:12px;right:12px;bottom:12px;max-width:none}
+  .req-toast-wrap{left:10px;right:10px;bottom:10px;max-width:none}
+  .modal{padding:18px;width:95vw !important;max-width:95vw !important}
+  .fg{grid-template-columns:1fr !important}
+  .ff{grid-column:1 !important}
+  .mf{flex-wrap:wrap;gap:8px}
+  .mf .btn{flex:1;min-width:100px;justify-content:center}
+  .land-card{padding:36px 22px}
+  .pass-card{padding:28px 20px}
+  #page-dash .req-grid{grid-template-columns:1fr !important}
+  #page-settings > div{grid-template-columns:1fr !important}
+  #page-sections > div{grid-template-columns:1fr !important}
+  #page-sections .card[style*="grid-column"]{grid-column:1 !important}
+  #page-settings .card[style*="grid-column"]{grid-column:1 !important}
+  .fb{gap:5px}
+  .fb .inp-sm{max-width:100% !important;width:100%}
+  .fb > div[style*="margin-left:auto"]{width:100%;flex-wrap:wrap}
+}
+@media(max-width:480px){
+  .g4{grid-template-columns:1fr}
+  .estats{grid-template-columns:1fr 1fr}
+  .wgrid{grid-template-columns:repeat(3,1fr)}
+  .topbar-logo span+span{display:none}
+  .topbar-logo{font-size:11px}
+  .mlbl{min-width:70px;font-size:10px}
 }
 
+/* Mobile Card View */
+.mobile-roster { display: none; }
+@media(max-width:768px){
+  .desktop-roster { display: none !important; }
+  .mobile-roster { display: block !important; }
+  .mobile-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 14px 14px;
+    margin-bottom: 10px;
+    box-shadow: var(--sh);
+    border: 1px solid var(--ice);
+  }
+  .mobile-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--ice);
+  }
+  .mobile-card-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 17px;
+    font-weight: 800;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .mobile-card-info { flex: 1; min-width: 0; }
+  .mobile-card-name { font-weight: 700; font-size: 13px; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile-card-meta { font-size: 10px; color: var(--slate); margin-top: 3px; display:flex; flex-wrap:wrap; gap:4px; align-items:center; }
+  .mobile-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+  }
+  .mobile-day {
+    text-align: center;
+    padding: 5px 2px;
+    border-radius: 7px;
+    background: var(--ice2);
+    border: 1.5px solid transparent;
+    transition: .15s;
+    cursor: pointer;
+  }
+  .mobile-day:active { transform: scale(.93); }
+  .mobile-day.today { border-color: var(--gold); background: var(--gold-l); }
+  .mobile-day.sat { border-color: rgba(198,40,40,.3); background: rgba(198,40,40,.06); }
+  .mobile-day-num { font-size: 9px; font-weight: 700; color: var(--slate2); }
+  .mobile-day-shift { font-size: 8px; font-weight: 800; margin-top: 2px; display: inline-block; padding: 1px 2px; border-radius: 4px; }
+  .mobile-swipe-hint { text-align:center;font-size:10px;color:var(--slate2);padding:6px;margin-top:4px; }
+  .mobile-toggle-view {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    padding: 0;
+    width: 100%;
+  }
+  .mobile-toggle-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 9px;
+    border: 1.5px solid var(--ice);
+    background: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--slate);
+    cursor: pointer;
+    transition: .2s;
+    text-align: center;
+  }
+  .mobile-toggle-btn.active {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  /* Make filter bar stack on mobile */
+  #page-roster .fb { flex-direction:column; align-items:stretch; }
+  #page-roster .fb > * { width:100% !important; max-width:none !important; }
+  #page-roster .fb > div[style*="margin-left"] { margin-left:0 !important; flex-wrap:wrap; }
+  #page-roster .fb .btn { flex:1; justify-content:center; }
+  /* Sections rules grid */
+  #page-sections .card > div > div[style*="grid-template-columns:repeat(auto-fill"] { grid-template-columns:1fr !important; }
+}
+
+
 @keyframes fadeOut{from{opacity:1;transform:translateY(0)}to{opacity:0;transform:translateY(-10px)}}
+
+/* Conflict Detection */
+.conflict-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--red-l);
+  color: var(--red);
+  border: 1.5px solid var(--red);
+  border-radius: 100px;
+  padding: 2px 8px;
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 6px;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .6; }
+}
+.conflict-row {
+  background: var(--red-l) !important;
+}
+.conflict-tooltip {
+  position: absolute;
+  background: var(--red);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  z-index: 100;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(183,28,28,.3);
+  pointer-events: none;
+}
+
+/* ════ DUTY DETAIL MODAL ════ */
+#dutyModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px}
+#dutyModal.show{display:flex}
+.duty-card{background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:1.5px solid rgba(201,150,58,.35);border-radius:22px;padding:28px;width:340px;max-width:100%;animation:fadeUp .2s ease both}
+.duty-date{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+.duty-day{font-size:11px;color:var(--gold2);margin-bottom:18px}
+.duty-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.duty-row:last-child{border-bottom:none}
+.duty-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.duty-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.35)}
+.duty-value{font-size:13px;font-weight:600;color:#fff;margin-top:1px}
+.wd{cursor:pointer}
+.wd:hover{border-color:var(--gold)!important;transform:scale(1.05)}
+
+/* ════ FIX ACCESS PAGE ════ */
+#passModal .pass-card{background:linear-gradient(135deg,#1B2D4A,#152337);border:1.5px solid rgba(201,150,58,.3);box-shadow:0 24px 80px rgba(0,0,0,.6)}
+#passModal{background:rgba(0,0,0,.75)}
+.role-btn-wrap{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.role-btn{padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.05);color:rgba(255,255,255,.65);font-size:12px;font-weight:600;cursor:pointer;transition:.2s;text-align:center}
+.role-btn:hover{background:rgba(255,255,255,.1);color:#fff}
+.role-btn.active{background:rgba(201,150,58,.2);border-color:var(--gold);color:var(--gold2)}
+
 </style>
 </head>
 <body>
@@ -398,8 +589,8 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
     <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
       <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:8px">Select your access level:</div>
       <div style="display:flex;gap:6px;margin-bottom:8px">
-        <button class="btn-adm" style="flex:1;margin-top:0;background:rgba(201,150,58,.15);border-color:rgba(201,150,58,.3);color:var(--gold2)" onclick="setAdminRole('developer')" id="btnRoleDeveloper">🔧 Developer</button>
-        <button class="btn-adm" style="flex:1;margin-top:0" onclick="setAdminRole('dept')" id="btnRoleDept">🏢 Department</button>
+        <button class="role-btn active" onclick="setAdminRole('developer')" id="btnRoleDeveloper">🔧 Developer</button>
+        <button class="role-btn" onclick="setAdminRole('dept')" id="btnRoleDept">🏢 Department</button>
       </div>
       <div id="deptSelectWrap" style="display:none;margin-top:8px">
         <label style="font-size:10px;color:rgba(255,255,255,.4);display:block;margin-bottom:4px">Choose Department</label>
@@ -418,7 +609,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
     <h2>My Roster</h2>
     <p>Enter your Employee ID to view your schedule, hotel assignment, and leave balance. Updates from your manager appear instantly.</p>
     <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);border-radius:8px;font-size:11px;color:var(--gold2)">
-      💡 <strong>New:</strong> Daily hotel assignments now show in your schedule. Click any day in admin roster to assign a different hotel.
+      💡 <strong>Tip:</strong> Tap any day in your 7-day schedule to see full duty details — shift time, hotel, section &amp; more.
     </div>
     <input class="ei" id="empIdInp" placeholder="e.g. E001" maxlength="8" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')loginEmp()">
     <div class="eerr" id="empErr"></div>
@@ -433,9 +624,10 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
       <div style="flex:1">
         <div class="enm" id="eNm">—</div>
         <div class="eps" id="ePs">—</div>
-        <div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">
+        <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px;align-items:center">
           <div class="eht" id="eHt">🏨 —</div>
-          <div id="eDept" style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;margin-top:0">—</div>
+          <div id="eSection" style="display:none;align-items:center;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700;background:rgba(15,118,110,.3);color:#5EEAD4;border:1px solid rgba(15,118,110,.4)">📍 Section</div>
+          <div id="eDept" style="display:inline-flex;align-items:center;padding:3px 9px;border-radius:100px;font-size:10px;font-weight:700">—</div>
         </div>
       </div>
       <button class="exit-btn" onclick="logoutEmp()">✕ Exit</button>
@@ -549,6 +741,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
       <button class="tab"        data-p="coverage" onclick="switchPage('coverage')">⚠️ Coverage</button>
       <button class="tab"        data-p="requests" onclick="switchPage('requests')">📋 Requests</button>
       <button class="tab"        data-p="archives" onclick="switchPage('archives')">🗄️ Archives</button>
+      <button class="tab"        data-p="sections" onclick="switchPage('sections')">📍 Sections</button>
       <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Settings</button>
     </div>
     <div class="topbar-r">
@@ -580,6 +773,11 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 
   <div class="page" id="page-roster">
     <div class="fb" style="flex-wrap:wrap;gap:6px">
+      <!-- Mobile view toggle -->
+      <div class="mobile-toggle-view" style="display:none" id="mobileViewToggle">
+        <button class="mobile-toggle-btn active" onclick="setMobileView('cards')" id="btnMobileCards">📱 Cards</button>
+        <button class="mobile-toggle-btn" onclick="setMobileView('table')" id="btnMobileTable">📊 Table</button>
+      </div>
       <input class="inp inp-sm" placeholder="🔍 Name / ID…" id="rSearch" oninput="renderRoster()" style="max-width:160px">
       <select class="inp inp-sm" id="rHotelF" onchange="renderRoster()" style="max-width:155px">
         <option value="all">All Hotels</option>
@@ -592,11 +790,15 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
       </select>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
         <button class="btn btn-ghost btn-sm" onclick="openBulk()">⚡ Bulk Fill</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--purple),#7C3AED);color:#fff" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
         <button class="btn btn-sm" style="background:rgba(201,150,58,.2);color:var(--gold);border:1px solid var(--gold)" onclick="printRoster()">🖨 Print / PDF</button>
       </div>
     </div>
     <div style="font-size:10px;color:var(--slate2);margin-bottom:8px;padding:0 2px" id="rosterFilterInfo"></div>
-    <div class="card"><div class="tw" id="rosterWrap"></div></div>
+    <div class="card">
+      <div class="tw desktop-roster" id="rosterWrap"></div>
+      <div class="mobile-roster" id="rosterMobileWrap"></div>
+    </div>
   </div>
 
   <div class="page" id="page-staff">
@@ -671,85 +873,296 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
     </div>
   </div>
 
-  <div class="page" id="page-settings">
+  <div class="page" id="page-sections">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="card">
-        <div class="ch"><div class="ct">🔑 Password Management</div><span style="font-size:10px;color:var(--slate2)">Developer Only</span></div>
-        <div style="padding:18px;display:flex;flex-direction:column;gap:11px">
-          <div style="background:var(--ice2);border-radius:8px;padding:10px;margin-bottom:4px">
-            <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🔧 Developer Password</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div><label class="lbl">Current Password</label><input class="inp" type="password" id="curP"></div>
-              <div><label class="lbl">New Password</label><input class="inp" type="password" id="newP"></div>
-            </div>
-            <div style="margin-top:8px"><label class="lbl">Confirm New Password</label><input class="inp" type="password" id="conP"></div>
-            <button class="btn btn-primary" style="margin-top:10px" onclick="changePassword()">Update Developer Password</button>
-          </div>
-
-          <div style="background:var(--ice2);border-radius:8px;padding:10px;border:1.5px dashed var(--gold)">
-            <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🏢 Department Passwords</div>
-            <div id="deptPassList" style="margin-bottom:10px"></div>
-            <div style="display:flex;gap:8px;align-items:flex-end">
-              <div style="flex:1"><label class="lbl">Department</label>
-                <select class="inp" id="setDeptPassSelect"></select>
-              </div>
-              <div style="flex:1"><label class="lbl">New Password</label>
-                <input class="inp" type="password" id="setDeptPassInp" placeholder="Min 4 chars">
-              </div>
-              <button class="btn btn-gold" onclick="setDeptPassword()">Set Password</button>
-            </div>
-            <div id="deptPassMsg" style="font-size:11px;margin-top:6px;min-height:16px"></div>
-          </div>
-
-          <div id="pMsg" style="font-size:11px;min-height:16px"></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="ch"><div class="ct">🔥 Firebase Connection</div></div>
-        <div style="padding:18px">
-          <div id="fbStatusCard" style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px"></div>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
-        </div>
-      </div>
-
-      <!-- ⏰ SHIFT TIME SETTINGS — full width -->
+      <!-- Section / Area Management -->
       <div class="card" style="grid-column:1/-1">
         <div class="ch">
-          <div class="ct">⏰ Shift Time & Hours Settings</div>
-          <span style="font-size:11px;color:var(--slate2)">Edit start/end times and hours per shift — affects total hours calculation</span>
+          <div class="ct">📍 Section / Area Management</div>
+          <span style="font-size:10px;color:var(--slate2)">Sections appear in employee profiles and roster</span>
         </div>
         <div style="padding:18px">
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
-          <button class="btn btn-primary" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
-          <span id="shiftSaveMsg" style="font-size:11px;margin-left:12px;min-height:16px"></span>
-        </div>
-      </div>
-      <div class="card" style="grid-column:1/-1">
-        <div class="ch"><div class="ct">🗄️ Data Management</div></div>
-        <div style="padding:18px;display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-gold" onclick="exportCSV()">⬇ Export CSV</button>
-          <button class="btn btn-primary" onclick="printRoster()">🖨 Print Roster PDF</button>
-          <button class="btn btn-ghost" onclick="resetSchedules()">🗓 Reset Schedules</button>
-          <button class="btn btn-danger" onclick="clearAll()">⚠️ Clear ALL Data</button>
+          <div style="margin-bottom:14px">
+            <label class="lbl">Department</label>
+            <select class="inp" id="secDeptSelect" onchange="renderSectionMgmt()" style="max-width:340px">
+              <option value="">-- Select Department --</option>
+            </select>
+          </div>
+          <div id="secCurrentList" style="margin-bottom:14px"></div>
+          <div style="padding:14px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <div style="flex:1;min-width:200px">
+              <label class="lbl">New Section Name</label>
+              <input class="inp" id="secNewName" placeholder="e.g. Front Desk, Spa, Rooftop Bar…">
+            </div>
+            <button class="btn btn-gold" onclick="addSection()">+ Add Section</button>
+          </div>
+          <div id="secMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
         </div>
       </div>
 
-      <!-- Department Management -->
+      <!-- Auto Roster Rules -->
       <div class="card" style="grid-column:1/-1">
         <div class="ch">
-          <div class="ct">🏢 Department & Position Management</div>
-          <span style="font-size:10px;color:var(--slate2)">Add new departments with their positions — they'll appear in all rosters automatically</span>
+          <div class="ct">🤖 Auto Roster Rules</div>
+          <span style="font-size:10px;color:var(--slate2)">Manager sets rules — applied every time Auto Schedule runs</span>
         </div>
         <div style="padding:18px">
-          <div id="deptMgmtList" style="margin-bottom:16px"></div>
-          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
-            <div style="flex:1;min-width:150px"><label class="lbl">New Department Name</label><input class="inp" id="newDeptName" placeholder="e.g. Engineering, F&B…"></div>
-            <div style="flex:2;min-width:200px"><label class="lbl">Positions (comma separated)</label><input class="inp" id="newDeptPos" placeholder="e.g. F&B Manager, Waiter, Chef…"></div>
-            <button class="btn btn-gold" onclick="addNewDept()">+ Add Department</button>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:16px">
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">📊 Coverage Rules</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div>
+                  <label class="lbl">Minimum Staff Per Shift (MOR)</label>
+                  <input class="inp" id="ruleMinMOR" type="number" min="1" max="20" value="2" placeholder="e.g. 3">
+                </div>
+                <div>
+                  <label class="lbl">Minimum Staff Per Shift (AFT)</label>
+                  <input class="inp" id="ruleMinAFT" type="number" min="1" max="20" value="2">
+                </div>
+                <div>
+                  <label class="lbl">Minimum Staff Per Shift (EVE/Night)</label>
+                  <input class="inp" id="ruleMinEVE" type="number" min="1" max="20" value="1">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">📅 Weekend Rules</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleNoWeekendOff" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>No OFF on weekends (Fri &amp; Sat)</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleNoConsecWeekendOff" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Max 1 consecutive weekend day off</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleWeekendMOR" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Force Morning shift on Fridays</span>
+                </label>
+                <div>
+                  <label class="lbl">Max weekend OFF per month</label>
+                  <input class="inp" id="ruleMaxWeekendOff" type="number" min="0" max="8" value="2">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">🔄 Rotation Rules</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleNoConsecOff" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>No more than 2 consecutive OFF days</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleSpreadOff" style="width:15px;height:15px;accent-color:var(--gold)" checked>
+                  <span>Spread OFF days evenly through month</span>
+                </label>
+                <div>
+                  <label class="lbl">Max consecutive working days</label>
+                  <input class="inp" id="ruleMaxConsecWork" type="number" min="3" max="14" value="6">
+                </div>
+                <div>
+                  <label class="lbl">Min rest hours between shifts</label>
+                  <input class="inp" id="ruleMinRest" type="number" min="8" max="24" value="11">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">🏨 Hotel Coverage</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleYPHCoverage" style="width:15px;height:15px;accent-color:var(--gold)" checked>
+                  <span>Always keep YPH (All Properties) covered</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleBalanceHotels" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Balance staff count across all hotels</span>
+                </label>
+                <div>
+                  <label class="lbl">Min staff per hotel per day</label>
+                  <input class="inp" id="ruleMinPerHotel" type="number" min="0" max="10" value="1">
+                </div>
+              </div>
+            </div>
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">🏖 Leave Rules</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div>
+                  <label class="lbl">Max staff on AL same day</label>
+                  <input class="inp" id="ruleMaxALSameDay" type="number" min="1" max="20" value="3">
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleNoALPeak" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Block AL during peak weekends</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleRespectLeave" style="width:15px;height:15px;accent-color:var(--gold)" checked>
+                  <span>Always respect approved leave requests</span>
+                </label>
+              </div>
+            </div>
+
+            <div style="background:var(--ice2);border-radius:10px;padding:14px;border:1.5px solid #dde3f0">
+              <div style="font-weight:700;font-size:12px;color:var(--navy);margin-bottom:10px">⚡ Priority</div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div>
+                  <label class="lbl">Default Shift Pattern</label>
+                  <select class="inp" id="ruleDefaultPattern">
+                    <option value="rotate">Rotate (MOR→AFT→EVE)</option>
+                    <option value="fixed">Fixed (keep defaults)</option>
+                    <option value="balanced">Balanced Hours</option>
+                  </select>
+                </div>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleSeniorityFirst" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Senior staff get first pick of shifts</span>
+                </label>
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
+                  <input type="checkbox" id="ruleAutoApply" style="width:15px;height:15px;accent-color:var(--gold)">
+                  <span>Auto-apply rules when schedule opens</span>
+                </label>
+              </div>
+            </div>
+
           </div>
+
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-gold" onclick="saveRosterRules()">💾 Save Rules</button>
+            <button class="btn btn-primary" onclick="openAutoSchedule()">🤖 Run Auto Roster Now</button>
+            <button class="btn btn-ghost" onclick="resetRosterRules()">↺ Reset to Defaults</button>
+            <span id="rulesSaveMsg" style="font-size:11px;color:var(--green);min-height:16px"></span>
+          </div>
+
+          <!-- Rules Summary -->
+          <div id="rulesSummary" style="margin-top:16px;padding:12px;background:rgba(201,150,58,.08);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;font-size:11px;color:var(--navy);line-height:1.8;display:none"></div>
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="page" id="page-settings">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+
+    <!-- ACCESS GRANTS PANEL (Developer Only) -->
+    <div class="card" style="grid-column:1/-1">
+      <div class="ch">
+        <div class="ct">🔑 Department Access Grants</div>
+        <span style="font-size:10px;color:var(--slate2)">Developer Only — Grant departments access to specific settings</span>
+      </div>
+      <div style="padding:18px">
+        <div style="margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.6;background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:12px">
+          🔐 By default, only the Developer can access Settings. You can grant individual departments access to specific panels below. Access can be revoked at any time.
+        </div>
+        <div id="accessGrantsList" style="margin-bottom:14px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
+          <div>
+            <label class="lbl">Department</label>
+            <select class="inp" id="grantDeptSel" style="max-width:100%">
+              <option value="">-- Select Department --</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Access Panel</label>
+            <select class="inp" id="grantPanelSel">
+              <option value="passwords">🔑 Password Management</option>
+              <option value="firebase">🔥 Firebase Connection</option>
+              <option value="data">🗄️ Data Management</option>
+              <option value="departments">🏢 Department & Position Management</option>
+              <option value="shifts">⏰ Shift Time Settings (view only)</option>
+            </select>
+          </div>
+          <button class="btn btn-gold" onclick="grantAccess()">+ Grant Access</button>
+        </div>
+        <div id="grantMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+      </div>
+    </div>
+
+    <!-- PASSWORD MANAGEMENT -->
+    <div class="card settings-panel" data-panel="passwords">
+      <div class="ch"><div class="ct">🔑 Password Management</div><span style="font-size:10px;color:var(--slate2)">Developer Only</span></div>
+      <div style="padding:18px;display:flex;flex-direction:column;gap:11px">
+        <div style="background:var(--ice2);border-radius:8px;padding:10px;margin-bottom:4px">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🔧 Developer Password</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><label class="lbl">Current Password</label><input class="inp" type="password" id="curP"></div>
+            <div><label class="lbl">New Password</label><input class="inp" type="password" id="newP"></div>
+          </div>
+          <div style="margin-top:8px"><label class="lbl">Confirm New Password</label><input class="inp" type="password" id="conP"></div>
+          <button class="btn btn-primary" style="margin-top:10px" onclick="changePassword()">Update Developer Password</button>
+        </div>
+        <div style="background:var(--ice2);border-radius:8px;padding:10px;border:1.5px dashed var(--gold)">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🏢 Department Passwords</div>
+          <div id="deptPassList" style="margin-bottom:10px"></div>
+          <div style="display:flex;gap:8px;align-items:flex-end">
+            <div style="flex:1"><label class="lbl">Department</label>
+              <select class="inp" id="setDeptPassSelect"></select>
+            </div>
+            <div style="flex:1"><label class="lbl">New Password</label>
+              <input class="inp" type="password" id="setDeptPassInp" placeholder="Min 4 chars">
+            </div>
+            <button class="btn btn-gold" onclick="setDeptPassword()">Set Password</button>
+          </div>
+          <div id="deptPassMsg" style="font-size:11px;margin-top:6px;min-height:16px"></div>
+        </div>
+        <div id="pMsg" style="font-size:11px;min-height:16px"></div>
+      </div>
+    </div>
+
+    <!-- FIREBASE CONNECTION -->
+    <div class="card settings-panel" data-panel="firebase">
+      <div class="ch"><div class="ct">🔥 Firebase Connection</div></div>
+      <div style="padding:18px">
+        <div id="fbStatusCard" style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px"></div>
+        <button class="btn btn-ghost btn-sm dev-only-btn" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
+      </div>
+    </div>
+
+    <!-- SHIFT TIME SETTINGS -->
+    <div class="card settings-panel" style="grid-column:1/-1" data-panel="shifts">
+      <div class="ch">
+        <div class="ct">⏰ Shift Time & Hours Settings</div>
+        <span style="font-size:11px;color:var(--slate2)">View shift times — only Developer can edit</span>
+      </div>
+      <div style="padding:18px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
+        <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
+        <span id="shiftSaveMsg" style="font-size:11px;margin-left:12px;min-height:16px"></span>
+      </div>
+    </div>
+
+    <!-- DATA MANAGEMENT -->
+    <div class="card settings-panel" style="grid-column:1/-1" data-panel="data">
+      <div class="ch"><div class="ct">🗄️ Data Management</div></div>
+      <div style="padding:18px;display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-gold" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="btn btn-primary" onclick="printRoster()">🖨 Print Roster PDF</button>
+        <button class="btn btn-ghost dev-only-btn" onclick="resetSchedules()">🗓 Reset Schedules</button>
+        <button class="btn btn-danger dev-only-btn" onclick="clearAll()">⚠️ Clear ALL Data</button>
+      </div>
+    </div>
+
+    <!-- DEPARTMENT & POSITION MANAGEMENT -->
+    <div class="card settings-panel" style="grid-column:1/-1" data-panel="departments">
+      <div class="ch">
+        <div class="ct">🏢 Department & Position Management</div>
+        <span style="font-size:10px;color:var(--slate2)">Add new departments with their positions</span>
+      </div>
+      <div style="padding:18px">
+        <div id="deptMgmtList" style="margin-bottom:16px"></div>
+        <div class="dev-only-btn" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
+          <div style="flex:1;min-width:150px"><label class="lbl">New Department Name</label><input class="inp" id="newDeptName" placeholder="e.g. Engineering, F&amp;B…"></div>
+          <div style="flex:2;min-width:200px"><label class="lbl">Positions (comma separated)</label><input class="inp" id="newDeptPos" placeholder="e.g. F&amp;B Manager, Waiter, Chef…"></div>
+          <button class="btn btn-gold" onclick="addNewDept()">+ Add Department</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -773,6 +1186,11 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
         </div>
       </div>
       <div><label class="lbl">Hotel *</label><select class="inp" id="f-hotel"></select></div>
+      <div class="ff"><label class="lbl">📍 Section / Area <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate2)">(e.g. Front Desk, Room Service, Pool Bar…)</span></label>
+        <select class="inp" id="f-section">
+          <option value="">— Not Assigned —</option>
+        </select>
+      </div>
       <div><label class="lbl">Default Shift</label><select class="inp" id="f-shift"></select></div>
       <div><label class="lbl">Shift Hours</label>
         <select class="inp" id="f-hrs">
@@ -878,6 +1296,7 @@ const DAYS_S  = ["Sun","Mon","Tue","Wed","Thu","Fri","SAT"];
 
 const HOTELS = [
   {id:"all",        name:"All Hotels",          color:"#1B2A4A",light:"#C5D1E8"},
+  {id:"yph",        name:"YPH (All Properties)",color:"#7B5EA7",light:"#EDE7F6"},
   {id:"marina",     name:"Yas Plaza Marina",     color:"#006064",light:"#E0F7FA"},
   {id:"circuit",    name:"Yas Plaza Circuit",    color:"#1B2A4A",light:"#D6E0F0"},
   {id:"mangrove",   name:"Yas Plaza Mangrove",   color:"#1B5E20",light:"#E8F5E9"},
@@ -902,7 +1321,15 @@ let DEPT_POS = {
   "Kitchen":["Executive Chef","Sous Chef","Chef de Partie","Demi Chef de Partie","Commis Chef","Stewarding Supervisor","Kitchen Steward"],
 };
 
-// Dept colour palette — auto-assigned for new depts
+// Sections per department — used to assign specific work area
+let DEPT_SECTIONS = {
+  "Front Office":   ["Front Desk","Concierge","Guest Service","Data Entry","Lobby","Operator","Lounge"],
+  "F&B":            ["Room Service","Restaurant - Al Fanar","Restaurant - Choices","Restaurant - Sahan","Bar - Pool Bar","Bar - Lobby Bar","Bar - Sports Bar","Banqueting","IRD"],
+  "Housekeeping":   ["Rooms","Public Areas","Laundry","Linen Room"],
+  "Recreation":     ["Pool","Gym","Kids Club","Beach"],
+  "Engineering":    ["Mechanical","Electrical","HVAC","Civil","General"],
+  "Kitchen":        ["Main Kitchen","Pastry","Cold Kitchen","Stewarding"],
+};
 const DEPT_PALETTE = [
   {bg:"#E3F2FD",color:"#0D47A1"},{bg:"#E8F5E9",color:"#1B5E20"},
   {bg:"#FBE9E7",color:"#BF360C"},{bg:"#EDE7F6",color:"#4A148C"},
@@ -944,7 +1371,8 @@ const SHIFTS = {
   EX:{label:"Extra Off",  time:"—",          hours:0, bg:"#F3E5F5",color:"#6A1B9A",border:"#CE93D8"},
   UNP:{label:"Unpaid",    time:"—",          hours:0, bg:"#FFEBEE",color:"#B71C1C",border:"#FFCDD2"},
   SH:{label:"Half Day",   time:"—",          hours:4, bg:"#C8E6C9",color:"#1B5E20",border:"#66BB6A"},
-  TRN:{label:"Training",  time:"School / Training", hours:8, bg:"#DBEAFE",color:"#1D4ED8",border:"#60A5FA"},
+  TRN:{label:"Training",  time:"Training", hours:8, bg:"#DBEAFE",color:"#1D4ED8",border:"#60A5FA"},
+  SPL:{label:"Split Shift",time:"Split",   hours:9, bg:"#FEF3C7",color:"#92400E",border:"#F59E0B"},
 };
 
 // ═══════════════════════════════════════════════════
@@ -1066,6 +1494,7 @@ let adminPass = "Admin@2025";      // Legacy fallback
 let managerPass = "Manager@2025";   // Legacy fallback
 let developerPass = "Dev@2025";     // Developer only
 let deptPasswords = {};              // {departmentName: password} — set by Developer
+let deptAccessGrants = {};           // {dept: [panel1, panel2...]} — granted by Developer
 let staffData = {};     // {id: empObj}
 let schedData = {};     // {empId: {"YYYY-M": {day: code}}}
 let settingsData = {};  // {adminPass, ...}
@@ -1763,9 +2192,10 @@ function saveLocal() {
         adminPass: adminPass, 
         managerPass: managerPass, 
         developerPass: developerPass, 
-        deptPasswords: deptPasswords 
+        deptPasswords: deptPasswords,
+        deptAccessGrants: deptAccessGrants 
       },
-      deptConfig: { depts: DEPT_POS, deptColors: DEPT_C },
+      deptConfig: { depts: DEPT_POS, deptColors: DEPT_C, sections: DEPT_SECTIONS },
     }));
   } catch(e) { 
     console.warn("localStorage save failed:", e); 
@@ -1789,6 +2219,7 @@ function reloadLocal() {
     if(settingsData && settingsData.managerPass) managerPass = settingsData.managerPass;
     if(settingsData && settingsData.developerPass) developerPass = settingsData.developerPass;
     if(settingsData && settingsData.deptPasswords) deptPasswords = settingsData.deptPasswords;
+    if(settingsData && settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
     if(settingsData && settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
         if(SHIFTS[k]) { SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours; }
@@ -1796,6 +2227,8 @@ function reloadLocal() {
     }
     if(stored.deptConfig) {
       if(stored.deptConfig.depts)      DEPT_POS = Object.assign({}, DEPT_POS, stored.deptConfig.depts);
+      if(stored.deptConfig.deptColors) Object.assign(DEPT_C, stored.deptConfig.deptColors);
+            if(stored.deptConfig.sections)   Object.assign(DEPT_SECTIONS, stored.deptConfig.sections);
       if(stored.deptConfig.deptColors) Object.assign(DEPT_C, stored.deptConfig.deptColors);
     }
   } catch(e) {}
@@ -1884,6 +2317,7 @@ function setupRealtimeListeners() {
     if (settingsData.managerPass) managerPass = settingsData.managerPass;
     if (settingsData.developerPass) developerPass = settingsData.developerPass;
     if (settingsData.deptPasswords) deptPasswords = settingsData.deptPasswords;
+    if (settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
     if (settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
         if(SHIFTS[k]) { SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours; }
@@ -1893,6 +2327,7 @@ function setupRealtimeListeners() {
     if (settingsData.deptConfig) {
       if(settingsData.deptConfig.depts)      DEPT_POS = Object.assign({}, DEPT_POS, settingsData.deptConfig.depts);
       if(settingsData.deptConfig.deptColors) Object.assign(DEPT_C, settingsData.deptConfig.deptColors);
+      if(settingsData.deptConfig.sections)   Object.assign(DEPT_SECTIONS, settingsData.deptConfig.sections);
       fillAllSelects();
     }
   });
@@ -2049,10 +2484,10 @@ function cancelPass() { document.getElementById("passModal").classList.remove("s
 function setAdminRole(role) {
   console.log("[YPH] Role selected:", role);
   ADMIN_ROLE = role;
-  document.getElementById("btnRoleDeveloper").style.background = role==="developer" ? "rgba(201,150,58,.25)" : "rgba(255,255,255,.05)";
-  document.getElementById("btnRoleDeveloper").style.borderColor = role==="developer" ? "var(--gold)" : "rgba(255,255,255,.1)";
-  document.getElementById("btnRoleDept").style.background = role==="dept" ? "rgba(201,150,58,.25)" : "rgba(255,255,255,.05)";
-  document.getElementById("btnRoleDept").style.borderColor = role==="dept" ? "var(--gold)" : "rgba(255,255,255,.1)";
+  const btnDev = document.getElementById("btnRoleDeveloper");
+  const btnDept = document.getElementById("btnRoleDept");
+  if(btnDev) btnDev.classList.toggle("active", role==="developer");
+  if(btnDept) btnDept.classList.toggle("active", role==="dept");
 
   const title = document.getElementById("passTitle");
   const hint = document.getElementById("passHint");
@@ -2139,8 +2574,11 @@ function enterAdmin() {
 function _switchPageOriginal(name) {
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".tab").forEach(b=>b.classList.remove("active"));
-  document.getElementById("page-"+name).classList.add("active");
-  document.querySelector(`[data-p="${name}"]`).classList.add("active");
+  const pageEl = document.getElementById("page-"+name);
+  if (!pageEl) return;
+  pageEl.classList.add("active");
+  const tabEl = document.querySelector(`[data-p="${name}"]`);
+  if (tabEl) tabEl.classList.add("active");
   if(name==="roster")   renderRoster();
   if(name==="staff")    renderStaff();
   if(name==="coverage") renderCoverage();
@@ -2148,6 +2586,7 @@ function _switchPageOriginal(name) {
   if(name==="requests") renderAdminRequests();
   if(name==="archives") renderArchives();
   if(name==="settings") renderSettings();
+  if(name==="sections") { initSectionsPage(); initRosterRulesUI(); }
 }
 let switchPage = _switchPageOriginal;
 
@@ -2158,15 +2597,35 @@ function applyRoleRestrictions() {
   // Always restore switchPage to original first
   switchPage = _switchPageOriginal;
 
-  // Show Settings tab for devs only
+  // Department isolation: lock dept filter and force it
+  const deptFilter = document.getElementById("deptFilter");
+  if (deptFilter) {
+    if (isDept && CURRENT_DEPT !== "all") {
+      deptFilter.disabled = true;
+      deptFilter.style.opacity = "0.5";
+      deptFilter.value = CURRENT_DEPT;
+      // Force all roster/staff dept filters too
+      ["rDeptF","sDeptF"].forEach(id=>{
+        const el=document.getElementById(id);
+        if(el){el.value=CURRENT_DEPT;el.disabled=true;el.style.opacity="0.6";}
+      });
+    } else {
+      deptFilter.disabled = false;
+      deptFilter.style.opacity = "1";
+    }
+  }
+
+  // Settings tab — visible to dev OR dept users with any granted access
   const settingsTab = document.querySelector('[data-p="settings"]');
-  if (settingsTab) settingsTab.style.display = isDev ? "" : "none";
+  const myGrants = (isDept && CURRENT_DEPT) ? (deptAccessGrants[CURRENT_DEPT] || []) : [];
+  const hasAnyGrant = isDev || myGrants.length > 0;
+  if (settingsTab) settingsTab.style.display = hasAnyGrant ? "" : "none";
 
   // Show/hide developer-only buttons in topbar
   const exportBtn = document.querySelector('button[onclick="exportCSV()"]');
   if (exportBtn) exportBtn.style.display = isDev ? "" : "none";
 
-  // Show role badge in topbar
+  // Role badge in topbar
   const topbarLogo = document.querySelector('.topbar-logo');
   if (topbarLogo) {
     const existingBadge = document.getElementById('roleBadge');
@@ -2174,36 +2633,38 @@ function applyRoleRestrictions() {
     const badge = document.createElement('span');
     badge.id = 'roleBadge';
     if (isDev) {
-      badge.style.cssText = `background:#7C3AED;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:8px;text-transform:uppercase;letter-spacing:.5px`;
-      badge.textContent = 'Developer';
+      badge.style.cssText = 'background:#7C3AED;color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:8px;text-transform:uppercase;letter-spacing:.5px';
+      badge.textContent = '🔧 Developer';
     } else {
-      badge.style.cssText = `background:var(--gold);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:8px;text-transform:uppercase;letter-spacing:.5px`;
-      badge.textContent = CURRENT_DEPT === "all" ? 'Admin' : CURRENT_DEPT;
+      badge.style.cssText = 'background:var(--gold);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:100px;margin-left:8px;text-transform:uppercase;letter-spacing:.5px';
+      badge.textContent = '🏢 ' + (CURRENT_DEPT === "all" ? 'Manager' : CURRENT_DEPT);
     }
     topbarLogo.appendChild(badge);
   }
 
-  // Lock dept filter for department users
-  const deptFilter = document.getElementById("deptFilter");
-  if (deptFilter) {
-    if (isDept) {
-      deptFilter.disabled = true;
-      deptFilter.style.opacity = "0.5";
-      deptFilter.value = CURRENT_DEPT;
-    } else {
-      deptFilter.disabled = false;
-      deptFilter.style.opacity = "1";
-    }
-  }
-
-  // Block Settings page for non-developers
+  // Block Settings or specific panels for non-devs
   if (!isDev) {
     switchPage = function(name) {
       if (name === "settings") {
-        alert("🔒 Settings access is restricted to Developer only.");
+        const grants = (CURRENT_DEPT && deptAccessGrants[CURRENT_DEPT]) || [];
+        if (grants.length === 0) {
+          alert("🔒 Settings access is restricted to Developer only.");
+          return;
+        }
+        // They have some grants — allow but we'll hide panels in renderSettings
+        _switchPageOriginal(name);
         return;
       }
+      // For roster/staff, force dept filter
       _switchPageOriginal(name);
+      if ((name === "roster" || name === "staff") && isDept && CURRENT_DEPT !== "all") {
+        const rDeptF = document.getElementById("rDeptF");
+        const sDeptF = document.getElementById("sDeptF");
+        if(rDeptF){rDeptF.value=CURRENT_DEPT;rDeptF.disabled=true;}
+        if(sDeptF){sDeptF.value=CURRENT_DEPT;sDeptF.disabled=true;}
+        renderRoster && name==="roster" && renderRoster();
+        renderStaff && name==="staff" && renderStaff();
+      }
     };
   }
 }
@@ -2211,12 +2672,17 @@ function applyRoleRestrictions() {
 function isDeveloper() { return ADMIN_ROLE === "developer"; }
 function isManager() { return ADMIN_ROLE === "manager"; }
 function lockAdmin() {
-  ADMIN_ROLE = "developer";
+  ADMIN_ROLE = "manager";
   CURRENT_DEPT = "all";
   switchPage = _switchPageOriginal;
   document.getElementById("app").classList.remove("show");
   document.getElementById("app").style.display="none";
   document.getElementById("landing").style.display="flex";
+  // Re-enable any locked filters
+  ["rDeptF","sDeptF","deptFilter"].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.disabled=false;el.style.opacity="1";}
+  });
 }
 function changeDept(dept) {
   CURRENT_DEPT = dept;
@@ -2491,6 +2957,10 @@ function fillPosForDept() {
   const dept=document.getElementById("f-dept")?.value||getAllDepts()[0];
   const el=document.getElementById("f-pos"); if(!el) return;
   el.innerHTML=(DEPT_POS[dept]||[]).map(p=>`<option>${p}</option>`).join("");
+  // Fill sections dropdown
+  const sec=document.getElementById("f-section"); if(!sec) return;
+  const sections=DEPT_SECTIONS[dept]||[];
+  sec.innerHTML='<option value="">— Not Assigned —</option>'+sections.map(s=>`<option>${s}</option>`).join("");
 }
 function renderAll() {
   const active=document.querySelector(".tab.active")?.dataset.p||"dash";
@@ -2501,6 +2971,7 @@ function renderAll() {
   if(active==="requests") renderAdminRequests();
   if(active==="archives") renderArchives();
   if(active==="settings") renderSettings();
+  if(active==="sections") { initSectionsPage && initSectionsPage(); initRosterRulesUI && initRosterRulesUI(); }
 }
 
 // ═══════════════════════════════════════════════════
@@ -2700,6 +3171,7 @@ function renderRoster() {
       </td>
       <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
       <td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
+      <td style="font-size:9px;color:var(--teal);font-weight:600;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis">${emp.section||'—'}</td>
       ${cells}
       <td style="text-align:center;background:#F3E5F5;font-weight:700;color:#6A1B9A;font-size:10px;min-width:50px">
         ${renderHotelSummary(emp.id)}
@@ -2720,6 +3192,7 @@ function renderRoster() {
         <th class="sc-col" style="min-width:160px">EMPLOYEE</th>
         <th style="min-width:80px">DEPT</th>
         <th style="min-width:120px">POSITION</th>
+        <th style="min-width:90px;background:#0F766E;color:#fff">SECTION</th>
         ${dths}
         <th style="text-align:center;background:#6A1B9A;min-width:50px;font-size:8px">HOTEL</th>
         <th style="text-align:center;background:#1B5E20;min-width:40px">DAYS</th>
@@ -2757,6 +3230,690 @@ async function selectShift(code) {
   }
   closePop();
 }
+
+
+// ═══════════════════════════════════════════════════
+// 1. MOBILE CARD VIEW FUNCTIONS
+// ═══════════════════════════════════════════════════
+
+let mobileViewMode = 'cards'; // 'cards' or 'table'
+
+function setMobileView(mode) {
+  mobileViewMode = mode;
+  document.getElementById('btnMobileCards').classList.toggle('active', mode === 'cards');
+  document.getElementById('btnMobileTable').classList.toggle('active', mode === 'table');
+  renderRoster();
+}
+
+function renderMobileRoster(filt) {
+  const numDays = getDIM();
+  const today = new Date().getDate();
+  const days = Array.from({length: numDays}, (_, i) => i + 1);
+
+  // Group by week for better mobile display
+  const weeks = [];
+  for (let i = 0; i < days.length; i += 7) {
+    weeks.push(days.slice(i, i + 7));
+  }
+
+  return filt.map((emp, idx) => {
+    const sch = getEmpSch(emp.id);
+    const st = calcStats(emp, sch);
+    const hotel = HOTELS.find(h => h.id === emp.hotel);
+    const dc = getDeptColor(emp.department);
+    const initial = emp.name ? emp.name.charAt(0).toUpperCase() : '?';
+
+    const weekCards = weeks.map((week, widx) => {
+      const dayCells = week.map(d => {
+        const code = sch[d] || '';
+        const sh = SHIFTS[code];
+        const dow = new Date(YEAR, MONTH, d).getDay();
+        const isToday = d === today;
+        const isSat = dow === 6;
+
+        return `<div class="mobile-day ${isToday ? 'today' : ''} ${isSat ? 'sat' : ''}" onclick="openPicker(event, '${emp.id}', ${d})">
+          <div class="mobile-day-num">${d}</div>
+          <div class="mobile-day-shift ${sh ? 'sp sp-' + code : 'sp-empty'}" style="font-size:8px;padding:1px 2px;margin-top:2px">${code || '—'}</div>
+        </div>`;
+      }).join('');
+
+      return `<div style="margin-bottom:8px">
+        <div style="font-size:9px;color:var(--slate2);margin-bottom:4px;font-weight:600">Week ${widx + 1}</div>
+        <div class="mobile-days-grid">${dayCells}</div>
+      </div>`;
+    }).join('');
+
+    return `<div class="mobile-card">
+      <div class="mobile-card-header">
+        <div class="mobile-card-avatar" style="background:${dc.color}">${initial}</div>
+        <div class="mobile-card-info">
+          <div class="mobile-card-name">${emp.name || '—'}</div>
+          <div class="mobile-card-meta">
+            <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:8px;padding:1px 5px">${emp.department}</span>
+            <span style="margin-left:4px">${emp.position}</span>
+            ${hotel ? `<span style="margin-left:4px;color:${hotel.color}">🏨 ${hotel.name.split(' ').pop()}</span>` : ''}
+          </div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#1B5E20">${st.work}</div>
+          <div style="font-size:8px;color:var(--slate2)">days</div>
+        </div>
+      </div>
+      ${weekCards}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--ice)">
+        <div style="font-size:9px;color:var(--slate2)">
+          <span style="color:#1B5E20;font-weight:700">${st.hrs}h</span> total · 
+          <span style="color:#F57F17;font-weight:700">${st.alRem}</span> AL left
+        </div>
+        <button class="btn btn-ghost btn-xs" onclick="openEditStaff('${emp.id}')">✏️ Edit</button>
+      </div>
+    </div>`;
+  }).join('') || '<div style="text-align:center;padding:40px;color:var(--slate2)">No staff found</div>';
+}
+
+// ═══════════════════════════════════════════════════
+// 2. CONFLICT DETECTION FUNCTIONS
+// ═══════════════════════════════════════════════════
+
+function detectConflicts(empId, day, newShift) {
+  const conflicts = [];
+  const emp = staffData[empId];
+  if (!emp) return conflicts;
+
+  const sch = getEmpSch(empId);
+  const currentShift = sch[day];
+
+  // Check 1: Double shift on same day (already working)
+  if (currentShift && currentShift !== 'OFF' && currentShift !== 'AL' && currentShift !== 'EX' && currentShift !== 'UNP') {
+    if (newShift !== 'OFF' && newShift !== 'AL' && newShift !== 'EX' && newShift !== 'UNP') {
+      conflicts.push({
+        type: 'double_shift',
+        message: `${emp.name} already has ${currentShift} shift on Day ${day}`,
+        severity: 'warning'
+      });
+    }
+  }
+
+  // Check 2: Rest period violation (less than 11 hours between shifts)
+  const prevDay = day - 1;
+  const nextDay = day + 1;
+  if (prevDay >= 1) {
+    const prevShift = sch[prevDay];
+    if (prevShift && SHIFTS[prevShift] && SHIFTS[newShift]) {
+      const prevEnd = getShiftEndHour(prevShift);
+      const newStart = getShiftStartHour(newShift);
+      if (prevEnd !== null && newStart !== null && (newStart + 24 - prevEnd) < 11) {
+        conflicts.push({
+          type: 'rest_period',
+          message: `Only ${newStart + 24 - prevEnd}h rest between Day ${prevDay} ${prevShift} and Day ${day} ${newShift}`,
+          severity: 'error'
+        });
+      }
+    }
+  }
+
+  // Check 3: Overtime risk (weekly hours > 48)
+  const weekStart = Math.floor((day - 1) / 7) * 7 + 1;
+  const weekEnd = Math.min(weekStart + 6, getDIM());
+  let weekHours = 0;
+  for (let d = weekStart; d <= weekEnd; d++) {
+    const s = (d === day) ? newShift : (sch[d] || '');
+    weekHours += SHIFTS[s]?.hours || 0;
+  }
+  if (weekHours > 48) {
+    conflicts.push({
+      type: 'overtime',
+      message: `Week hours would be ${weekHours}h (max 48h)`,
+      severity: 'warning'
+    });
+  }
+
+  // Check 4: AL balance check
+  if (newShift === 'AL') {
+    const alLeft = emp.annualLeave - emp.alUsed;
+    if (alLeft <= 0) {
+      conflicts.push({
+        type: 'no_al',
+        message: `${emp.name} has no AL balance left (${alLeft} days)`,
+        severity: 'error'
+      });
+    }
+  }
+
+  // Check 5: Hotel coverage drop
+  const hotel = getHotelAssignment(empId, YEAR, MONTH, day);
+  if (hotel && hotel !== 'none' && hotel !== 'all') {
+    const hotelStaff = staffList().filter(e => 
+      getHotelAssignment(e.id, YEAR, MONTH, day) === hotel && e.id !== empId
+    );
+    const workingStaff = hotelStaff.filter(e => {
+      const s = getEmpSch(e.id)[day];
+      return s && !['OFF', 'AL', 'EX', 'UNP'].includes(s);
+    });
+    if (workingStaff.length < 2 && newShift !== 'OFF' && newShift !== 'AL') {
+      // This is just info, not a conflict
+    }
+  }
+
+  return conflicts;
+}
+
+function getShiftStartHour(shiftCode) {
+  const time = SHIFTS[shiftCode]?.time || '';
+  if (!time || time === '—') return null;
+  const match = time.match(/(\d{2}):\d{2}/);
+  if (match) return parseInt(match[1]);
+  return null;
+}
+
+function getShiftEndHour(shiftCode) {
+  const time = SHIFTS[shiftCode]?.time || '';
+  if (!time || time === '—') return null;
+  const match = time.match(/-(\d{2}):\d{2}/);
+  if (match) return parseInt(match[1]);
+  return null;
+}
+
+function renderConflictBadges(conflicts) {
+  if (!conflicts.length) return '';
+  return conflicts.map(c => 
+    `<span class="conflict-badge" title="${c.message}">${c.severity === 'error' ? '❌' : '⚠️'} ${c.message}</span>`
+  ).join('');
+}
+
+// Override selectShift to check conflicts
+const originalSelectShift = selectShift;
+selectShift = async function(code) {
+  if (popEmpId && popDay) {
+    const conflicts = detectConflicts(popEmpId, popDay, code);
+    const errors = conflicts.filter(c => c.severity === 'error');
+
+    if (errors.length) {
+      const msg = errors.map(e => e.message).join('\n');
+      if (!confirm(`⚠️ CONFLICTS DETECTED:\n\n${msg}\n\nDo you want to apply anyway?`)) {
+        closePop();
+        return;
+      }
+    } else if (conflicts.length) {
+      const msg = conflicts.map(c => c.message).join('\n');
+      console.log('Shift warnings:', msg);
+    }
+  }
+  return originalSelectShift(code);
+};
+
+// ═══════════════════════════════════════════════════
+// 3. AUTO-SCHEDULING FUNCTIONS
+// ═══════════════════════════════════════════════════
+
+function openAutoSchedule() {
+  loadRosterRules();
+  const r = rosterRules;
+  const deptSel = document.getElementById('autoDept');
+  const hotelSel = document.getElementById('autoHotel');
+
+  if (deptSel) {
+    deptSel.innerHTML = '<option value="all">All Visible Departments</option>' + 
+      getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+  }
+  if (hotelSel) {
+    hotelSel.innerHTML = '<option value="all">All Hotels</option>' + 
+      HOTELS.filter(h => h.id !== 'all').map(h => `<option value="${h.id}">${h.name}</option>`).join('');
+  }
+
+  // Load saved rules into modal
+  const setV = (id, v) => { const el=document.getElementById(id); if(el && v!==undefined) el.value=v; };
+  const setC = (id, v) => { const el=document.getElementById(id); if(el && v!==undefined) el.checked=v; };
+  setV('autoPattern', r.defaultPattern || 'rotate');
+  setV('autoMinStaff', r.minMOR || 2);
+  setV('autoMinMOR', r.minMOR || 2);
+  setV('autoMinAFT', r.minAFT || 2);
+  setC('autoNoWeekendOff', r.noWeekendOff);
+  setC('autoSpreadOff', r.spreadOff !== false);
+  setC('autoRespectRequests', r.respectLeave !== false);
+
+  document.getElementById('autoScheduleModal').style.display = 'flex';
+  document.getElementById('autoSchedulePreview').style.display = 'none';
+}
+
+function previewAutoSchedule() {
+  const result = generateAutoSchedule(true);
+  const preview = document.getElementById('autoSchedulePreview');
+
+  if (result.conflicts.length) {
+    preview.innerHTML = `<div style="color:var(--red);font-weight:700;margin-bottom:8px">⚠️ ${result.conflicts.length} conflicts found:</div>` + 
+      result.conflicts.slice(0, 5).map(c => `<div style="margin-bottom:4px">• ${c}</div>`).join('') +
+      (result.conflicts.length > 5 ? `<div>... and ${result.conflicts.length - 5} more</div>` : '');
+  } else {
+    preview.innerHTML = `<div style="color:var(--green);font-weight:700;margin-bottom:8px">✅ No conflicts detected!</div>` +
+      `<div>Changes: ${result.changes} assignments for ${result.staffCount} staff</div>`;
+  }
+  preview.style.display = 'block';
+}
+
+function generateAutoSchedule(previewOnly = false) {
+  const deptFilter = document.getElementById('autoDept')?.value || 'all';
+  const hotelFilter = document.getElementById('autoHotel')?.value || 'all';
+  const pattern = document.getElementById('autoPattern')?.value || 'rotate';
+  const minStaff = parseInt(document.getElementById('autoMinStaff')?.value || 2);
+  const minMOR = parseInt(document.getElementById('autoMinMOR')?.value || 2);
+  const minAFT = parseInt(document.getElementById('autoMinAFT')?.value || 2);
+  const respectRequests = document.getElementById('autoRespectRequests')?.checked ?? true;
+  const noWeekendOff = document.getElementById('autoNoWeekendOff')?.checked ?? false;
+  const spreadOff = document.getElementById('autoSpreadOff')?.checked ?? true;
+
+  const numDays = getDIM();
+  const key = schKey();
+  let changes = 0;
+  let conflicts = [];
+
+  // Get target staff
+  let targetStaff = staffList();
+  if (deptFilter !== 'all') targetStaff = targetStaff.filter(e => e.department === deptFilter);
+  if (hotelFilter !== 'all') targetStaff = targetStaff.filter(e => e.hotel === hotelFilter || e.hotel === 'all');
+
+  // Build shift rotation based on pattern
+  const shiftCodes = ['MOR', 'AFT', 'EVE'];
+  const offCodes = ['OFF', 'AL', 'EX', 'UNP'];
+
+  targetStaff.forEach((emp, empIdx) => {
+    if (!schedData[emp.id]) schedData[emp.id] = {};
+    if (!schedData[emp.id][key]) schedData[emp.id][key] = {};
+
+    const sch = schedData[emp.id][key];
+
+    for (let day = 1; day <= numDays; day++) {
+      // Skip if respecting requests and day has approved leave
+      if (respectRequests) {
+        const hasLeave = Object.values(leaveRequests).some(r => 
+          r.empId === emp.id && r.status === 'approved' && 
+          r.monthKey === key && day >= r.fromDay && day <= r.toDay
+        );
+        if (hasLeave) continue;
+      }
+
+      // Skip weekends for some staff (distribute fairly)
+      const dow = new Date(YEAR, MONTH, day).getDay();
+      const isWeekend = dow === 5 || dow === 6; // Fri, Sat
+
+      let assignedShift;
+
+      if (pattern === 'rotate') {
+        // Rotate through shifts based on employee index and day
+        const shiftIdx = (empIdx + Math.floor((day - 1) / 2)) % shiftCodes.length;
+        assignedShift = shiftCodes[shiftIdx];
+
+        // Give 2 days off per week (distributed)
+        const offPattern = (empIdx + day) % 7;
+        if (offPattern < emp.offDays / 4) {
+          // Enforce no-weekend-off rule
+          assignedShift = (noWeekendOff && isWeekend) ? shiftCodes[shiftIdx] : 'OFF';
+        }
+      } else if (pattern === 'fixed') {
+        assignedShift = emp.defaultShift;
+        // Apply off days
+        const offDays = spreadOff ? getDistributedOffDays(emp.offDays, numDays, empIdx) : getDistributedOffDays(emp.offDays, numDays, empIdx);
+        if (offDays.includes(day)) {
+          assignedShift = (noWeekendOff && isWeekend) ? emp.defaultShift : 'OFF';
+        }
+      } else if (pattern === 'balanced') {
+        // Try to balance hours across all staff
+        const currentHours = calcStats(emp, sch).hrs;
+        const avgHours = targetStaff.reduce((sum, e) => sum + calcStats(e, getEmpSch(e.id)).hrs, 0) / targetStaff.length;
+
+        if (currentHours > avgHours + 8 && !(noWeekendOff && isWeekend)) {
+          assignedShift = 'OFF';
+        } else {
+          assignedShift = shiftCodes[(empIdx + day) % shiftCodes.length];
+        }
+      }
+
+      // Check for conflicts before applying
+      const dayConflicts = detectConflicts(emp.id, day, assignedShift);
+      const errors = dayConflicts.filter(c => c.severity === 'error');
+
+      if (errors.length) {
+        conflicts.push(...errors.map(e => `${emp.name} Day ${day}: ${e.message}`));
+        // Fall back to OFF if error
+        assignedShift = 'OFF';
+      }
+
+      if (sch[day] !== assignedShift) {
+        changes++;
+        if (!previewOnly) {
+          sch[day] = assignedShift;
+          if (db) {
+            db.ref(`schedules/${emp.id}/${key}/${day}`).set(assignedShift).catch(() => {});
+          }
+        }
+      }
+    }
+  });
+
+  if (!previewOnly) {
+    queueArchiveSnapshot(key, 'auto schedule generated');
+    saveLocal();
+    renderRoster();
+    renderDash();
+  }
+
+  return { changes, conflicts, staffCount: targetStaff.length };
+}
+
+function getDistributedOffDays(totalOff, numDays, seed) {
+  const offDays = [];
+  const interval = Math.floor(numDays / (totalOff + 1));
+  for (let i = 0; i < totalOff; i++) {
+    offDays.push(((i * interval + seed) % numDays) + 1);
+  }
+  return offDays;
+}
+
+async function applyAutoSchedule() {
+  const result = generateAutoSchedule(true);
+
+  if (result.conflicts.length) {
+    const errors = result.conflicts.filter(c => c.includes('error'));
+    if (errors.length && !confirm(`⚠️ ${result.conflicts.length} conflicts detected. Apply anyway?`)) {
+      return;
+    }
+  }
+
+  generateAutoSchedule(false);
+  closeModal('autoScheduleModal');
+
+  // Show success alert
+  showSwapAlert(
+    '✅ Auto Schedule Generated',
+    `Successfully assigned ${result.changes} shifts for ${result.staffCount} staff members.`,
+    'View Roster'
+  );
+}
+
+// ═══════════════════════════════════════════════════
+// SECTION / AREA MANAGEMENT
+// ═══════════════════════════════════════════════════
+
+function initSectionsPage() {
+  const sel = document.getElementById("secDeptSelect");
+  if (!sel) return;
+  sel.innerHTML = '<option value="">-- Select Department --</option>' +
+    getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+  renderSectionMgmt();
+}
+
+function renderSectionMgmt() {
+  const dept = document.getElementById("secDeptSelect")?.value;
+  const container = document.getElementById("secCurrentList");
+  if (!container) return;
+  if (!dept) { container.innerHTML = '<div style="font-size:12px;color:var(--slate2)">Select a department above to manage its sections.</div>'; return; }
+  const sections = DEPT_SECTIONS[dept] || [];
+  container.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);margin-bottom:8px">
+      📍 Current Sections for "${dept}"
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px">
+      ${sections.length ? sections.map(s => `
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #dde3f0;border-radius:100px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--navy)">
+          ${s}
+          <button onclick="removeSection('${dept}','${s}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;line-height:1;padding:0 2px" title="Remove">×</button>
+        </div>`).join('') : '<div style="font-size:11px;color:var(--slate2);padding:8px">No sections yet. Add one below.</div>'}
+    </div>`;
+}
+
+function addSection() {
+  const dept = document.getElementById("secDeptSelect")?.value;
+  const name = document.getElementById("secNewName")?.value.trim();
+  const msg = document.getElementById("secMsg");
+  if (!dept) { if(msg) msg.innerHTML='<span style="color:var(--red)">Please select a department first.</span>'; return; }
+  if (!name) { if(msg) msg.innerHTML='<span style="color:var(--red)">Please enter a section name.</span>'; return; }
+  if (!DEPT_SECTIONS[dept]) DEPT_SECTIONS[dept] = [];
+  if (DEPT_SECTIONS[dept].includes(name)) { if(msg) msg.innerHTML='<span style="color:var(--amber)">Section already exists.</span>'; return; }
+  DEPT_SECTIONS[dept].push(name);
+  saveLocal();
+  document.getElementById("secNewName").value = '';
+  renderSectionMgmt();
+  if(msg) msg.innerHTML=`<span style="color:var(--green)">✅ "${name}" added to ${dept}.</span>`;
+  setTimeout(()=>{ if(msg) msg.textContent=''; }, 3000);
+}
+
+function removeSection(dept, name) {
+  if (!confirm(`Remove "${name}" from ${dept}?`)) return;
+  DEPT_SECTIONS[dept] = (DEPT_SECTIONS[dept]||[]).filter(s=>s!==name);
+  saveLocal();
+  renderSectionMgmt();
+}
+
+// ═══════════════════════════════════════════════════
+// AUTO ROSTER RULES
+// ═══════════════════════════════════════════════════
+
+let rosterRules = {
+  minMOR:2, minAFT:2, minEVE:1,
+  noWeekendOff:false, noConsecWeekendOff:false, weekendMOR:false, maxWeekendOff:2,
+  noConsecOff:false, spreadOff:true, maxConsecWork:6, minRest:11,
+  yph:true, balanceHotels:false, minPerHotel:1,
+  maxALSameDay:3, noALPeak:false, respectLeave:true,
+  defaultPattern:'rotate', seniorityFirst:false, autoApply:false
+};
+
+function loadRosterRules() {
+  try {
+    const saved = localStorage.getItem('rosterRules');
+    if (saved) rosterRules = Object.assign(rosterRules, JSON.parse(saved));
+  } catch(e) {}
+}
+
+function initRosterRulesUI() {
+  loadRosterRules();
+  const r = rosterRules;
+  const setV = (id, v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  const setC = (id, v) => { const el=document.getElementById(id); if(el) el.checked=v; };
+  setV('ruleMinMOR', r.minMOR); setV('ruleMinAFT', r.minAFT); setV('ruleMinEVE', r.minEVE);
+  setC('ruleNoWeekendOff', r.noWeekendOff); setC('ruleNoConsecWeekendOff', r.noConsecWeekendOff);
+  setC('ruleWeekendMOR', r.weekendMOR); setV('ruleMaxWeekendOff', r.maxWeekendOff);
+  setC('ruleNoConsecOff', r.noConsecOff); setC('ruleSpreadOff', r.spreadOff);
+  setV('ruleMaxConsecWork', r.maxConsecWork); setV('ruleMinRest', r.minRest);
+  setC('ruleYPHCoverage', r.yph); setC('ruleBalanceHotels', r.balanceHotels);
+  setV('ruleMinPerHotel', r.minPerHotel); setV('ruleMaxALSameDay', r.maxALSameDay);
+  setC('ruleNoALPeak', r.noALPeak); setC('ruleRespectLeave', r.respectLeave);
+  setV('ruleDefaultPattern', r.defaultPattern); setC('ruleSeniorityFirst', r.seniorityFirst);
+  setC('ruleAutoApply', r.autoApply);
+  showRulesSummary();
+}
+
+function getRulesFromUI() {
+  const gV = id => { const el=document.getElementById(id); return el ? (el.type==='number'?parseInt(el.value)||0:el.value) : undefined; };
+  const gC = id => { const el=document.getElementById(id); return el ? el.checked : false; };
+  return {
+    minMOR:gV('ruleMinMOR'), minAFT:gV('ruleMinAFT'), minEVE:gV('ruleMinEVE'),
+    noWeekendOff:gC('ruleNoWeekendOff'), noConsecWeekendOff:gC('ruleNoConsecWeekendOff'),
+    weekendMOR:gC('ruleWeekendMOR'), maxWeekendOff:gV('ruleMaxWeekendOff'),
+    noConsecOff:gC('ruleNoConsecOff'), spreadOff:gC('ruleSpreadOff'),
+    maxConsecWork:gV('ruleMaxConsecWork'), minRest:gV('ruleMinRest'),
+    yph:gC('ruleYPHCoverage'), balanceHotels:gC('ruleBalanceHotels'), minPerHotel:gV('ruleMinPerHotel'),
+    maxALSameDay:gV('ruleMaxALSameDay'), noALPeak:gC('ruleNoALPeak'), respectLeave:gC('ruleRespectLeave'),
+    defaultPattern:gV('ruleDefaultPattern'), seniorityFirst:gC('ruleSeniorityFirst'), autoApply:gC('ruleAutoApply')
+  };
+}
+
+function saveRosterRules() {
+  rosterRules = getRulesFromUI();
+  try { localStorage.setItem('rosterRules', JSON.stringify(rosterRules)); } catch(e) {}
+  const msg = document.getElementById('rulesSaveMsg');
+  if(msg) { msg.textContent='✅ Rules saved!'; setTimeout(()=>msg.textContent='', 3000); }
+  showRulesSummary();
+}
+
+function resetRosterRules() {
+  if(!confirm('Reset all rules to defaults?')) return;
+  rosterRules = { minMOR:2,minAFT:2,minEVE:1,noWeekendOff:false,noConsecWeekendOff:false,weekendMOR:false,maxWeekendOff:2,noConsecOff:false,spreadOff:true,maxConsecWork:6,minRest:11,yph:true,balanceHotels:false,minPerHotel:1,maxALSameDay:3,noALPeak:false,respectLeave:true,defaultPattern:'rotate',seniorityFirst:false,autoApply:false };
+  try { localStorage.removeItem('rosterRules'); } catch(e) {}
+  initRosterRulesUI();
+}
+
+function showRulesSummary() {
+  const el = document.getElementById('rulesSummary');
+  if(!el) return;
+  const r = rosterRules;
+  const lines = [];
+  lines.push(`Min staff: MOR=${r.minMOR}, AFT=${r.minAFT}, EVE=${r.minEVE}`);
+  if(r.noWeekendOff) lines.push('❌ No OFF on weekends (Fri & Sat)');
+  if(r.weekendMOR) lines.push('🌅 Force Morning shift on Fridays');
+  lines.push(`📅 Max weekend OFF/month: ${r.maxWeekendOff}`);
+  lines.push(`🔄 Max consecutive work days: ${r.maxConsecWork} · Min rest: ${r.minRest}h`);
+  if(r.noConsecOff) lines.push('⛔ No more than 2 consecutive OFF days');
+  if(r.yph) lines.push('🏨 YPH (All Properties) always covered');
+  lines.push(`🏖 Max ${r.maxALSameDay} staff on AL on same day`);
+  if(r.respectLeave) lines.push('✅ Approved leave always respected');
+  el.innerHTML = '<strong style="font-size:11px;font-weight:700;color:var(--navy)">📋 Active Rules:</strong><br>' + lines.join(' &nbsp;·&nbsp; ');
+  el.style.display = 'block';
+}
+
+
+
+
+
+const originalRenderRoster = renderRoster;
+
+function renderMobileRosterView() {
+  const hf = document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
+  const pf = document.getElementById("rPosF")?.value || "all";
+  const df = document.getElementById("rDeptF")?.value || "all";
+  const sr = document.getElementById("rSearch")?.value.toLowerCase() || "";
+  let filt = staffList();
+  if (hf !== "all") filt = filt.filter(e => e.hotel === hf || e.hotel === "all");
+  if (df !== "all") filt = filt.filter(e => e.department === df);
+  if (pf !== "all") filt = filt.filter(e => e.position === pf);
+  if (sr) filt = filt.filter(e => e.name.toLowerCase().includes(sr) || e.id.toLowerCase().includes(sr));
+  const mw = document.getElementById("rosterMobileWrap");
+  const dw = document.getElementById("rosterWrap");
+  if (mw) { mw.innerHTML = renderMobileRoster(filt); mw.style.display = 'block'; }
+  if (dw) dw.style.display = 'none';
+}
+
+// Override original renderRoster to handle desktop view properly
+renderRoster = function() {
+  const isMobile = window.innerWidth <= 768;
+  const mobileToggle = document.getElementById('mobileViewToggle');
+  if (mobileToggle) mobileToggle.style.display = isMobile ? 'flex' : 'none';
+
+  if (isMobile && mobileViewMode === 'cards') {
+    renderMobileRosterView();
+    return;
+  }
+
+  // Desktop view (original logic)
+  document.getElementById("rosterWrap").style.display = 'block';
+  document.getElementById("rosterMobileWrap").style.display = 'none';
+
+  const numDays = getDIM();
+  const hf = document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
+  const pf = document.getElementById("rPosF")?.value || "all";
+  const df = document.getElementById("rDeptF")?.value || "all";
+  const sr = document.getElementById("rSearch")?.value.toLowerCase() || "";
+  let filt = staffList();
+  if (hf !== "all") filt = filt.filter(e => e.hotel === hf || e.hotel === "all");
+  if (df !== "all") filt = filt.filter(e => e.department === df);
+  if (pf !== "all") filt = filt.filter(e => e.position === pf);
+  if (sr) filt = filt.filter(e => e.name.toLowerCase().includes(sr) || e.id.toLowerCase().includes(sr));
+
+  const infoEl = document.getElementById("rosterFilterInfo");
+  if (infoEl) {
+    const hotelNm = HOTELS.find(h => h.id === hf)?.name || "All Hotels";
+    const parts = [];
+    if (hf !== "all") parts.push("🏨 " + hotelNm);
+    if (df !== "all") parts.push("🏢 " + df);
+    if (pf !== "all") parts.push("👤 " + pf);
+    if (sr) parts.push("🔍 '" + sr + "'");
+    infoEl.textContent = parts.length
+      ? "Filtering: " + parts.join(" · ") + " — showing " + filt.length + " of " + staffList().length + " employees"
+      : "Showing all " + filt.length + " employees  ·  Use filters above to narrow down before printing PDF";
+  }
+
+  const days = Array.from({length: numDays}, (_, i) => i + 1);
+  const dths = days.map(d => {
+    const dow = new Date(YEAR, MONTH, d).getDay();
+    const isSat = dow === 6;
+    return `<th class="${isSat ? "sat-th" : ""}" style="text-align:center;min-width:34px;padding:6px 1px">
+      <div style="font-size:9px;font-weight:800">${d}</div>
+      <div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div>
+    </th>`;
+  }).join("");
+
+  const rows = filt.map((emp, ei) => {
+    const sch = getEmpSch(emp.id);
+    const st = calcStats(emp, sch);
+    const hotel = HOTELS.find(h => h.id === emp.hotel);
+    const dc = getDeptColor(emp.department);
+
+    // Detect conflicts for this employee
+    const empConflicts = [];
+    days.forEach(d => {
+      const code = sch[d] || '';
+      if (code) {
+        const c = detectConflicts(emp.id, d, code);
+        empConflicts.push(...c);
+      }
+    });
+    const hasErrors = empConflicts.some(c => c.severity === 'error');
+
+    const cells = days.map(d => {
+      const code = sch[d] || "";
+      const sh = SHIFTS[code];
+      const dow = new Date(YEAR, MONTH, d).getDay();
+      const isSat = dow === 6;
+      return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center">
+        <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
+        ${renderHotelPill(emp.id, d)}
+      </td>`;
+    }).join("");
+
+    return `<tr style="${ei % 2 ? "background:#FAFBFD" : ""} ${hasErrors ? 'class="conflict-row"' : ''}">
+      <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei % 2 ? "background:#FAFBFD" : ""}">
+        <div style="font-weight:600;font-size:11px">${emp.name || "—"}</div>
+        <div style="font-size:9px;color:${hotel?.color || "#888"};margin-top:1px">${hotel?.name || emp.hotel}</div>
+        ${empConflicts.length ? '<div style="margin-top:4px">' + renderConflictBadges(empConflicts.slice(0, 2)) + '</div>' : ''}
+      </td>
+      <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
+      <td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
+      <td style="font-size:9px;color:var(--teal);font-weight:600;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis">${emp.section||'—'}</td>
+      ${cells}
+      <td style="text-align:center;background:#F3E5F5;font-weight:700;color:#6A1B9A;font-size:10px;min-width:50px">
+        ${renderHotelSummary(emp.id)}
+      </td>
+      <td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${st.work}</td>
+      <td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${st.hrs}h</td>
+    </tr>`;
+  }).join("");
+
+  const legend = Object.entries(SHIFTS).map(([k, v]) =>
+    `<span class="sp sp-${k}" style="cursor:default;font-size:8px">${k}<span style="font-weight:400"> ${shiftTimeOrLabel(v)}</span></span>`
+  ).join("");
+
+  document.getElementById("rosterWrap").innerHTML = `
+    <div style="padding:9px 13px;background:var(--ice);display:flex;flex-wrap:wrap;gap:5px;border-bottom:1px solid #dde3f0">${legend}</div>
+    <table>
+      <thead><tr>
+        <th class="sc-col" style="min-width:160px">EMPLOYEE</th>
+        <th style="min-width:80px">DEPT</th>
+        <th style="min-width:120px">POSITION</th>
+        <th style="min-width:90px;background:#0F766E;color:#fff">SECTION</th>
+        ${dths}
+        <th style="text-align:center;background:#6A1B9A;min-width:50px;font-size:8px">HOTEL</th>
+        <th style="text-align:center;background:#1B5E20;min-width:40px">DAYS</th>
+        <th style="text-align:center;background:#004D40;min-width:44px">HRS</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="100" style="text-align:center;padding:40px;color:var(--slate2);font-size:13px">No staff found. Add employees in the Staff tab.</td></tr>'}</tbody>
+    </table>`;
+}
+
+// Handle window resize for mobile/desktop switching
+window.addEventListener('resize', () => {
+  const active = document.querySelector('.tab.active')?.dataset.p;
+  if (active === 'roster') renderRoster();
+});
+
 function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; }
 document.addEventListener("click",e=>{ 
   if(!document.getElementById("shiftPop").contains(e.target)) closePop();
@@ -2798,6 +3955,7 @@ function renderStaff() {
       <td><div style="font-weight:600;font-size:11px">${emp.name||"—"}</div></td>
       <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
       <td style="font-size:10px;color:var(--slate);max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
+      <td style="font-size:9px;color:var(--teal);font-weight:600;max-width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${emp.section||'—'}</td>
       <td><span class="hb" style="background:${hotel?.light};color:${hotel?.color};border-color:${hotel?.color}30;font-size:9px">${hotel?.name||emp.hotel}</span></td>
       <td><span class="sp sp-${emp.defaultShift}" style="cursor:default;font-size:9px">${emp.defaultShift}</span></td>
       <td style="text-align:center;font-weight:700;color:#004D40;font-size:11px">${emp.shiftHours}h</td>
@@ -2823,12 +3981,12 @@ function renderStaff() {
     </div>
     <table>
       <thead><tr>
-        <th style="width:34px"></th><th>ID</th><th>Name</th><th>Dept</th><th>Position</th>
+        <th style="width:34px"></th><th>ID</th><th>Name</th><th>Dept</th><th>Position</th><th>Section</th>
         <th>Hotel</th><th>Shift</th><th style="text-align:center">Hrs</th>
         <th style="text-align:center">Off/Mo</th><th style="text-align:center">AL</th>
         <th style="text-align:center">Used</th><th style="text-align:center">Left</th><th>Actions</th>
       </tr></thead>
-      <tbody>${rows||'<tr><td colspan="13" style="text-align:center;padding:40px;color:var(--slate2);font-size:13px">No employees yet.<br><button class="btn btn-primary btn-sm" onclick="openAddStaff()" style="margin-top:10px">+ Add First Employee</button></td></tr>'}</tbody>
+      <tbody>${rows||'<tr><td colspan="14" style="text-align:center;padding:40px;color:var(--slate2);font-size:13px">No employees yet.<br><button class="btn btn-primary btn-sm" onclick="openAddStaff()" style="margin-top:10px">+ Add First Employee</button></td></tr>'}</tbody>
     </table>`;
 }
 
@@ -2886,7 +4044,11 @@ function openEditStaff(id) {
   document.getElementById("f-id").value=emp.id;
   document.getElementById("f-dept").value=emp.department||"Front Office";
   fillPosForDept();
-  setTimeout(()=>document.getElementById("f-pos").value=emp.position,10);
+  setTimeout(()=>{
+    document.getElementById("f-pos").value=emp.position;
+    const sec=document.getElementById("f-section");
+    if(sec) sec.value=emp.section||"";
+  },10);
   document.getElementById("f-hotel").value=emp.hotel;
   document.getElementById("f-shift").value=emp.defaultShift;
   document.getElementById("f-hrs").value=emp.shiftHours;
@@ -2935,6 +4097,7 @@ async function saveStaff(addAnother=false) {
     id, name,
     department: document.getElementById("f-dept").value,
     position:   position,
+    section:    document.getElementById("f-section")?.value||"",
     hotel:      document.getElementById("f-hotel").value,
     defaultShift: document.getElementById("f-shift").value,
     shiftHours: +document.getElementById("f-hrs").value,
@@ -3043,35 +4206,131 @@ function renderCoverage() {
 // SETTINGS
 // ═══════════════════════════════════════════════════
 function renderSettings() {
-  if (!isDeveloper()) { switchPage("dash"); return; }
+  const isDev = isDeveloper();
+  const myGrants = (!isDev && CURRENT_DEPT) ? (deptAccessGrants[CURRENT_DEPT] || []) : null;
+  if (!isDev && (!myGrants || myGrants.length === 0)) { switchPage("dash"); return; }
+
+  // Show/hide panels based on role + grants
+  document.querySelectorAll('.settings-panel').forEach(panel => {
+    const panelId = panel.dataset.panel;
+    if (!panelId) return;
+    panel.style.display = isDev ? "" : (myGrants && myGrants.includes(panelId) ? "" : "none");
+  });
+
+  // Access grants panel: developer only — find by id
+  const grantsCard = document.getElementById("accessGrantsList");
+  const grantsParent = grantsCard ? grantsCard.closest('.card') : null;
+  if (grantsParent) grantsParent.style.display = isDev ? "" : "none";
+
+  // Dev-only buttons/elements
+  document.querySelectorAll('.dev-only-btn').forEach(el => {
+    el.style.display = isDev ? "" : "none";
+  });
+
+  // Shift settings grid — readonly for non-devs
+  const grid = document.getElementById("shiftSettingsGrid");
+  if (grid) {
+    grid.innerHTML = Object.entries(SHIFTS).map(([k,v]) => `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--ice2);border:1.5px solid ${v.border};border-radius:10px;padding:10px 12px">
+        <span class="sp sp-${k}" style="cursor:default;min-width:36px;font-size:10px">${k}</span>
+        <span style="font-size:11px;font-weight:600;color:var(--slate);min-width:70px">${v.label}</span>
+        <div style="flex:1"><label class="lbl" style="margin-bottom:2px">Time</label>
+          <input class="inp inp-sm" id="stime-${k}" value="${shiftTime(v)}" placeholder="e.g. 07:00-16:00" style="font-family:'DM Mono',monospace;font-size:11px${isDev?'':';opacity:0.7;background:#f5f5f5;cursor:not-allowed'}" ${isDev?"":"readonly"}>
+        </div>
+        <div style="min-width:80px"><label class="lbl" style="margin-bottom:2px">Hours</label>
+          <select class="inp inp-sm" id="shrs-${k}" ${isDev?"":("disabled style='opacity:0.7;background:#f5f5f5'")}>
+            ${[0,4,8,9,10,12].map(n=>'<option value="'+n+'" '+(v.hours===n?'selected':'')+'>'+n+'h</option>').join("")}
+          </select>
+        </div>
+      </div>`).join("");
+  }
 
   // Firebase status
-  const card=document.getElementById("fbStatusCard");
-  if(card) card.innerHTML="Status: <strong style=\"color:"+(db?"var(--green)":"var(--red)")+"\">"+(db?"🟢 Connected — Live Sync Active":"🔴 Not Connected — Offline Mode")+"</strong><br>"
-    +"<span style=\"font-size:11px;color:var(--slate)\">"+(db?"All changes sync instantly to all users across all devices.":"Changes only visible on this device. Connect Firebase to enable live sync.")+"</span>";
+  const fbCard = document.getElementById("fbStatusCard");
+  if (fbCard) fbCard.innerHTML = "Status: <strong style='color:"+(db?"var(--green)":"var(--red)")+"'>"+(db?"🟢 Connected — Live Sync Active":"🔴 Not Connected — Offline Mode")+"</strong><br>"
+    +"<span style='font-size:11px;color:var(--slate)'>"+(db?"All changes sync instantly to all users across all devices.":"Changes only visible on this device. Connect Firebase to enable live sync.")+"</span>";
 
-  // Department password list
   renderDeptPassList();
-
-  // Shift settings grid
-  const grid=document.getElementById("shiftSettingsGrid");
-  if(grid) grid.innerHTML=Object.entries(SHIFTS).map(([k,v])=>`
-    <div style="display:flex;align-items:center;gap:10px;background:var(--ice2);border:1.5px solid ${v.border};border-radius:10px;padding:10px 12px">
-      <span class="sp sp-${k}" style="cursor:default;min-width:36px;font-size:10px">${k}</span>
-      <span style="font-size:11px;font-weight:600;color:var(--slate);min-width:70px">${v.label}</span>
-      <div style="flex:1"><label class="lbl" style="margin-bottom:2px">Time</label>
-        <input class="inp inp-sm" id="stime-${k}" value="${shiftTime(v)}" placeholder="e.g. 07:00–16:00" style="font-family:'DM Mono',monospace;font-size:11px">
-      </div>
-      <div style="min-width:80px"><label class="lbl" style="margin-bottom:2px">Hours</label>
-        <select class="inp inp-sm" id="shrs-${k}">
-          ${[0,4,8,9,10,12].map(n=>'<option value="'+n+'" '+(v.hours===n?'selected':'')+'>'+n+'h</option>').join("")}
-        </select>
-      </div>
-    </div>`).join("");
-
-  // Department management
   renderDeptMgmt();
+
+  if (isDev) {
+    renderAccessGrants();
+    const grantDeptSel = document.getElementById("grantDeptSel");
+    if (grantDeptSel) {
+      grantDeptSel.innerHTML = '<option value="">-- Select Department --</option>' +
+        getAllDepts().map(d => '<option value="'+d+'">'+d+'</option>').join("");
+    }
+  }
 }
+
+function renderAccessGrants() {
+  const el = document.getElementById("accessGrantsList");
+  if (!el) return;
+  const panelLabels = {passwords:"🔑 Password Management",firebase:"🔥 Firebase Connection",data:"🗄️ Data Management",departments:"🏢 Department & Position Management",shifts:"⏰ Shift Time Settings (view only)"};
+  const granted = Object.entries(deptAccessGrants).filter(([d,p])=>p&&p.length);
+  if (!granted.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--slate2);padding:10px 4px">No access grants yet. All Settings are restricted to Developer only.</div>';
+    return;
+  }
+  el.innerHTML = granted.map(([dept, grants]) => {
+    const dc = getDeptColor(dept);
+    return `<div style="background:var(--ice2);border:1.5px solid ${dc.color}30;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px">
+      <div style="flex:1">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:11px">${dept}</span>
+          <span style="font-size:11px;color:var(--slate)">has access to:</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px">
+          ${grants.map(g => `<span style="background:rgba(201,150,58,.15);border:1px solid var(--gold);border-radius:100px;padding:2px 10px;font-size:10px;font-weight:600;color:var(--navy);display:inline-flex;align-items:center;gap:5px">
+            ${panelLabels[g]||g}
+            <button onclick="revokeAccess('${dept}','${g}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:12px;padding:0;line-height:1" title="Revoke">✕</button>
+          </span>`).join("")}
+        </div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="revokeAllAccess('${dept}')">🗑 Revoke All</button>
+    </div>`;
+  }).join("");
+}
+
+async function grantAccess() {
+  if (!isDeveloper()) { alert("Only Developers can grant access."); return; }
+  const dept = document.getElementById("grantDeptSel")?.value;
+  const panel = document.getElementById("grantPanelSel")?.value;
+  const msg = document.getElementById("grantMsg");
+  if (!dept) { if(msg) msg.innerHTML='<span style="color:var(--red)">Please select a department.</span>'; return; }
+  if (!deptAccessGrants[dept]) deptAccessGrants[dept] = [];
+  if (deptAccessGrants[dept].includes(panel)) { if(msg) msg.innerHTML='<span style="color:var(--amber)">Already granted.</span>'; return; }
+  deptAccessGrants[dept].push(panel);
+  await saveAccessGrants();
+  renderAccessGrants();
+  applyRoleRestrictions();
+  if(msg){msg.innerHTML='<span style="color:var(--green)">Access granted!</span>';setTimeout(()=>msg.textContent="",2500);}
+}
+
+async function revokeAccess(dept, panel) {
+  if (!isDeveloper()) return;
+  if (!deptAccessGrants[dept]) return;
+  deptAccessGrants[dept] = deptAccessGrants[dept].filter(p => p !== panel);
+  if (!deptAccessGrants[dept].length) delete deptAccessGrants[dept];
+  await saveAccessGrants();
+  renderAccessGrants();
+  applyRoleRestrictions();
+}
+
+async function revokeAllAccess(dept) {
+  if (!isDeveloper()) return;
+  if (!confirm("Revoke ALL settings access for " + dept + "?")) return;
+  delete deptAccessGrants[dept];
+  await saveAccessGrants();
+  renderAccessGrants();
+  applyRoleRestrictions();
+}
+
+async function saveAccessGrants() {
+  if (db) { try { await db.ref("settings/deptAccessGrants").set(deptAccessGrants); } catch(e) {} }
+  saveLocal();
+}
+
 
 function renderDeptMgmt() {
   const el=document.getElementById("deptMgmtList"); if(!el) return;
@@ -3132,7 +4391,7 @@ function deleteDept(dept) {
 }
 
 function saveDeptConfig() {
-  const config={depts:DEPT_POS, deptColors:DEPT_C};
+  const config={depts:DEPT_POS, deptColors:DEPT_C, sections:DEPT_SECTIONS};
   if(db){try{db.ref("settings/deptConfig").set(config);}catch(e){}}
   saveLocal();
 }
@@ -3345,7 +4604,73 @@ function printRoster() {
   </tr></thead><tbody>${rows}</tbody></table>
   <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">
     ${Object.entries(SHIFTS).map(([k,v])=>'<span style="background:'+v.bg+';color:'+v.color+';border:1px solid '+v.border+';border-radius:3px;padding:1px 5px;font-size:7px"><b>'+k+'</b> '+shiftTimeOrLabel(v)+'</span>').join("")}
-  </div></body></html>`);
+  </div>
+<!-- Auto Schedule Modal -->
+<div class="mover" id="autoScheduleModal" style="display:none" onclick="if(event.target===this)closeModal('autoScheduleModal')">
+  <div class="modal" style="width:560px">
+    <h3>🤖 Auto Schedule Generator</h3>
+    <div style="background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--slate)">
+      Applies your saved roster rules automatically. Configure rules in the <strong>📍 Sections</strong> tab.
+    </div>
+    <div class="fg">
+      <div><label class="lbl">Department</label>
+        <select class="inp" id="autoDept">
+          <option value="all">All Visible Departments</option>
+        </select>
+      </div>
+      <div><label class="lbl">Hotel Priority</label>
+        <select class="inp" id="autoHotel">
+          <option value="all">All Hotels</option>
+        </select>
+      </div>
+      <div><label class="lbl">Shift Pattern</label>
+        <select class="inp" id="autoPattern">
+          <option value="rotate">Rotate (MOR→AFT→EVE)</option>
+          <option value="fixed">Fixed (keep default shifts)</option>
+          <option value="balanced">Balanced Hours</option>
+        </select>
+      </div>
+      <div><label class="lbl">Min Staff Per Day</label>
+        <input class="inp" id="autoMinStaff" type="number" min="1" max="10" value="2">
+      </div>
+      <div><label class="lbl">Min MOR Staff / Shift</label>
+        <input class="inp" id="autoMinMOR" type="number" min="1" max="20" value="2">
+      </div>
+      <div><label class="lbl">Min AFT Staff / Shift</label>
+        <input class="inp" id="autoMinAFT" type="number" min="1" max="20" value="2">
+      </div>
+      <div class="ff" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px;background:var(--ice2);border-radius:8px">
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="autoNoWeekendOff" style="accent-color:var(--gold)">No OFF on weekends
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="autoSpreadOff" checked style="accent-color:var(--gold)">Spread OFF evenly
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="autoRespectRequests" checked style="accent-color:var(--gold)">Respect approved leave &amp; swaps
+        </label>
+      </div>
+    </div>
+    <div id="autoSchedulePreview" style="margin-top:12px;padding:12px;background:var(--ice2);border-radius:10px;font-size:11px;color:var(--slate);display:none"></div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeModal('autoScheduleModal')">Cancel</button>
+      <button class="btn btn-ghost" onclick="previewAutoSchedule()">👁 Preview</button>
+      <button class="btn btn-primary" onclick="applyAutoSchedule()">✅ Generate Schedule</button>
+    </div>
+  </div>
+</div>
+
+<!-- Duty Detail Modal -->
+<div id="dutyModal" onclick="if(event.target===this)closeDutyModal()">
+  <div class="duty-card">
+    <div id="dutyDate" class="duty-date">—</div>
+    <div id="dutyDay" class="duty-day">—</div>
+    <div id="dutyRows"></div>
+    <button class="pass-btn" style="margin-top:18px" onclick="closeDutyModal()">Close</button>
+  </div>
+</div>
+
+</body></html>`);
   win.document.close();
 }
 
@@ -3393,6 +4718,79 @@ function loginEmp() {
   renderLeaveList();
 }
 
+
+function openDutyModal(day, month, year, empId) {
+  const emp = staffData[empId || currentEmpId]; if (!emp) return;
+  const sch = (schedData[empId||currentEmpId]?.[schKey(year,month)]) || {};
+  const code = sch[day] || "";
+  const sh = SHIFTS[code];
+  const hotel = getHotelAssignment(empId||currentEmpId, year, month, day);
+  const hotelObj = HOTELS.find(h=>h.id===hotel);
+  const d = new Date(year, month, day);
+  const dayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const mNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+  document.getElementById("dutyDate").textContent = `${dayNames[d.getDay()]}, ${day} ${mNames[month]} ${year}`;
+  document.getElementById("dutyDay").textContent = d.getDay()===6 ? "🔴 Saturday" : "";
+
+  let rows = "";
+  if (sh) {
+    rows += `<div class="duty-row">
+      <div class="duty-icon">⏰</div>
+      <div><div class="duty-label">Shift</div>
+      <div class="duty-value"><span style="background:${sh.bg};color:${sh.color};border:1.5px solid ${sh.border};border-radius:5px;padding:2px 8px;font-size:11px;font-weight:800;margin-right:6px">${code}</span>${sh.label}</div></div>
+    </div>`;
+    if (sh.time && sh.time !== "—" && sh.time !== "Split" && sh.time !== "Training" && sh.time !== "Custom") {
+      rows += `<div class="duty-row">
+        <div class="duty-icon">🕐</div>
+        <div><div class="duty-label">Time</div><div class="duty-value">${sh.time}</div></div>
+      </div>`;
+    }
+    if (sh.hours > 0) {
+      rows += `<div class="duty-row">
+        <div class="duty-icon">📊</div>
+        <div><div class="duty-label">Hours</div><div class="duty-value">${sh.hours} hours</div></div>
+      </div>`;
+    }
+  } else {
+    rows += `<div class="duty-row">
+      <div class="duty-icon">📅</div>
+      <div><div class="duty-label">Status</div><div class="duty-value" style="color:rgba(255,255,255,.4)">No schedule assigned</div></div>
+    </div>`;
+  }
+
+  rows += `<div class="duty-row">
+    <div class="duty-icon">🏢</div>
+    <div><div class="duty-label">Department</div><div class="duty-value">${emp.department}</div></div>
+  </div>`;
+
+  if (emp.section) {
+    rows += `<div class="duty-row">
+      <div class="duty-icon">📍</div>
+      <div><div class="duty-label">Section / Area</div><div class="duty-value" style="color:var(--gold2)">${emp.section}</div></div>
+    </div>`;
+  }
+
+  rows += `<div class="duty-row">
+    <div class="duty-icon">👤</div>
+    <div><div class="duty-label">Position</div><div class="duty-value">${emp.position}</div></div>
+  </div>`;
+
+  if (hotelObj && hotel !== "none" && hotel !== "all") {
+    rows += `<div class="duty-row">
+      <div class="duty-icon">🏨</div>
+      <div><div class="duty-label">Hotel</div><div class="duty-value" style="color:${hotelObj.color}">${hotelObj.name}</div></div>
+    </div>`;
+  }
+
+  document.getElementById("dutyRows").innerHTML = rows;
+  document.getElementById("dutyModal").classList.add("show");
+}
+
+function closeDutyModal() {
+  document.getElementById("dutyModal").classList.remove("show");
+}
+
 function logoutEmp() {
   stopEmpListener(currentEmpId);
   currentEmpId=null;
@@ -3418,6 +4816,9 @@ function showEmpDash(emp) {
   document.getElementById("eHt").innerHTML=`🏨 ${hotel?.name||emp.hotel}`;
   document.getElementById("eDept").textContent=emp.department;
   Object.assign(document.getElementById("eDept").style,{background:dc.bg,color:dc.color,border:`1px solid ${dc.color}30`});
+  // Show section if assigned
+  const secEl = document.getElementById("eSection");
+  if(secEl) { secEl.innerHTML="📍 "+(emp.section||""); secEl.style.display=emp.section?"inline-flex":"none"; }
   document.getElementById("eMthLbl").textContent=`${MONTHS[MONTH]} ${YEAR}`;
   document.getElementById("es-w").textContent=st.work;
   document.getElementById("es-o").textContent=st.off;
@@ -3438,7 +4839,7 @@ function showEmpDash(emp) {
     if(dMth===MONTH&&dYr===YEAR) code=sch[dNum]||"";
     else code=schedData[emp.id]?.[schKey(dYr,dMth)]?.[dNum]||"";
     const sh=SHIFTS[code];
-    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""}">
+    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""}" onclick="openDutyModal(${dNum},${dMth},${dYr},'${emp.id}')">
       <div class="wdn">${DAYS_S[d.getDay()]}</div>
       <div class="wdnum">${dNum}</div>
       ${sh?'<div class="wds" style="background:'+sh.bg+';color:'+sh.color+'">'+code+'</div><div class="wdt">'+shiftTimeOrLabel(sh)+'</div>'
