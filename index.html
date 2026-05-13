@@ -479,14 +479,14 @@ button.dev-only-btn{display:inline-flex}
 /* ════ DUTY DETAIL MODAL ════ */
 #dutyModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px}
 #dutyModal.show{display:flex}
-.duty-card{background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:1.5px solid rgba(201,150,58,.35);border-radius:22px;padding:28px;width:340px;max-width:100%;animation:fadeUp .2s ease both}
-.duty-date{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
-.duty-day{font-size:11px;color:var(--gold2);margin-bottom:18px}
-.duty-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.duty-card{background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:1.5px solid rgba(201,150,58,.45);border-radius:26px;padding:40px 44px;width:560px;max-width:96vw;max-height:92vh;overflow-y:auto;animation:fadeUp .25s ease both;box-shadow:0 32px 80px rgba(0,0,0,.6)}
+.duty-date{font-family:'Syne',sans-serif;font-size:34px;font-weight:800;color:#fff;margin-bottom:6px;line-height:1.1}
+.duty-day{font-size:14px;color:var(--gold2);margin-bottom:26px;font-weight:600}
+.duty-row{display:flex;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.10)}
 .duty-row:last-child{border-bottom:none}
-.duty-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
-.duty-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:rgba(255,255,255,.35)}
-.duty-value{font-size:13px;font-weight:600;color:#fff;margin-top:1px}
+.duty-icon{font-size:26px;width:44px;text-align:center;flex-shrink:0}
+.duty-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.45)}
+.duty-value{font-size:18px;font-weight:600;color:#fff;margin-top:3px}
 .wd{cursor:pointer}
 .wd:hover{border-color:var(--gold)!important;transform:scale(1.05)}
 
@@ -788,7 +788,16 @@ button.dev-only-btn{display:inline-flex}
       <select class="inp inp-sm" id="rPosF" onchange="renderRoster()" style="max-width:165px">
         <option value="all">All Positions</option>
       </select>
-      <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <div style="display:inline-flex;background:var(--ice);border:1px solid #dde3f0;border-radius:8px;padding:2px;gap:0">
+          <button class="btn btn-xs" id="btnViewMonth" onclick="setRosterView('monthly')" style="border:none;background:transparent;color:var(--slate);padding:4px 10px;font-weight:700">📅 Month</button>
+          <button class="btn btn-xs" id="btnViewWeek" onclick="setRosterView('weekly')" style="border:none;background:transparent;color:var(--slate);padding:4px 10px;font-weight:700">🗓 Week</button>
+        </div>
+        <div id="weekNav" style="display:none;align-items:center;gap:4px">
+          <button class="btn btn-ghost btn-xs" onclick="changeWeek(-1)">‹</button>
+          <span id="weekLabel" style="font-size:11px;font-weight:700;color:var(--navy);min-width:80px;text-align:center"></span>
+          <button class="btn btn-ghost btn-xs" onclick="changeWeek(1)">›</button>
+        </div>
         <button class="btn btn-ghost btn-sm" onclick="openBulk()">⚡ Bulk Fill</button>
         <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--purple),#7C3AED);color:#fff" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
         <button class="btn btn-sm" style="background:rgba(201,150,58,.2);color:var(--gold);border:1px solid var(--gold)" onclick="printRoster()">🖨 Print / PDF</button>
@@ -1488,6 +1497,11 @@ const SEED_STAFF = [
 let db = null;          // Firebase DB reference
 let YEAR = new Date().getFullYear();
 let CURRENT_DEPT = "all";  // "all" or specific department for isolation
+let deptAutoDisabled = {}; // {dept: true} — departments excluded from Auto-Rota
+try { const _d = localStorage.getItem('deptAutoDisabled'); if(_d) deptAutoDisabled = JSON.parse(_d) || {}; } catch(e) {}
+let rosterViewMode = 'monthly'; // 'monthly' | 'weekly'
+let weeklyOffset = 0; // week offset within current month (0 = first 7 days)
+try { const _v = localStorage.getItem('rosterViewMode'); if(_v==='weekly'||_v==='monthly') rosterViewMode = _v; } catch(e) {}
 let ADMIN_ROLE = "manager"; // "manager" or "developer"
 let MONTH = new Date().getMonth();
 let adminPass = "Admin@2025";      // Legacy fallback
@@ -3511,6 +3525,15 @@ function generateAutoSchedule(previewOnly = false) {
   let targetStaff = staffList();
   if (deptFilter !== 'all') targetStaff = targetStaff.filter(e => e.department === deptFilter);
   if (hotelFilter !== 'all') targetStaff = targetStaff.filter(e => e.hotel === hotelFilter || e.hotel === 'all');
+  // Exclude departments that have Auto-Rota disabled by Developer
+  const skippedDepts = Object.keys(deptAutoDisabled||{}).filter(d => deptAutoDisabled[d]);
+  if (skippedDepts.length) {
+    const before = targetStaff.length;
+    targetStaff = targetStaff.filter(e => !skippedDepts.includes(e.department));
+    if (before !== targetStaff.length) {
+      conflicts.push(`ℹ️ Skipped ${before - targetStaff.length} staff in Auto-Rota-disabled departments: ${skippedDepts.join(', ')}`);
+    }
+  }
 
   // Build shift rotation based on pattern
   const shiftCodes = ['MOR', 'AFT', 'EVE'];
@@ -3637,9 +3660,26 @@ async function applyAutoSchedule() {
 function initSectionsPage() {
   const sel = document.getElementById("secDeptSelect");
   if (!sel) return;
-  sel.innerHTML = '<option value="">-- Select Department --</option>' +
-    getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
+  if (isDeptUser) {
+    sel.innerHTML = `<option value="${CURRENT_DEPT}">${CURRENT_DEPT}</option>`;
+    sel.value = CURRENT_DEPT;
+    sel.disabled = true;
+    sel.style.opacity = "0.7";
+    sel.title = "Locked to your department";
+  } else {
+    sel.innerHTML = '<option value="">-- Select Department --</option>' +
+      getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+    sel.disabled = false;
+    sel.style.opacity = "1";
+  }
   renderSectionMgmt();
+}
+
+function canEditDept(dept) {
+  if (isDeveloper()) return true;
+  if (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT === dept) return true;
+  return false;
 }
 
 function renderSectionMgmt() {
@@ -3648,15 +3688,16 @@ function renderSectionMgmt() {
   if (!container) return;
   if (!dept) { container.innerHTML = '<div style="font-size:12px;color:var(--slate2)">Select a department above to manage its sections.</div>'; return; }
   const sections = DEPT_SECTIONS[dept] || [];
+  const allowed = canEditDept(dept);
   container.innerHTML = `
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--red);margin-bottom:8px">
-      📍 Current Sections for "${dept}"
+      📍 Current Sections for "${dept}"${allowed?'':' <span style="color:var(--slate2);font-weight:600">(read-only)</span>'}
     </div>
     <div style="display:flex;flex-wrap:wrap;gap:8px">
       ${sections.length ? sections.map(s => `
         <div style="display:inline-flex;align-items:center;gap:6px;background:#fff;border:1.5px solid #dde3f0;border-radius:100px;padding:5px 12px;font-size:12px;font-weight:600;color:var(--navy)">
           ${s}
-          <button onclick="removeSection('${dept}','${s}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;line-height:1;padding:0 2px" title="Remove">×</button>
+          ${allowed?`<button onclick="removeSection('${dept}','${s}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:13px;font-weight:700;line-height:1;padding:0 2px" title="Remove">×</button>`:''}
         </div>`).join('') : '<div style="font-size:11px;color:var(--slate2);padding:8px">No sections yet. Add one below.</div>'}
     </div>`;
 }
@@ -3666,11 +3707,12 @@ function addSection() {
   const name = document.getElementById("secNewName")?.value.trim();
   const msg = document.getElementById("secMsg");
   if (!dept) { if(msg) msg.innerHTML='<span style="color:var(--red)">Please select a department first.</span>'; return; }
+  if (!canEditDept(dept)) { if(msg) msg.innerHTML='<span style="color:var(--red)">🔒 You can only manage your own department.</span>'; return; }
   if (!name) { if(msg) msg.innerHTML='<span style="color:var(--red)">Please enter a section name.</span>'; return; }
   if (!DEPT_SECTIONS[dept]) DEPT_SECTIONS[dept] = [];
   if (DEPT_SECTIONS[dept].includes(name)) { if(msg) msg.innerHTML='<span style="color:var(--amber)">Section already exists.</span>'; return; }
   DEPT_SECTIONS[dept].push(name);
-  saveLocal();
+  saveDeptConfig();
   document.getElementById("secNewName").value = '';
   renderSectionMgmt();
   if(msg) msg.innerHTML=`<span style="color:var(--green)">✅ "${name}" added to ${dept}.</span>`;
@@ -3678,9 +3720,10 @@ function addSection() {
 }
 
 function removeSection(dept, name) {
+  if (!canEditDept(dept)) { alert("🔒 You can only manage your own department."); return; }
   if (!confirm(`Remove "${name}" from ${dept}?`)) return;
   DEPT_SECTIONS[dept] = (DEPT_SECTIONS[dept]||[]).filter(s=>s!==name);
-  saveLocal();
+  saveDeptConfig();
   renderSectionMgmt();
 }
 
@@ -3774,6 +3817,35 @@ function showRulesSummary() {
 
 
 
+function setRosterView(mode) {
+  rosterViewMode = (mode === 'weekly') ? 'weekly' : 'monthly';
+  try { localStorage.setItem('rosterViewMode', rosterViewMode); } catch(e) {}
+  const wn = document.getElementById('weekNav');
+  const bm = document.getElementById('btnViewMonth');
+  const bw = document.getElementById('btnViewWeek');
+  if (wn) wn.style.display = (rosterViewMode === 'weekly') ? 'inline-flex' : 'none';
+  if (bm) bm.style.background = (rosterViewMode === 'monthly') ? 'var(--gold)' : 'transparent';
+  if (bm) bm.style.color = (rosterViewMode === 'monthly') ? '#fff' : 'var(--slate)';
+  if (bw) bw.style.background = (rosterViewMode === 'weekly') ? 'var(--gold)' : 'transparent';
+  if (bw) bw.style.color = (rosterViewMode === 'weekly') ? '#fff' : 'var(--slate)';
+  if (rosterViewMode === 'weekly') weeklyOffset = 0;
+  renderRoster();
+}
+function changeWeek(delta) {
+  const numDays = getDIM();
+  const maxOffset = Math.max(0, Math.ceil(numDays / 7) - 1);
+  weeklyOffset = Math.max(0, Math.min(maxOffset, weeklyOffset + delta));
+  renderRoster();
+}
+function updateWeekLabel() {
+  const el = document.getElementById('weekLabel');
+  if (!el) return;
+  const numDays = getDIM();
+  const start = Math.max(1, weeklyOffset * 7 + 1);
+  const end = Math.min(numDays, start + 6);
+  el.textContent = `${start}–${end} ${MONTHS[MONTH].slice(0,3)}`;
+}
+
 const originalRenderRoster = renderRoster;
 
 function renderMobileRosterView() {
@@ -3831,7 +3903,13 @@ renderRoster = function() {
       : "Showing all " + filt.length + " employees  ·  Use filters above to narrow down before printing PDF";
   }
 
-  const days = Array.from({length: numDays}, (_, i) => i + 1);
+  // Apply weekly slice if needed
+  let days = Array.from({length: numDays}, (_, i) => i + 1);
+  if (rosterViewMode === 'weekly') {
+    const start = Math.max(0, Math.min(weeklyOffset * 7, numDays - 1));
+    days = days.slice(start, start + 7);
+    updateWeekLabel();
+  }
   const dths = days.map(d => {
     const dow = new Date(YEAR, MONTH, d).getDay();
     const isSat = dow === 6;
@@ -4334,26 +4412,63 @@ async function saveAccessGrants() {
 
 function renderDeptMgmt() {
   const el=document.getElementById("deptMgmtList"); if(!el) return;
-  const depts=getAllDepts();
+  let depts=getAllDepts();
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
+  if (isDeptUser) depts = depts.filter(d => d === CURRENT_DEPT);
   if(!depts.length){el.innerHTML="<p style='font-size:12px;color:var(--slate2)'>No departments yet.</p>";return;}
   el.innerHTML=depts.map(dept=>{
     const dc=getDeptColor(dept);
     const positions=DEPT_POS[dept]||[];
+    const autoOff = (deptAutoDisabled||{})[dept] === true;
+    const canEdit = canEditDept(dept);
+    const canToggleAuto = isDeveloper(); // only developer can toggle auto-rota disable
     return`<div style="background:var(--ice2);border:1.5px solid ${dc.color}30;border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px">
       <div style="flex:1">
-        <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:11px;margin-bottom:6px;display:inline-flex">${dept}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+          <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:11px;display:inline-flex">${dept}</span>
+          ${autoOff?'<span style="background:#FFCDD2;color:#B71C1C;border:1px solid #EF9A9A;border-radius:100px;padding:2px 8px;font-size:9px;font-weight:700">🚫 AUTO-ROTA OFF</span>':''}
+        </div>
         <div style="font-size:10px;color:var(--slate);margin-top:4px;line-height:1.6">${positions.join(" · ")||"No positions defined"}</div>
+        ${canEdit?`<div style="margin-top:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+          <input id="newPos-${dept}" class="inp" placeholder="New position name…" style="flex:1;min-width:160px;font-size:11px;padding:5px 8px">
+          <button class="btn btn-gold btn-xs" onclick="addPositionToDept('${dept}')">+ Add Position</button>
+        </div>`:''}
       </div>
-      <div style="display:flex;gap:4px;flex-shrink:0">
-        <button class="btn btn-ghost btn-xs" onclick="editDept('${dept}')">✏️</button>
-        <button class="btn btn-danger btn-xs" onclick="deleteDept('${dept}')">🗑</button>
+      <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+        ${canToggleAuto?`<button class="btn btn-ghost btn-xs" onclick="toggleDeptAutoRota('${dept}')" title="${autoOff?'Enable':'Disable'} Auto-Rota for this department">${autoOff?'✅ Enable Auto':'🚫 Disable Auto'}</button>`:''}
+        ${canEdit?`<button class="btn btn-ghost btn-xs" onclick="editDept('${dept}')">✏️ Edit All</button>`:''}
+        ${isDeveloper()?`<button class="btn btn-danger btn-xs" onclick="deleteDept('${dept}')">🗑 Delete</button>`:''}
       </div>
     </div>`;
   }).join("");
 }
 
+function addPositionToDept(dept) {
+  if (!canEditDept(dept)) { alert("🔒 You can only edit your own department."); return; }
+  const inp = document.getElementById("newPos-"+dept);
+  if (!inp) return;
+  const name = inp.value.trim();
+  if (!name) { alert("Enter a position name."); return; }
+  if (!DEPT_POS[dept]) DEPT_POS[dept] = [];
+  if (DEPT_POS[dept].includes(name)) { alert("Position already exists."); return; }
+  DEPT_POS[dept].push(name);
+  saveDeptConfig();
+  fillAllSelects();
+  renderDeptMgmt();
+}
+
+function toggleDeptAutoRota(dept) {
+  if (!isDeveloper()) { alert("🔒 Only Developers can toggle Auto-Rota."); return; }
+  if (!window.deptAutoDisabled) window.deptAutoDisabled = {};
+  deptAutoDisabled[dept] = !deptAutoDisabled[dept];
+  if (!deptAutoDisabled[dept]) delete deptAutoDisabled[dept];
+  try { localStorage.setItem('deptAutoDisabled', JSON.stringify(deptAutoDisabled)); } catch(e){}
+  if (db) { try { db.ref("settings/deptAutoDisabled").set(deptAutoDisabled); } catch(e){} }
+  renderDeptMgmt();
+}
+
 function addNewDept() {
-  if (!isDeveloper()) { alert("🔒 Only Developers can manage departments."); return; }
+  if (!isDeveloper()) { alert("🔒 Only Developers can add new departments."); return; }
   const name=document.getElementById("newDeptName").value.trim();
   const posStr=document.getElementById("newDeptPos").value.trim();
   if(!name){alert("Department name is required.");document.getElementById("newDeptName").focus();return;}
@@ -4368,7 +4483,7 @@ function addNewDept() {
 }
 
 function editDept(dept) {
-  if (!isDeveloper()) { alert("🔒 Only Developers can edit departments."); return; }
+  if (!canEditDept(dept)) { alert("🔒 You can only edit your own department."); return; }
   const positions=(DEPT_POS[dept]||[]).join(", ");
   const newPos=prompt("Edit positions for '"+dept+"' (comma separated):", positions);
   if(newPos===null) return;
@@ -4605,6 +4720,12 @@ function printRoster() {
   <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">
     ${Object.entries(SHIFTS).map(([k,v])=>'<span style="background:'+v.bg+';color:'+v.color+';border:1px solid '+v.border+';border-radius:3px;padding:1px 5px;font-size:7px"><b>'+k+'</b> '+shiftTimeOrLabel(v)+'</span>').join("")}
   </div>
+</body></html>`);
+  win.document.close();
+}
+</script>
+
+<!-- ════════ MODALS (must live in main DOM, not inside printRoster template) ════════ -->
 <!-- Auto Schedule Modal -->
 <div class="mover" id="autoScheduleModal" style="display:none" onclick="if(event.target===this)closeModal('autoScheduleModal')">
   <div class="modal" style="width:560px">
@@ -4670,10 +4791,7 @@ function printRoster() {
   </div>
 </div>
 
-</body></html>`);
-  win.document.close();
-}
-
+<script>
 // ═══════════════════════════════════════════════════
 // EMPLOYEE PORTAL
 // ═══════════════════════════════════════════════════
@@ -4873,6 +4991,7 @@ window.addEventListener("load", function() {
     seedStaffIfEmpty();    // Pre-load 100 employees if first time
     archiveMonthSnapshot(YEAR, MONTH, "boot snapshot");
     tryAutoConnect();      // Try Firebase in background if config exists
+    try { setRosterView(rosterViewMode); } catch(e) {}
   } catch(e) {
     console.warn("Boot error:", e);
     updateStatus("offline","Offline Mode");
