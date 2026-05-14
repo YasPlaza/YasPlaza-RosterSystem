@@ -343,6 +343,12 @@ button.dev-only-btn{display:inline-flex}
   .topbar-logo span+span{display:none}
   .topbar-logo{font-size:11px}
   .mlbl{min-width:70px;font-size:10px}
+  /* Filter bar wraps nicely */
+  #page-roster .fb{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+  #page-roster .fb > div[style*="margin-left:auto"]{grid-column:1/-1;width:100%;flex-wrap:wrap;margin-left:0}
+  #page-roster .fb input,#page-roster .fb select{max-width:100% !important;width:100% !important}
+  /* Hide section filter label for tiny screens */
+  .hotel-col-hide{display:none}
 }
 
 /* Mobile Card View */
@@ -787,6 +793,9 @@ button.dev-only-btn{display:inline-flex}
       </select>
       <select class="inp inp-sm" id="rPosF" onchange="renderRoster()" style="max-width:165px">
         <option value="all">All Positions</option>
+      </select>
+      <select class="inp inp-sm" id="rSectionF" onchange="renderRoster()" style="max-width:155px">
+        <option value="all">All Sections</option>
       </select>
       <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <div style="display:inline-flex;background:var(--ice);border:1px solid #dde3f0;border-radius:8px;padding:2px;gap:0">
@@ -2210,6 +2219,7 @@ function saveLocal() {
         deptAccessGrants: deptAccessGrants 
       },
       deptConfig: { depts: DEPT_POS, deptColors: DEPT_C, sections: DEPT_SECTIONS },
+      sectionOverrides: window.sectionOverrides || {},
     }));
   } catch(e) { 
     console.warn("localStorage save failed:", e); 
@@ -2245,6 +2255,7 @@ function reloadLocal() {
             if(stored.deptConfig.sections)   Object.assign(DEPT_SECTIONS, stored.deptConfig.sections);
       if(stored.deptConfig.deptColors) Object.assign(DEPT_C, stored.deptConfig.deptColors);
     }
+    if(stored.sectionOverrides) window.sectionOverrides = stored.sectionOverrides;
   } catch(e) {}
 }
 
@@ -3597,14 +3608,18 @@ function generateAutoSchedule(previewOnly = false) {
 
       if (errors.length) {
         conflicts.push(...errors.map(e => `${emp.name} Day ${day}: ${e.message}`));
-        // Fall back to OFF if error
-        assignedShift = 'OFF';
+        // Fall back to default shift if error (not OFF, to keep staff working)
+        assignedShift = emp.defaultShift || 'MOR';
       }
 
       if (sch[day] !== assignedShift) {
         changes++;
         if (!previewOnly) {
           sch[day] = assignedShift;
+          // Write directly to schedData so it persists
+          if (!schedData[emp.id]) schedData[emp.id] = {};
+          if (!schedData[emp.id][key]) schedData[emp.id][key] = {};
+          schedData[emp.id][key][day] = assignedShift;
           if (db) {
             db.ref(`schedules/${emp.id}/${key}/${day}`).set(assignedShift).catch(() => {});
           }
@@ -3633,22 +3648,24 @@ function getDistributedOffDays(totalOff, numDays, seed) {
 }
 
 async function applyAutoSchedule() {
-  const result = generateAutoSchedule(true);
+  // First preview to get conflict count
+  const preview = generateAutoSchedule(true);
 
-  if (result.conflicts.length) {
-    const errors = result.conflicts.filter(c => c.includes('error'));
-    if (errors.length && !confirm(`⚠️ ${result.conflicts.length} conflicts detected. Apply anyway?`)) {
+  if (preview.conflicts.length > 0) {
+    const msg = preview.conflicts.slice(0, 5).join('\n') + (preview.conflicts.length > 5 ? `\n... and ${preview.conflicts.length - 5} more` : '');
+    if (!confirm(`⚠️ ${preview.conflicts.length} conflicts detected:\n\n${msg}\n\nApply anyway?`)) {
       return;
     }
   }
 
-  generateAutoSchedule(false);
+  // Now actually apply
+  const result = generateAutoSchedule(false);
   closeModal('autoScheduleModal');
 
   // Show success alert
   showSwapAlert(
     '✅ Auto Schedule Generated',
-    `Successfully assigned ${result.changes} shifts for ${result.staffCount} staff members.`,
+    `Successfully assigned ${result.changes} shifts for ${result.staffCount} staff members. Roster updated!`,
     'View Roster'
   );
 }
@@ -3852,11 +3869,13 @@ function renderMobileRosterView() {
   const hf = document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
   const pf = document.getElementById("rPosF")?.value || "all";
   const df = document.getElementById("rDeptF")?.value || "all";
+  const sf = document.getElementById("rSectionF")?.value || "all";
   const sr = document.getElementById("rSearch")?.value.toLowerCase() || "";
   let filt = staffList();
   if (hf !== "all") filt = filt.filter(e => e.hotel === hf || e.hotel === "all");
   if (df !== "all") filt = filt.filter(e => e.department === df);
   if (pf !== "all") filt = filt.filter(e => e.position === pf);
+  if (sf !== "all") filt = filt.filter(e => (e.section || "") === sf);
   if (sr) filt = filt.filter(e => e.name.toLowerCase().includes(sr) || e.id.toLowerCase().includes(sr));
   const mw = document.getElementById("rosterMobileWrap");
   const dw = document.getElementById("rosterWrap");
@@ -3883,12 +3902,26 @@ renderRoster = function() {
   const hf = document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
   const pf = document.getElementById("rPosF")?.value || "all";
   const df = document.getElementById("rDeptF")?.value || "all";
+  const sf = document.getElementById("rSectionF")?.value || "all";
   const sr = document.getElementById("rSearch")?.value.toLowerCase() || "";
   let filt = staffList();
   if (hf !== "all") filt = filt.filter(e => e.hotel === hf || e.hotel === "all");
   if (df !== "all") filt = filt.filter(e => e.department === df);
   if (pf !== "all") filt = filt.filter(e => e.position === pf);
+  if (sf !== "all") filt = filt.filter(e => (e.section || "") === sf);
   if (sr) filt = filt.filter(e => e.name.toLowerCase().includes(sr) || e.id.toLowerCase().includes(sr));
+
+  // Populate section filter dropdown based on dept filter
+  const secSel = document.getElementById("rSectionF");
+  if (secSel) {
+    const allSections = [...new Set(staffList()
+      .filter(e => df === "all" || e.department === df)
+      .map(e => e.section || "")
+      .filter(Boolean))].sort();
+    const curVal = secSel.value;
+    secSel.innerHTML = '<option value="all">All Sections</option>' +
+      allSections.map(s => `<option value="${s}"${s===curVal?' selected':''}>${s}</option>`).join('');
+  }
 
   const infoEl = document.getElementById("rosterFilterInfo");
   if (infoEl) {
@@ -3897,6 +3930,7 @@ renderRoster = function() {
     if (hf !== "all") parts.push("🏨 " + hotelNm);
     if (df !== "all") parts.push("🏢 " + df);
     if (pf !== "all") parts.push("👤 " + pf);
+    if (sf !== "all") parts.push("📍 " + sf);
     if (sr) parts.push("🔍 '" + sr + "'");
     infoEl.textContent = parts.length
       ? "Filtering: " + parts.join(" · ") + " — showing " + filt.length + " of " + staffList().length + " employees"
@@ -3919,51 +3953,96 @@ renderRoster = function() {
     </th>`;
   }).join("");
 
-  const rows = filt.map((emp, ei) => {
-    const sch = getEmpSch(emp.id);
-    const st = calcStats(emp, sch);
-    const hotel = HOTELS.find(h => h.id === emp.hotel);
-    const dc = getDeptColor(emp.department);
+  const rows = (() => {
+    // Helper: classify position into tier
+    function getTier(pos) {
+      const p = (pos || '').toLowerCase();
+      if (/manager|director|executive|chief|head\s+of/i.test(p)) return 0; // Manager
+      if (/supervisor|team\s*lead|senior|captain|in.charge/i.test(p)) return 1; // Supervisor
+      if (/agent|receptionist|attendant|waiter|waitress|barista|bartender|cashier|operator|hostess|ambassador|bellman|doorman|room\s*service/i.test(p)) return 2; // Agent
+      return 3; // Other
+    }
+    const TIER_LABELS = ['👔 Managers', '🔑 Supervisors', '🙋 Agents & Staff', '📋 Other'];
+    const TIER_COLORS = ['#1B2D4A','#1B5E20','#4A148C','#555'];
 
-    // Detect conflicts for this employee
-    const empConflicts = [];
-    days.forEach(d => {
-      const code = sch[d] || '';
-      if (code) {
-        const c = detectConflicts(emp.id, d, code);
-        empConflicts.push(...c);
-      }
+    // Sort filt by dept, then tier, then name
+    const sorted = [...filt].sort((a,b) => {
+      if (a.department < b.department) return -1;
+      if (a.department > b.department) return 1;
+      const ta = getTier(a.position), tb = getTier(b.position);
+      if (ta !== tb) return ta - tb;
+      return (a.name||'').localeCompare(b.name||'');
     });
-    const hasErrors = empConflicts.some(c => c.severity === 'error');
 
-    const cells = days.map(d => {
-      const code = sch[d] || "";
-      const sh = SHIFTS[code];
-      const dow = new Date(YEAR, MONTH, d).getDay();
-      const isSat = dow === 6;
-      return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center">
-        <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
-        ${renderHotelPill(emp.id, d)}
-      </td>`;
-    }).join("");
+    const colSpan = days.length + 5; // employee + dept + pos + section + hotel + days + days/hrs
+    let lastDept = null, lastTier = null;
+    return sorted.map((emp, ei) => {
+      const sch = getEmpSch(emp.id);
+      const st = calcStats(emp, sch);
+      const hotel = HOTELS.find(h => h.id === emp.hotel);
+      const dc = getDeptColor(emp.department);
+      const tier = getTier(emp.position);
 
-    return `<tr style="${ei % 2 ? "background:#FAFBFD" : ""} ${hasErrors ? 'class="conflict-row"' : ''}">
-      <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei % 2 ? "background:#FAFBFD" : ""}">
-        <div style="font-weight:600;font-size:11px">${emp.name || "—"}</div>
-        <div style="font-size:9px;color:${hotel?.color || "#888"};margin-top:1px">${hotel?.name || emp.hotel}</div>
-        ${empConflicts.length ? '<div style="margin-top:4px">' + renderConflictBadges(empConflicts.slice(0, 2)) + '</div>' : ''}
-      </td>
-      <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
-      <td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
-      <td style="font-size:9px;color:var(--teal);font-weight:600;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis">${emp.section||'—'}</td>
-      ${cells}
-      <td style="text-align:center;background:#F3E5F5;font-weight:700;color:#6A1B9A;font-size:10px;min-width:50px">
-        ${renderHotelSummary(emp.id)}
-      </td>
-      <td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${st.work}</td>
-      <td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${st.hrs}h</td>
-    </tr>`;
-  }).join("");
+      const empConflicts = [];
+      days.forEach(d => {
+        const code = sch[d] || '';
+        if (code) empConflicts.push(...detectConflicts(emp.id, d, code));
+      });
+      const hasErrors = empConflicts.some(c => c.severity === 'error');
+
+      const cells = days.map(d => {
+        const code = sch[d] || "";
+        const sh = SHIFTS[code];
+        const dow = new Date(YEAR, MONTH, d).getDay();
+        const isSat = dow === 6;
+        return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center">
+          <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
+          ${renderHotelPill(emp.id, d)}
+        </td>`;
+      }).join("");
+
+      // F&B section re-allocation: show clickable section cell
+      const isFnB = emp.department === 'F&B';
+      const sectionCell = isFnB
+        ? `<td style="font-size:9px;color:var(--teal);font-weight:600;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis;cursor:pointer" onclick="openSectionRealloc('${emp.id}')" title="Click to re-allocate section">
+            <span style="text-decoration:underline dotted">${emp.section||'—'}</span> <span style="font-size:8px;color:var(--gold)">✏️</span>
+           </td>`
+        : `<td style="font-size:9px;color:var(--teal);font-weight:600;white-space:nowrap;max-width:100px;overflow:hidden;text-overflow:ellipsis">${emp.section||'—'}</td>`;
+
+      // Build divider rows
+      let dividers = '';
+      const deptChanged = emp.department !== lastDept;
+      const tierChanged = tier !== lastTier || deptChanged;
+      if (deptChanged && lastDept !== null) {
+        dividers += `<tr><td colspan="${colSpan}" style="padding:0;height:8px;background:linear-gradient(135deg,#0F1E35,#1B2D4A)"></td></tr>`;
+      }
+      if (tierChanged) {
+        dividers += `<tr><td colspan="${colSpan}" style="padding:3px 10px;background:${TIER_COLORS[tier]}08;border-top:2px solid ${TIER_COLORS[tier]}33;border-bottom:1px solid ${TIER_COLORS[tier]}22">
+          <span style="font-size:9px;font-weight:700;color:${TIER_COLORS[tier]};text-transform:uppercase;letter-spacing:.5px">${TIER_LABELS[tier]}${deptChanged ? ' — ' + emp.department : ''}</span>
+        </td></tr>`;
+      }
+      lastDept = emp.department;
+      lastTier = tier;
+
+      const rowBg = hasErrors ? 'background:#FFF5F5' : (ei % 2 ? 'background:#FAFBFD' : '');
+      return dividers + `<tr style="${rowBg}" class="${hasErrors ? 'conflict-row' : ''}">
+        <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei % 2 ? 'background:#FAFBFD' : ''}">
+          <div style="font-weight:600;font-size:11px">${emp.name || '—'}</div>
+          <div style="font-size:9px;color:${hotel?.color || '#888'};margin-top:1px">${hotel?.name || emp.hotel}</div>
+          ${empConflicts.length ? '<div style="margin-top:4px">' + renderConflictBadges(empConflicts.slice(0, 2)) + '</div>' : ''}
+        </td>
+        <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
+        <td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
+        ${sectionCell}
+        ${cells}
+        <td style="text-align:center;background:#F3E5F5;font-weight:700;color:#6A1B9A;font-size:10px;min-width:50px">
+          ${renderHotelSummary(emp.id)}
+        </td>
+        <td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${st.work}</td>
+        <td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${st.hrs}h</td>
+      </tr>`;
+    }).join('');
+  })();
 
   const legend = Object.entries(SHIFTS).map(([k, v]) =>
     `<span class="sp sp-${k}" style="cursor:default;font-size:8px">${k}<span style="font-weight:400"> ${shiftTimeOrLabel(v)}</span></span>`
@@ -4781,6 +4860,43 @@ function printRoster() {
   </div>
 </div>
 
+<!-- F&B Section Re-allocation Modal -->
+<div class="mover" id="sectionReallocModal" style="display:none" onclick="if(event.target===this)closeModal('sectionReallocModal')">
+  <div class="modal" style="width:480px">
+    <h3>📍 Re-allocate Section</h3>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:14px">
+      Assign a <strong>permanent</strong> section or set a <strong>day-specific</strong> section override (e.g. F&amp;B staff working in a different restaurant that day).
+    </div>
+    <div style="background:var(--gold-l);border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:14px">
+      <div style="font-weight:700;font-size:12px;color:var(--navy)" id="srEmpName">---</div>
+      <div style="font-size:10px;color:var(--slate);margin-top:3px" id="srEmpInfo">---</div>
+    </div>
+    <div class="fg">
+      <div class="ff">
+        <label class="lbl">Permanent Section (profile default)</label>
+        <select class="inp" id="srPermSection"><option value="">Not Assigned</option></select>
+      </div>
+      <div class="ff" style="border-top:1.5px dashed #dde3f0;padding-top:12px;margin-top:4px">
+        <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">Day-Specific Override (for F&amp;B rotation)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label class="lbl">Day of Month</label>
+            <select class="inp" id="srOverrideDay"></select>
+          </div>
+          <div><label class="lbl">Section / Restaurant</label>
+            <select class="inp" id="srOverrideSection"><option value="">None</option></select>
+          </div>
+        </div>
+        <button class="btn btn-gold btn-sm" style="margin-top:8px" onclick="addSectionOverride()">+ Add Day Override</button>
+        <div id="srOverrideList" style="margin-top:10px;font-size:11px"></div>
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeModal('sectionReallocModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSectionRealloc()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
 <!-- Duty Detail Modal -->
 <div id="dutyModal" onclick="if(event.target===this)closeDutyModal()">
   <div class="duty-card">
@@ -4903,6 +5019,90 @@ function openDutyModal(day, month, year, empId) {
 
   document.getElementById("dutyRows").innerHTML = rows;
   document.getElementById("dutyModal").classList.add("show");
+}
+
+
+// ═══════════════════════════════════════════════════
+// F&B SECTION RE-ALLOCATION
+// ═══════════════════════════════════════════════════
+let srCurrentEmpId = null;
+// Store day-specific section overrides: {empId: {day: sectionName}}
+if (!window.sectionOverrides) window.sectionOverrides = {};
+
+function openSectionRealloc(empId) {
+  const emp = staffData[empId];
+  if (!emp) return;
+  srCurrentEmpId = empId;
+  document.getElementById('srEmpName').textContent = emp.name || empId;
+  document.getElementById('srEmpInfo').textContent = (emp.position || '') + ' | ' + (emp.department || '') + ' | ' + (HOTELS.find(h=>h.id===emp.hotel)?.name || emp.hotel || '');
+  // Populate sections for this dept
+  const dept = emp.department;
+  const sections = DEPT_SECTIONS[dept] || [];
+  const allSecs = [...new Set([...sections, ...Object.values(Object.values(DEPT_SECTIONS).flat())])].sort();
+  const allDepSecs = dept === 'F&B' ? [...new Set([...sections, ...(DEPT_SECTIONS['F&B']||[])])] : sections;
+  const secOpts = allDepSecs.map(s => `<option value="${s}"${emp.section===s?' selected':''}>${s}</option>`).join('');
+  document.getElementById('srPermSection').innerHTML = '<option value="">Not Assigned</option>' + secOpts;
+  // Override day dropdown
+  const numDays = getDIM();
+  document.getElementById('srOverrideDay').innerHTML = Array.from({length:numDays},(_,i)=>`<option value="${i+1}">Day ${i+1}</option>`).join('');
+  document.getElementById('srOverrideSection').innerHTML = '<option value="">None</option>' + allDepSecs.map(s=>`<option value="${s}">${s}</option>`).join('');
+  renderSrOverrideList(empId);
+  document.getElementById('sectionReallocModal').style.display = 'flex';
+}
+
+function renderSrOverrideList(empId) {
+  const overrides = (window.sectionOverrides[empId] || {});
+  const el = document.getElementById('srOverrideList');
+  if (!el) return;
+  const entries = Object.entries(overrides).sort((a,b)=>parseInt(a)-parseInt(b));
+  if (!entries.length) { el.innerHTML = '<div style="color:var(--slate2);font-size:11px">No day overrides set.</div>'; return; }
+  el.innerHTML = '<div style="font-weight:700;font-size:10px;margin-bottom:5px;color:var(--navy)">Day Overrides:</div>' +
+    entries.map(([day,sec]) => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;background:var(--ice2);border-radius:6px;padding:4px 8px">
+      <span style="font-size:10px;font-weight:700;color:var(--navy)">Day ${day}</span>
+      <span style="font-size:10px;background:var(--teal-l);color:var(--teal);border-radius:4px;padding:1px 6px">${sec}</span>
+      <button onclick="removeSrOverride('${empId}',${day})" style="margin-left:auto;background:none;border:none;color:var(--red);cursor:pointer;font-size:12px" title="Remove">×</button>
+    </div>`).join('');
+}
+
+function addSectionOverride() {
+  const empId = srCurrentEmpId;
+  const day = document.getElementById('srOverrideDay')?.value;
+  const sec = document.getElementById('srOverrideSection')?.value;
+  if (!day || !sec) return;
+  if (!window.sectionOverrides[empId]) window.sectionOverrides[empId] = {};
+  window.sectionOverrides[empId][day] = sec;
+  renderSrOverrideList(empId);
+  saveLocal();
+}
+
+function removeSrOverride(empId, day) {
+  if (window.sectionOverrides[empId]) {
+    delete window.sectionOverrides[empId][day];
+    renderSrOverrideList(empId);
+    saveLocal();
+  }
+}
+
+async function saveSectionRealloc() {
+  const empId = srCurrentEmpId;
+  const emp = staffData[empId];
+  if (!emp) return;
+  const permSec = document.getElementById('srPermSection')?.value || '';
+  emp.section = permSec;
+  if (db) {
+    try { await db.ref('staff/' + empId + '/section').set(permSec); } catch(e) {}
+  }
+  saveLocal();
+  closeModal('sectionReallocModal');
+  renderRoster();
+  pushToast('Section Updated', emp.name + ' section saved.', 'OK');
+}
+
+// Get effective section for an employee on a specific day
+function getEffectiveSection(empId, day) {
+  const overrides = window.sectionOverrides[empId] || {};
+  if (overrides[day]) return overrides[day];
+  return staffData[empId]?.section || '';
 }
 
 function closeDutyModal() {
