@@ -523,6 +523,44 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 .role-btn:hover{background:rgba(255,255,255,.1);color:#fff}
 .role-btn.active{background:rgba(201,150,58,.2);border-color:var(--gold);color:var(--gold2)}
 
+/* ════════ ADDED: Block Days (Special Events) ════════ */
+.block-day-cell{position:relative;background:repeating-linear-gradient(45deg,#FFE082,#FFE082 6px,#FFC107 6px,#FFC107 12px) !important;outline:2px solid #FF6F00;outline-offset:-2px}
+.block-day-cell::after{content:'★';position:absolute;top:1px;right:2px;font-size:8px;color:#B71C1C}
+.block-day-header{background:#FF6F00 !important;color:#fff !important;border-bottom:2px solid #B71C1C}
+/* Clickable shift legend pill */
+.sp.legend-active{outline:3px solid var(--gold);outline-offset:1px;box-shadow:0 0 0 4px rgba(201,150,58,.25)}
+.sp[data-legend-pill]{cursor:pointer !important;transition:transform .15s}
+.sp[data-legend-pill]:hover{transform:scale(1.08)}
+#shiftFilterChip{position:fixed;top:60px;right:16px;z-index:2500;background:var(--gold);color:#fff;border-radius:100px;padding:8px 14px;font-size:12px;font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.3);display:none;align-items:center;gap:8px;cursor:pointer}
+#shiftFilterChip.show{display:flex}
+.row-dim-filter{opacity:.18;filter:grayscale(.6)}
+
+/* ════════ ADDED: Mobile improvements ════════ */
+@media (max-width:768px){
+  .modal{width:96vw !important;max-width:96vw !important;max-height:90vh;overflow-y:auto;padding:14px !important}
+  .fg{grid-template-columns:1fr !important}
+  .ff{grid-column:1/-1 !important}
+  table{font-size:10px}
+  .sp{font-size:9px;padding:2px 4px;min-width:24px}
+  .sc-col{position:sticky;left:0;background:#fff;z-index:5;box-shadow:2px 0 6px rgba(0,0,0,.08)}
+  .tab{font-size:11px;padding:6px 10px}
+  h2,h3{font-size:15px !important}
+  .btn{font-size:11px;padding:7px 11px}
+  .btn-sm{font-size:10px;padding:5px 8px}
+  #shiftFilterChip{top:auto;bottom:70px;right:10px;font-size:11px;padding:6px 11px}
+  /* Stop horizontal page scroll */
+  body{overflow-x:hidden}
+  .card{padding:10px !important;border-radius:10px !important}
+  .inp{font-size:14px} /* Prevent iOS zoom on focus */
+  /* Tighter swap dropdown */
+  #swapPartnerDropdown{max-height:160px !important}
+}
+@media (max-width:480px){
+  .tab{font-size:10px;padding:5px 7px}
+  table th,table td{padding:2px 1px}
+  .conflict-badge{font-size:9px;padding:2px 5px;display:inline-block;max-width:100%;white-space:normal}
+}
+
 </style>
 </head>
 <body>
@@ -1013,7 +1051,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
               <div style="display:flex;flex-direction:column;gap:10px">
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
                   <input type="checkbox" id="ruleYPHCoverage" style="width:15px;height:15px;accent-color:var(--gold)" checked>
-                  <span>Always keep YPH (All Properties) covered</span>
+                  <span>Always keep YPH covered</span>
                 </label>
                 <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12px">
                   <input type="checkbox" id="ruleBalanceHotels" style="width:15px;height:15px;accent-color:var(--gold)">
@@ -1240,6 +1278,13 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div><label class="lbl">Off Days / Month</label><input class="inp" id="f-off" type="number" min="0" max="20" value="4"></div>
       <div><label class="lbl">Annual Leave Balance</label><input class="inp" id="f-al" type="number" min="0" value="21"></div>
       <div><label class="lbl">AL Used</label><input class="inp" id="f-alused" type="number" min="0" value="0"></div>
+      <div><label class="lbl">Gender</label>
+        <select class="inp" id="f-gender">
+          <option value="">— Not Set —</option>
+          <option value="male">Male</option>
+          <option value="female">Female</option>
+        </select>
+      </div>
       <div class="ff"><label class="lbl">Notes</label><input class="inp" id="f-notes" placeholder="Optional…"></div>
     </div>
     <div class="mf">
@@ -1333,7 +1378,7 @@ const DAYS_S  = ["Sun","Mon","Tue","Wed","Thu","Fri","SAT"];
 
 const HOTELS = [
   {id:"all",        name:"All Hotels",          color:"#1B2A4A",light:"#C5D1E8"},
-  {id:"yph",        name:"YPH (All Properties)",color:"#7B5EA7",light:"#EDE7F6"},
+  {id:"yph",        name:"YPH",color:"#7B5EA7",light:"#EDE7F6"},
   {id:"marina",     name:"Yas Plaza Marina",     color:"#006064",light:"#E0F7FA"},
   {id:"circuit",    name:"Yas Plaza Circuit",    color:"#1B2A4A",light:"#D6E0F0"},
   {id:"mangrove",   name:"Yas Plaza Mangrove",   color:"#1B5E20",light:"#E8F5E9"},
@@ -1843,8 +1888,13 @@ function populateSwapForm() {
   myDaySel.innerHTML = Object.entries(sch).filter(([d,c]) => c && c!=="OFF" && c!=="AL" && c!=="EX" && c!=="UNP")
     .map(([d,c]) => `<option value="${d}">Day ${d} (${c})</option>`).join("") || '<option>No working days</option>';
 
-  // Build partner list for search
-  window._swapPartners = Object.values(staffData).filter(e => e.department===emp.department && e.id!==currentEmpId);
+  // Build partner list — same department, same section, same position only
+  window._swapPartners = Object.values(staffData).filter(e =>
+    e.department === emp.department &&
+    e.id !== currentEmpId &&
+    (e.position || '') === (emp.position || '') &&
+    ((e.section || '') === (emp.section || ''))
+  );
   renderSwapPartnerDropdown(window._swapPartners);
   updateSwapPreview();
 }
@@ -3435,21 +3485,7 @@ function detectConflicts(empId, day, newShift) {
     }
   }
 
-  // Check 3: Overtime risk (weekly hours > 48)
-  const weekStart = Math.floor((day - 1) / 7) * 7 + 1;
-  const weekEnd = Math.min(weekStart + 6, getDIM());
-  let weekHours = 0;
-  for (let d = weekStart; d <= weekEnd; d++) {
-    const s = (d === day) ? newShift : (sch[d] || '');
-    weekHours += SHIFTS[s]?.hours || 0;
-  }
-  if (weekHours > 48) {
-    conflicts.push({
-      type: 'overtime',
-      message: `Week hours would be ${weekHours}h (max 48h)`,
-      severity: 'warning'
-    });
-  }
+  // Check 3: Overtime risk — disabled per user request
 
   // Check 4: AL balance check
   if (newShift === 'AL') {
@@ -3536,13 +3572,14 @@ function openAutoSchedule() {
   const hotelSel = document.getElementById('autoHotel');
 
   if (deptSel) {
-    deptSel.innerHTML = '<option value="all">All Visible Departments</option>' + 
+    deptSel.innerHTML = '<option value="all">All Visible Departments</option>' +
       getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
   }
   if (hotelSel) {
-    hotelSel.innerHTML = '<option value="all">All Hotels</option>' + 
+    hotelSel.innerHTML = '<option value="all">All Hotels</option>' +
       HOTELS.filter(h => h.id !== 'all').map(h => `<option value="${h.id}">${h.name}</option>`).join('');
   }
+  refreshAutoSectionPosition();
 
   // Load saved rules into modal
   const setV = (id, v) => { const el=document.getElementById(id); if(el && v!==undefined) el.value=v; };
@@ -3554,9 +3591,26 @@ function openAutoSchedule() {
   setC('autoNoWeekendOff', r.noWeekendOff);
   setC('autoSpreadOff', r.spreadOff !== false);
   setC('autoRespectRequests', r.respectLeave !== false);
+  setC('autoNoEveToMor', r.noEveToMor !== false);
 
   document.getElementById('autoScheduleModal').style.display = 'flex';
   document.getElementById('autoSchedulePreview').style.display = 'none';
+}
+
+function refreshAutoSectionPosition() {
+  const dept = document.getElementById('autoDept')?.value || 'all';
+  const all = staffList();
+  const pool = dept === 'all' ? all : all.filter(e => e.department === dept);
+  const sections = Array.from(new Set(pool.map(e => e.section).filter(Boolean))).sort();
+  const positions = Array.from(new Set(pool.map(e => e.position).filter(Boolean))).sort();
+  const secSel = document.getElementById('autoSection');
+  const posSel = document.getElementById('autoPosition');
+  const exPos  = document.getElementById('autoExcludePositions');
+  const noNight = document.getElementById('autoNoNightPositions');
+  if (secSel) secSel.innerHTML = '<option value="all">All Sections</option>' + sections.map(s=>`<option>${s}</option>`).join('');
+  if (posSel) posSel.innerHTML = '<option value="all">All Positions</option>' + positions.map(p=>`<option>${p}</option>`).join('');
+  if (exPos)  exPos.innerHTML  = positions.map(p=>`<option>${p}</option>`).join('');
+  if (noNight) noNight.innerHTML = positions.map(p=>`<option>${p}</option>`).join('');
 }
 
 function previewAutoSchedule() {
@@ -3576,6 +3630,8 @@ function previewAutoSchedule() {
 
 function generateAutoSchedule(previewOnly = false) {
   const deptFilter = document.getElementById('autoDept')?.value || 'all';
+  const sectionFilter = document.getElementById('autoSection')?.value || 'all';
+  const positionFilter = document.getElementById('autoPosition')?.value || 'all';
   const hotelFilter = document.getElementById('autoHotel')?.value || 'all';
   const pattern = document.getElementById('autoPattern')?.value || 'rotate';
   const minStaff = parseInt(document.getElementById('autoMinStaff')?.value || 2);
@@ -3584,6 +3640,10 @@ function generateAutoSchedule(previewOnly = false) {
   const respectRequests = document.getElementById('autoRespectRequests')?.checked ?? true;
   const noWeekendOff = document.getElementById('autoNoWeekendOff')?.checked ?? false;
   const spreadOff = document.getElementById('autoSpreadOff')?.checked ?? true;
+  const noEveToMor = document.getElementById('autoNoEveToMor')?.checked ?? true;
+  const genderFilter = document.getElementById('autoGender')?.value || 'all';
+  const excludePositions = Array.from(document.getElementById('autoExcludePositions')?.selectedOptions || []).map(o=>o.value);
+  const noNightPositions = Array.from(document.getElementById('autoNoNightPositions')?.selectedOptions || []).map(o=>o.value);
 
   const numDays = getDIM();
   const key = schKey();
@@ -3593,7 +3653,17 @@ function generateAutoSchedule(previewOnly = false) {
   // Get target staff
   let targetStaff = staffList();
   if (deptFilter !== 'all') targetStaff = targetStaff.filter(e => e.department === deptFilter);
+  if (sectionFilter !== 'all') targetStaff = targetStaff.filter(e => (e.section||'') === sectionFilter);
+  if (positionFilter !== 'all') targetStaff = targetStaff.filter(e => (e.position||'') === positionFilter);
   if (hotelFilter !== 'all') targetStaff = targetStaff.filter(e => e.hotel === hotelFilter || e.hotel === 'all');
+  if (excludePositions.length) targetStaff = targetStaff.filter(e => !excludePositions.includes(e.position));
+  if (genderFilter !== 'all') {
+    const g = (e) => (e.gender || '').toLowerCase();
+    if (genderFilter === 'male')           targetStaff = targetStaff.filter(e => g(e) === 'male');
+    else if (genderFilter === 'female')    targetStaff = targetStaff.filter(e => g(e) === 'female');
+    else if (genderFilter === 'exclude_male')   targetStaff = targetStaff.filter(e => g(e) !== 'male');
+    else if (genderFilter === 'exclude_female') targetStaff = targetStaff.filter(e => g(e) !== 'female');
+  }
   // Exclude departments that have Auto-Rota disabled by Developer
   const skippedDepts = Object.keys(deptAutoDisabled||{}).filter(d => deptAutoDisabled[d]);
   if (skippedDepts.length) {
@@ -3658,6 +3728,20 @@ function generateAutoSchedule(previewOnly = false) {
         assignedShift = shiftCodes[(empIdx + day) % shiftCodes.length];
       }
       if (!assignedShift) assignedShift = empDef;
+
+      // Block EVE for positions excluded from night shift
+      if (assignedShift === 'EVE' && noNightPositions.includes(emp.position)) {
+        assignedShift = (noWeekendOff && isWeekend) ? 'AFT' : 'AFT';
+      }
+
+      // Block EVE → MOR next day (insufficient rest)
+      if (noEveToMor && assignedShift === 'MOR' && sch[day - 1] === 'EVE') {
+        assignedShift = 'AFT';
+      }
+      // Also: if today is EVE and tomorrow already MOR, push today to AFT
+      if (noEveToMor && assignedShift === 'EVE' && sch[day + 1] === 'MOR') {
+        assignedShift = 'AFT';
+      }
 
       // Check for conflicts before applying
       const dayConflicts = detectConflicts(emp.id, day, assignedShift);
@@ -3874,7 +3958,7 @@ function showRulesSummary() {
   lines.push(`📅 Max weekend OFF/month: ${r.maxWeekendOff}`);
   lines.push(`🔄 Max consecutive work days: ${r.maxConsecWork} · Min rest: ${r.minRest}h`);
   if(r.noConsecOff) lines.push('⛔ No more than 2 consecutive OFF days');
-  if(r.yph) lines.push('🏨 YPH (All Properties) always covered');
+  if(r.yph) lines.push('🏨 YPH always covered');
   lines.push(`🏖 Max ${r.maxALSameDay} staff on AL on same day`);
   if(r.respectLeave) lines.push('✅ Approved leave always respected');
   el.innerHTML = '<strong style="font-size:11px;font-weight:700;color:var(--navy)">📋 Active Rules:</strong><br>' + lines.join(' &nbsp;·&nbsp; ');
@@ -4037,7 +4121,7 @@ renderRoster = function() {
       <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei % 2 ? "background:#FAFBFD" : ""}">
         <div style="font-weight:600;font-size:11px">${emp.name || "—"}</div>
         <div style="font-size:9px;color:${hotel?.color || "#888"};margin-top:1px">${hotel?.name || emp.hotel}</div>
-        ${empConflicts.length ? '<div style="margin-top:4px">' + renderConflictBadges(empConflicts.slice(0, 2)) + '</div>' : ''}
+        ${(() => { const filtered = empConflicts.filter(c => c.type !== 'double_shift'); return filtered.length ? '<div style="margin-top:4px">' + renderConflictBadges(filtered.slice(0, 2)) + '</div>' : ''; })()}
       </td>
       <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
       <td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position}</td>
@@ -4253,6 +4337,7 @@ function openEditStaff(id) {
   document.getElementById("f-off").value=emp.offDays;
   document.getElementById("f-al").value=emp.annualLeave;
   document.getElementById("f-alused").value=emp.alUsed;
+  if(document.getElementById("f-gender")) document.getElementById("f-gender").value=emp.gender||"";
   document.getElementById("f-notes").value=emp.notes||"";
   document.getElementById("staffModal").style.display="flex";
 }
@@ -4302,6 +4387,7 @@ async function saveStaff(addAnother=false) {
     offDays:    +document.getElementById("f-off").value,
     annualLeave:+document.getElementById("f-al").value,
     alUsed:     +document.getElementById("f-alused").value,
+    gender:     document.getElementById("f-gender")?.value||"",
     notes:      document.getElementById("f-notes").value.trim(),
   };
 
@@ -4799,9 +4885,21 @@ function exportCSV() {
   a.click();
 }
 function printRoster() {
+  // Ask for per-section vs all
+  const allSections = Array.from(new Set(staffList().map(e=>e.section).filter(Boolean))).sort();
+  let sectionPick = 'all';
+  if (allSections.length) {
+    const choices = ['all', ...allSections];
+    const list = choices.map((s,i)=>`${i+1}. ${s==='all'?'All sections':s}`).join('\n');
+    const ans = prompt('Print which section?\n\n'+list+'\n\nEnter number (or leave blank for All):','1');
+    if (ans === null) return;
+    const idx = parseInt(ans);
+    if (!isNaN(idx) && idx>=1 && idx<=choices.length) sectionPick = choices[idx-1];
+  }
   const numDays=getDIM(); const hf=document.getElementById("hotelFilter")?.value||"all";
-  const filt=hf==="all"?staffList():staffList().filter(e=>e.hotel===hf||e.hotel==="all");
-  const hotelNm=HOTELS.find(h=>h.id===hf)?.name||"All Hotels";
+  let filt=hf==="all"?staffList():staffList().filter(e=>e.hotel===hf||e.hotel==="all");
+  if (sectionPick !== 'all') filt = filt.filter(e => (e.section||'') === sectionPick);
+  const hotelNm=(HOTELS.find(h=>h.id===hf)?.name||"All Hotels") + (sectionPick!=='all' ? ' · '+sectionPick : '');
   const dths=Array.from({length:numDays},(_,i)=>{const d=i+1;const dow=new Date(YEAR,MONTH,d).getDay();const isSat=dow===6;
     return`<th style="background:${isSat?"#c62828":"#1B2A4A"};color:${isSat?"#FFD54F":"#fff"};font-size:7px;padding:2px;text-align:center;min-width:22px;border:1px solid #444">${d}<br>${DAYS_S[dow]}</th>`;
   }).join("");
@@ -4855,8 +4953,18 @@ function printRoster() {
     </div>
     <div class="fg">
       <div><label class="lbl">Department</label>
-        <select class="inp" id="autoDept">
+        <select class="inp" id="autoDept" onchange="refreshAutoSectionPosition()">
           <option value="all">All Visible Departments</option>
+        </select>
+      </div>
+      <div><label class="lbl">Section</label>
+        <select class="inp" id="autoSection">
+          <option value="all">All Sections</option>
+        </select>
+      </div>
+      <div><label class="lbl">Position</label>
+        <select class="inp" id="autoPosition">
+          <option value="all">All Positions</option>
         </select>
       </div>
       <div><label class="lbl">Hotel Priority</label>
@@ -4880,6 +4988,25 @@ function printRoster() {
       <div><label class="lbl">Min AFT Staff / Shift</label>
         <input class="inp" id="autoMinAFT" type="number" min="1" max="20" value="2">
       </div>
+      <div><label class="lbl">Gender Filter</label>
+        <select class="inp" id="autoGender">
+          <option value="all">All</option>
+          <option value="male">Male only</option>
+          <option value="female">Female only</option>
+          <option value="exclude_male">Exclude Male</option>
+          <option value="exclude_female">Exclude Female</option>
+        </select>
+      </div>
+      <div class="ff" style="grid-column:1/-1">
+        <label class="lbl">Exclude Positions (these staff will not be auto-scheduled)</label>
+        <select class="inp" id="autoExcludePositions" multiple size="4" style="height:auto;min-height:78px"></select>
+        <div style="font-size:10px;color:var(--slate);margin-top:4px">Hold Ctrl/⌘ to select multiple.</div>
+      </div>
+      <div class="ff" style="grid-column:1/-1">
+        <label class="lbl">Positions excluded from NIGHT (EVE) shift</label>
+        <select class="inp" id="autoNoNightPositions" multiple size="4" style="height:auto;min-height:78px"></select>
+        <div style="font-size:10px;color:var(--slate);margin-top:4px">These positions will be assigned MOR / AFT only.</div>
+      </div>
       <div class="ff" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px;background:var(--ice2);border-radius:8px">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
           <input type="checkbox" id="autoNoWeekendOff" style="accent-color:var(--gold)">No OFF on weekends
@@ -4889,6 +5016,9 @@ function printRoster() {
         </label>
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
           <input type="checkbox" id="autoRespectRequests" checked style="accent-color:var(--gold)">Respect approved leave &amp; swaps
+        </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="autoNoEveToMor" checked style="accent-color:var(--gold)">Block EVE → MOR next day
         </label>
       </div>
     </div>
@@ -5117,6 +5247,151 @@ window.addEventListener("load", function() {
     updateStatus("offline","Offline Mode");
   }
 });
+
+// ════════════════════════════════════════════════
+// ADDED: Special Event Block Days
+// ════════════════════════════════════════════════
+let blockDays = JSON.parse(localStorage.getItem('blockDays_v1') || '{}');
+function saveBlockDays(){ try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){} }
+function getBlockedDays(monthKey){ return blockDays[monthKey || schKey()] || {}; }
+function openBlockDaysModal(){
+  const key = schKey(); const numDays = getDIM();
+  const cur = blockDays[key] || {};
+  const rows = [];
+  for (let d = 1; d <= numDays; d++){
+    const v = (cur[d] || '').replace(/"/g,'&quot;');
+    rows.push(`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">
+      <div style="width:54px;font-weight:700;color:var(--navy);font-size:12px">Day ${d}</div>
+      <input class="inp blockday-inp" data-day="${d}" placeholder="Event name (empty = not blocked)" value="${v}" style="flex:1;font-size:12px"></div>`);
+  }
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="mover" id="blockDaysModal" style="display:flex" onclick="if(event.target===this)closeModal('blockDaysModal')">
+    <div class="modal" style="width:520px;max-height:85vh;overflow-y:auto">
+      <h3>★ Block Days — ${MONTHS[MONTH]} ${YEAR}</h3>
+      <div style="font-size:11px;color:var(--slate);margin-bottom:10px">Highlight days for special events. Visible on the roster.</div>
+      <div>${rows.join('')}</div>
+      <div class="mf">
+        <button class="btn btn-ghost" onclick="closeModal('blockDaysModal')">Cancel</button>
+        <button class="btn btn-ghost" onclick="document.querySelectorAll('.blockday-inp').forEach(i=>i.value='')">Clear All</button>
+        <button class="btn btn-primary" onclick="saveBlockDaysFromModal()">💾 Save</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(wrap.firstChild);
+}
+function saveBlockDaysFromModal(){
+  const key = schKey(); const out = {};
+  document.querySelectorAll('.blockday-inp').forEach(i=>{
+    const v = (i.value||'').trim(); if (v) out[parseInt(i.dataset.day)] = v;
+  });
+  blockDays[key] = out; saveBlockDays();
+  closeModal('blockDaysModal');
+  try { renderRoster(); } catch(e){}
+}
+function applyBlockDayStyling(){
+  const blocked = getBlockedDays();
+  const wrap = document.getElementById('rosterWrap'); if (!wrap) return;
+  // Find header day cells (they contain the day number)
+  const headers = wrap.querySelectorAll('thead th');
+  headers.forEach((th)=>{
+    const txt = (th.textContent||'').trim();
+    const m = txt.match(/^(\d+)/);
+    if (!m) return;
+    const day = parseInt(m[1]);
+    if (blocked[day]) {
+      th.style.background = '#FF6F00';
+      th.style.color = '#fff';
+      th.title = '★ ' + blocked[day];
+    }
+  });
+  // Mark cells in each row at the same column index as headers
+  const dayHeaderIdx = {};
+  headers.forEach((th, i)=>{
+    const m = (th.textContent||'').trim().match(/^(\d+)/);
+    if (m) dayHeaderIdx[parseInt(m[1])] = i;
+  });
+  Object.keys(blocked).forEach(d=>{
+    const idx = dayHeaderIdx[parseInt(d)]; if (idx === undefined) return;
+    wrap.querySelectorAll('tbody tr').forEach(tr=>{
+      const cell = tr.children[idx];
+      if (cell) { cell.style.boxShadow = 'inset 0 0 0 2px #FF6F00'; cell.title = '★ ' + blocked[d]; }
+    });
+  });
+}
+
+// ════════════════════════════════════════════════
+// ADDED: Clickable shift legend pill = filter availability
+// ════════════════════════════════════════════════
+let activeShiftFilter = null;
+function applyShiftLegendFilter(code){
+  if (activeShiftFilter === code) { clearShiftLegendFilter(); return; }
+  activeShiftFilter = code;
+  document.querySelectorAll('.sp[data-legend-pill]').forEach(p=>{
+    p.classList.toggle('legend-active', p.dataset.legendPill === code);
+  });
+  document.querySelectorAll('#rosterWrap tbody tr').forEach(tr=>{
+    const cells = tr.querySelectorAll('td .sp');
+    let has = false;
+    cells.forEach(c=>{ if((c.textContent||'').trim() === code) has = true; });
+    tr.classList.toggle('row-dim-filter', !has);
+  });
+  let chip = document.getElementById('shiftFilterChip');
+  if (!chip){
+    chip = document.createElement('div');
+    chip.id = 'shiftFilterChip';
+    chip.onclick = clearShiftLegendFilter;
+    document.body.appendChild(chip);
+  }
+  chip.innerHTML = `Showing: ${code} availability ✕`;
+  chip.classList.add('show');
+}
+function clearShiftLegendFilter(){
+  activeShiftFilter = null;
+  document.querySelectorAll('.sp[data-legend-pill]').forEach(p=>p.classList.remove('legend-active'));
+  document.querySelectorAll('#rosterWrap tbody tr').forEach(tr=>tr.classList.remove('row-dim-filter'));
+  const chip = document.getElementById('shiftFilterChip'); if (chip) chip.classList.remove('show');
+}
+function wireLegendPills(){
+  const legendBar = document.querySelector('#rosterWrap > div:first-child');
+  if (!legendBar) return;
+  legendBar.querySelectorAll('.sp').forEach(p=>{
+    if (p.dataset.legendPill) return;
+    const code = (p.textContent||'').trim().split(/\s/)[0];
+    if (!code || !window.SHIFTS || !SHIFTS[code]) return;
+    p.dataset.legendPill = code;
+    p.style.cursor = 'pointer';
+    p.title = 'Click to highlight staff scheduled for ' + code;
+    p.addEventListener('click', ()=>applyShiftLegendFilter(code));
+  });
+}
+
+// Hook into renderRoster
+(function(){
+  if (typeof window.renderRoster === 'function'){
+    const _orig = window.renderRoster;
+    window.renderRoster = function(){
+      const r = _orig.apply(this, arguments);
+      try { wireLegendPills(); applyBlockDayStyling(); if (activeShiftFilter){ const f=activeShiftFilter; activeShiftFilter=null; applyShiftLegendFilter(f);} } catch(e){}
+      return r;
+    };
+  }
+})();
+
+// Add a Block Days button into the Sections page when it's visible
+(function(){
+  const tryInject = ()=>{
+    const target = document.querySelector('#page-sections .card');
+    if (!target || document.getElementById('btnBlockDays')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnBlockDays';
+    btn.className = 'btn';
+    btn.style.cssText = 'margin:10px 6px 0 0;background:#FFE082;color:#B71C1C;font-weight:700;border:1.5px solid #FF6F00';
+    btn.textContent = '★ Manage Block Days (Special Events)';
+    btn.onclick = openBlockDaysModal;
+    target.appendChild(btn);
+  };
+  document.addEventListener('click', tryInject);
+  setInterval(tryInject, 3000);
+})();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
