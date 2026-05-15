@@ -164,6 +164,7 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .sp-SH{background:#C8E6C9;color:#1B5E20;border-color:#66BB6A}
 .sp-TRN{background:#DBEAFE;color:#1D4ED8;border-color:#60A5FA}
 .sp-SPL{background:#FEF3C7;color:#92400E;border-color:#F59E0B}
+.sp-SLK{background:#FCE4EC;color:#AD1457;border-color:#F06292}
 .sp-empty{background:#f5f5f5;color:#bbb;border-color:#e0e0e0}
 /* Hotel assignment pills */
 .hp{display:inline-flex;align-items:center;gap:3px;border-radius:4px;font-size:8px;font-weight:700;padding:1px 4px;cursor:pointer;transition:.15s;border:1.5px solid transparent;white-space:nowrap}
@@ -245,7 +246,7 @@ button.dev-only-btn{display:inline-flex}
 #sinanLogo img{object-fit:cover;object-position:center}
 
 /* ════ EMP PORTAL ════ */
-#empPortal{position:fixed;inset:0;background:linear-gradient(135deg,#070E1A,#0F1E35 50%,#0B1A30);display:none;align-items:center;justify-content:center;z-index:800;flex-direction:column;padding:20px}
+#empPortal{position:fixed;inset:0;background:linear-gradient(135deg,#070E1A,#0F1E35 50%,#0B1A30);display:none;align-items:flex-start;justify-content:center;z-index:800;flex-direction:column;padding:16px;overflow-y:auto}
 #empPortal.show{display:flex}
 .el{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);border:1px solid rgba(201,150,58,.18);border-radius:22px;padding:38px 34px;width:390px;max-width:100%;text-align:center;animation:fadeUp .4s ease both}
 .el h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:5px}
@@ -258,14 +259,14 @@ button.dev-only-btn{display:inline-flex}
 .eerr{color:#ff6b6b;font-size:11px;margin-top:6px;min-height:16px}
 
 /* Emp Dashboard */
-.ed{width:100%;max-width:660px;animation:fadeUp .35s ease both;display:none}
+.ed{width:100%;max-width:680px;animation:fadeUp .35s ease both;display:none;overflow-y:auto;max-height:100vh;padding-bottom:60px}
 .ed.show{display:block}
 .ehdr{background:rgba(255,255,255,.05);border:1px solid rgba(201,150,58,.18);border-radius:16px;padding:22px;margin-bottom:12px;display:flex;align-items:center;gap:14px}
 .eav{width:52px;height:52px;border-radius:13px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;flex-shrink:0}
 .enm{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff}
 .eps{color:var(--gold2);font-size:11px;margin-top:2px}
 .eht{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.13);border-radius:100px;padding:3px 10px;font-size:10px;color:rgba(255,255,255,.75);font-weight:600;margin-top:5px}
-.estats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.estats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
 .estat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:12px;padding:13px;text-align:center}
 .esv{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff}
 .esl{font-size:9px;color:var(--slate2);margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.4px}
@@ -333,11 +334,11 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
   .estats{grid-template-columns:1fr 1fr}
-  .wgrid{grid-template-columns:repeat(4,1fr)}
-  .topbar{padding:8px 12px;flex-wrap:wrap;height:auto;gap:8px}
-  .nav{flex-wrap:nowrap;overflow-x:auto;gap:2px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
-  .nav::-webkit-scrollbar{height:2px}
-  .tab{font-size:10px;padding:5px 10px;white-space:nowrap}
+  .wgrid{grid-template-columns:repeat(3,1fr);gap:4px}
+  .topbar{padding:6px 10px;flex-wrap:wrap;height:auto;gap:6px}
+  .nav{flex-wrap:nowrap;overflow-x:auto;gap:2px;padding-bottom:2px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .nav::-webkit-scrollbar{height:0;display:none}
+  .tab{font-size:10px;padding:4px 9px;white-space:nowrap}
   .topbar-r{width:100%;flex-wrap:wrap;justify-content:flex-start;gap:5px}
   .topbar-r .mnav{margin-left:0}
   .mlbl{min-width:90px;font-size:11px}
@@ -363,7 +364,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 }
 @media(max-width:480px){
   .g4{grid-template-columns:1fr}
-  .estats{grid-template-columns:1fr 1fr}
+  .estats{grid-template-columns:1fr 1fr !important}
   .wgrid{grid-template-columns:repeat(3,1fr)}
   .topbar-logo span+span{display:none}
   .topbar-logo{font-size:11px}
@@ -723,6 +724,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         <div class="esmi"><div class="esmv" style="color:#FBBF24" id="es-alr">—</div><div class="esml">AL Days Left</div></div>
         <div class="esmi"><div class="esmv" style="color:#C084FC" id="es-ex">—</div><div class="esml">Extra Off</div></div>
         <div class="esmi"><div class="esmv" style="color:#F87171" id="es-unp">—</div><div class="esml">Unpaid Off</div></div>
+        <div class="esmi"><div class="esmv" style="color:#F48FB1" id="es-sick">0</div><div class="esml">Sick Leave</div></div>
       </div>
     </div>
     </div><!-- /schedule tab -->
@@ -775,6 +777,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
               <option value="EX">Extra Off</option>
               <option value="UNP">Unpaid Leave</option>
               <option value="TRN">Training</option>
+              <option value="SLK">🤒 Sick Leave</option>
             </select>
           </div>
           <div><label class="lbl" style="color:rgba(255,255,255,.5)">Reason (optional)</label>
@@ -1110,6 +1113,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
             <button class="btn btn-gold" onclick="saveRosterRules()">💾 Save Rules</button>
             <button class="btn btn-primary" onclick="openAutoSchedule()">🤖 Run Auto Roster Now</button>
             <button class="btn btn-ghost" onclick="resetRosterRules()">↺ Reset to Defaults</button>
+            <button class="btn" style="background:#FFE082;color:#B71C1C;font-weight:700;border:1.5px solid #FF6F00" onclick="openBlockDaysModal()">★ Block Days</button>
+            <button class="btn btn-sm" style="background:#F3E5F5;color:#6A1B9A;border:1.5px solid #AB47BC" onclick="checkPendingOffAlerts()">⏰ Check Pending Off</button>
             <span id="rulesSaveMsg" style="font-size:11px;color:var(--green);min-height:16px"></span>
           </div>
 
@@ -1207,6 +1212,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div style="padding:18px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
         <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
+        <button class="btn btn-gold dev-only-btn" onclick="openAddCustomShift()" style="margin-left:8px">+ Add Custom Shift</button>
         <span id="shiftSaveMsg" style="font-size:11px;margin-left:12px;min-height:16px"></span>
       </div>
     </div>
@@ -1455,6 +1461,7 @@ const SHIFTS = {
   SH:{label:"Half Day",   time:"—",          hours:4, bg:"#C8E6C9",color:"#1B5E20",border:"#66BB6A"},
   TRN:{label:"Training",  time:"Training", hours:8, bg:"#DBEAFE",color:"#1D4ED8",border:"#60A5FA"},
   SPL:{label:"Split Shift",time:"Split",   hours:9, bg:"#FEF3C7",color:"#92400E",border:"#F59E0B"},
+  SLK:{label:"Sick Leave",  time:"—",          hours:0, bg:"#FCE4EC",color:"#AD1457",border:"#F06292"},
 };
 
 // ═══════════════════════════════════════════════════
@@ -1699,10 +1706,10 @@ function showEmpTab(tab) {
 }
 
 function reqTypeLabel(type) {
-  return {AL:"🏖 Annual Leave", EX:"✨ Extra Off", UNP:"💸 Unpaid", TRN:"🎓 Training"}[type] || type;
+  return {AL:"🏖 Annual Leave", EX:"✨ Extra Off", UNP:"💸 Unpaid", TRN:"🎓 Training", SLK:"🤒 Sick Leave"}[type] || type;
 }
 function shiftIsOffCode(code) {
-  return ["OFF","AL","EX","UNP"].includes(code);
+  return ["OFF","AL","EX","UNP","SLK"].includes(code);
 }
 function cloneData(obj) { return JSON.parse(JSON.stringify(obj || {})); }
 function archiveDbKey(key) { return String(key).replace(/[^a-zA-Z0-9]/g, "_"); }
@@ -2125,7 +2132,7 @@ function renderLeaveList() {
 
   el.innerHTML = myReqs.map(r => {
     const statusColors = {pending: "var(--gold)", approved: "var(--green)", rejected: "var(--red)"};
-    const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training"};
+    const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training", SLK: "🤒 Sick Leave"};
     return `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <span style="font-weight:700">${typeLabels[r.type]}</span>
@@ -2177,7 +2184,7 @@ function renderAdminRequests() {
   else {
     leaveEl.innerHTML = pendingLeaves.map(r => {
       const emp = staffData[r.empId];
-      const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training"};
+      const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training", SLK: "🤒 Sick Leave"};
       const days = r.toDay - r.fromDay + 1;
       const alLeft = (emp?.annualLeave || 0) - (emp?.alUsed || 0);
       return `<div style="background:var(--ice2);border:1.5px solid #4ADE80;border-radius:10px;padding:12px;margin-bottom:8px">
@@ -2791,7 +2798,27 @@ function changeDept(dept) {
   renderAll();
 }
 
+function checkPendingOffAlerts() {
+  const key = schKey();
+  const alerts = [];
+  staffList().forEach(emp => {
+    const sch = getEmpSch(emp.id);
+    const st = calcStats(emp, sch);
+    if (st.pendingOff > 0) {
+      alerts.push(emp.name + ": " + st.pendingOff + " pending day(s) off not scheduled");
+      savePendingCarryOff(emp.id, key, st.pendingOff);
+    }
+  });
+  if (alerts.length) {
+    const msg = "⚠️ PENDING DAYS OFF ALERT\n\n" + alerts.slice(0,10).join("\n") + (alerts.length>10?"\n...and "+(alerts.length-10)+" more":"") + "\n\nThese carry-over days have been saved and will show in the employee portal.";
+    alert(msg);
+  } else {
+    alert("✅ No pending days off — all staff have received their full allocation.");
+  }
+}
+
 function changeMonth(d) {
+  if (d > 0) { try { checkPendingOffAlerts(); } catch(e){} }
   archiveMonthSnapshot(YEAR, MONTH, "month switched");
   MONTH+=d; if(MONTH<0){MONTH=11;YEAR--;} if(MONTH>11){MONTH=0;YEAR++;}
   document.getElementById("monthLabel").textContent=`${MONTHS[MONTH]} ${YEAR}`;
@@ -3095,17 +3122,54 @@ function getEmpSch(id,y,m) { return schedData[id]?.[schKey(y,m)] || {}; }
 function getDIM(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function getDaysInMonth(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function calcStats(emp, sch) {
-  let work=0,off=0,al=0,ex=0,unp=0,hrs=0;
+  let work=0,off=0,al=0,ex=0,unp=0,hrs=0,sick=0;
   Object.values(sch).forEach(c=>{
     if(!c)return;
     if(c==="OFF")off++;
     else if(c==="AL")al++;
     else if(c==="EX")ex++;
     else if(c==="UNP")unp++;
+    else if(c==="SLK"){sick++;}
     else { work++; hrs += (SHIFTS[c]?.hours ?? emp.shiftHours ?? 8); }
   });
-  return{work,off,al,ex,unp,hrs,alRem:emp.annualLeave-emp.alUsed};
+  // Carry-over pending days off from localStorage
+  const prevKey = getPrevMonthKey();
+  const prevPending = getPendingCarryOff(emp.id, prevKey);
+  const assignedOff = emp.offDays || 0;
+  const pendingOff = Math.max(0, assignedOff - off);
+  return{work,off,al,ex,unp,hrs,sick,alRem:emp.annualLeave-emp.alUsed,pendingOff,prevPending};
 }
+// ── Carry-over helpers ──
+function getPrevMonthKey() {
+  let y=YEAR, m=MONTH-1;
+  if(m<0){m=11;y--;}
+  return y+"-"+m;
+}
+function getPendingCarryOff(empId, prevKey) {
+  try {
+    const stored = JSON.parse(localStorage.getItem("pendingCarryOff_v1")||"{}");
+    return stored[empId]?.[prevKey] || 0;
+  } catch(e){ return 0; }
+}
+function savePendingCarryOff(empId, monthKey, count) {
+  try {
+    const stored = JSON.parse(localStorage.getItem("pendingCarryOff_v1")||"{}");
+    if(!stored[empId]) stored[empId]={};
+    if(count>0) stored[empId][monthKey]=count;
+    else delete stored[empId]?.[monthKey];
+    localStorage.setItem("pendingCarryOff_v1", JSON.stringify(stored));
+  } catch(e){}
+}
+function checkAndSaveCarryOff() {
+  // At end of month, save pending day-offs for carry-over
+  const key = schKey();
+  staffList().forEach(emp => {
+    const sch = getEmpSch(emp.id);
+    const st = calcStats(emp, sch);
+    if(st.pendingOff>0) savePendingCarryOff(emp.id, key, st.pendingOff);
+  });
+}
+
 function staffList() { 
   const all = Object.values(staffData);
   if (CURRENT_DEPT === "all") return all;
@@ -3290,6 +3354,9 @@ function renderRoster() {
         ${renderHotelSummary(emp.id)}
       </td>
       <td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${st.work}</td>
+      <td style="text-align:center;background:#FFCDD2;font-weight:700;color:#B71C1C;font-size:11px" title="Days Off taken">${st.off}${st.pendingOff>0?'<span style="font-size:8px;color:#E65C00;display:block">+'+st.pendingOff+' pend</span>':''}</td>
+      <td style="text-align:center;background:#FFF9C4;font-weight:700;color:#F57F17;font-size:11px" title="Annual Leave">${st.al}</td>
+      <td style="text-align:center;background:#FCE4EC;font-weight:700;color:#AD1457;font-size:11px" title="Sick Leave">${st.sick}</td>
       <td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${st.hrs}h</td>
     </tr>`;
   }).join("");
@@ -3308,7 +3375,10 @@ function renderRoster() {
         <th style="min-width:90px;background:#0F766E;color:#fff">SECTION</th>
         ${dths}
         <th style="text-align:center;background:#6A1B9A;min-width:50px;font-size:8px">HOTEL</th>
-        <th style="text-align:center;background:#1B5E20;min-width:40px">DAYS</th>
+        <th style="text-align:center;background:#1B5E20;min-width:40px">WORK</th>
+        <th style="text-align:center;background:#B71C1C;min-width:36px;font-size:8px">OFF</th>
+        <th style="text-align:center;background:#F57F17;min-width:34px;font-size:8px">AL</th>
+        <th style="text-align:center;background:#AD1457;min-width:34px;font-size:8px">SICK</th>
         <th style="text-align:center;background:#004D40;min-width:44px">HRS</th>
       </tr></thead>
       <tbody>${rows||'<tr><td colspan="100" style="text-align:center;padding:40px;color:var(--slate2);font-size:13px">No staff found. Add employees in the Staff tab.</td></tr>'}</tbody>
@@ -3642,9 +3712,12 @@ function generateAutoSchedule(previewOnly = false) {
   const spreadOff = document.getElementById('autoSpreadOff')?.checked ?? true;
   const noEveToMor = document.getElementById('autoNoEveToMor')?.checked ?? true;
   const genderFilter = document.getElementById('autoGender')?.value || 'all';
+  const genderIsNightFilter = document.getElementById('autoGenderNight')?.checked ?? false;
   const excludePositions = Array.from(document.getElementById('autoExcludePositions')?.selectedOptions || []).map(o=>o.value);
   const noNightPositions = Array.from(document.getElementById('autoNoNightPositions')?.selectedOptions || []).map(o=>o.value);
 
+  const startDay = parseInt(document.getElementById('autoStartDay')?.value||1)||1;
+  const endDay = Math.min(parseInt(document.getElementById('autoEndDay')?.value||getDIM())||getDIM(), getDIM());
   const numDays = getDIM();
   const key = schKey();
   let changes = 0;
@@ -3684,7 +3757,7 @@ function generateAutoSchedule(previewOnly = false) {
 
     const sch = schedData[emp.id][key];
 
-    for (let day = 1; day <= numDays; day++) {
+    for (let day = startDay; day <= endDay; day++) {
       // Skip if respecting requests and day has approved leave
       if (respectRequests) {
         const hasLeave = Object.values(leaveRequests).some(r => 
@@ -3782,6 +3855,29 @@ function getDistributedOffDays(totalOff, numDays, seed) {
     offDays.push(((i * interval + seed) % numDays) + 1);
   }
   return offDays;
+}
+
+async function resetRosterCurrentMonth() {
+  const startDay = parseInt(document.getElementById('autoStartDay')?.value||1);
+  const endDay = parseInt(document.getElementById('autoEndDay')?.value||getDIM());
+  const dept = document.getElementById('autoDept')?.value||'all';
+  if (!confirm(`Reset roster for all visible staff (days ${startDay}–${endDay})? This cannot be undone.`)) return;
+  const key = schKey();
+  let targets = staffList();
+  if (dept !== 'all') targets = targets.filter(e=>e.department===dept);
+  targets.forEach(emp => {
+    if(!schedData[emp.id]) schedData[emp.id]={};
+    if(!schedData[emp.id][key]) schedData[emp.id][key]={};
+    for(let d=startDay; d<=Math.min(endDay,getDIM()); d++) {
+      schedData[emp.id][key][d] = '';
+      if(db) db.ref(`schedules/${emp.id}/${key}/${d}`).remove().catch(()=>{});
+    }
+  });
+  saveLocal();
+  queueArchiveSnapshot(key, 'roster reset');
+  renderRoster();
+  closeModal('autoScheduleModal');
+  alert(`✅ Roster cleared for days ${startDay}–${endDay} for ${targets.length} staff.`);
 }
 
 async function applyAutoSchedule() {
@@ -4717,6 +4813,63 @@ function saveDeptConfig() {
   saveLocal();
 }
 
+function openAddCustomShift() {
+  if (!isDeveloper()) { alert("🔒 Only Developers can add custom shifts."); return; }
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div class="mover" id="addShiftModal" style="display:flex" onclick="if(event.target===this)closeModal('addShiftModal')">
+    <div class="modal" style="width:440px">
+      <h3>➕ Add Custom Shift</h3>
+      <div class="fg">
+        <div><label class="lbl">Code (max 4 chars, UPPERCASE)</label><input class="inp" id="cs-code" placeholder="e.g. MID" maxlength="4" oninput="this.value=this.value.toUpperCase()"></div>
+        <div><label class="lbl">Label</label><input class="inp" id="cs-label" placeholder="e.g. Mid Shift"></div>
+        <div><label class="lbl">Time (e.g. 10:00–19:00)</label><input class="inp" id="cs-time" placeholder="10:00–19:00"></div>
+        <div><label class="lbl">Hours</label><input class="inp" id="cs-hours" type="number" min="1" max="24" value="9"></div>
+        <div><label class="lbl">Background Color</label><input class="inp" id="cs-bg" type="color" value="#E3F2FD"></div>
+        <div><label class="lbl">Text Color</label><input class="inp" id="cs-color" type="color" value="#0D47A1"></div>
+        <div><label class="lbl">Border Color</label><input class="inp" id="cs-border" type="color" value="#42A5F5"></div>
+      </div>
+      <div id="cs-err" style="color:var(--red);font-size:11px;margin-top:6px;min-height:14px"></div>
+      <div class="mf">
+        <button class="btn btn-ghost" onclick="closeModal('addShiftModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveCustomShift()">✅ Add Shift</button>
+      </div>
+    </div></div>`;
+  document.body.appendChild(wrap.firstChild);
+}
+function saveCustomShift() {
+  const code = (document.getElementById('cs-code')?.value||'').trim().toUpperCase();
+  const label = (document.getElementById('cs-label')?.value||'').trim();
+  const time = (document.getElementById('cs-time')?.value||'').trim() || '—';
+  const hours = parseInt(document.getElementById('cs-hours')?.value||9);
+  const bg = document.getElementById('cs-bg')?.value||'#E3F2FD';
+  const color = document.getElementById('cs-color')?.value||'#0D47A1';
+  const border = document.getElementById('cs-border')?.value||'#42A5F5';
+  const errEl = document.getElementById('cs-err');
+  if (!code || code.length < 2) { if(errEl) errEl.textContent='❌ Code must be 2–4 chars'; return; }
+  if (SHIFTS[code]) { if(errEl) errEl.textContent='❌ Code already exists: '+code; return; }
+  if (!label) { if(errEl) errEl.textContent='❌ Label is required'; return; }
+  SHIFTS[code] = {label, time, hours, bg, color, border, custom:true};
+  // Persist custom shifts
+  try {
+    const saved = JSON.parse(localStorage.getItem('customShifts_v1')||'{}');
+    saved[code] = SHIFTS[code];
+    localStorage.setItem('customShifts_v1', JSON.stringify(saved));
+  } catch(e){}
+  if(db) { try{ db.ref('settings/customShifts/'+code).set(SHIFTS[code]); }catch(e){} }
+  closeModal('addShiftModal');
+  renderShiftSettings();
+  fillAllSelects();
+  const m = document.getElementById('shiftSaveMsg');
+  if(m){ m.textContent='✅ Custom shift '+code+' added!'; m.style.color='var(--green)'; setTimeout(()=>m.textContent='',3000); }
+}
+// Load custom shifts on boot
+function loadCustomShifts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('customShifts_v1')||'{}');
+    Object.entries(saved).forEach(([code,def])=>{ if(!SHIFTS[code]) SHIFTS[code]=def; });
+  } catch(e){}
+}
+
 function saveShiftSettings() {
   if (!isDeveloper()) { alert("🔒 Only Developers can change shift settings."); return; }
   Object.keys(SHIFTS).forEach(k=>{
@@ -4946,7 +5099,7 @@ function printRoster() {
 <!-- ════════ MODALS (must live in main DOM, not inside printRoster template) ════════ -->
 <!-- Auto Schedule Modal -->
 <div class="mover" id="autoScheduleModal" style="display:none" onclick="if(event.target===this)closeModal('autoScheduleModal')">
-  <div class="modal" style="width:560px">
+  <div class="modal" style="width:560px;max-height:92vh;overflow-y:auto">
     <h3>🤖 Auto Schedule Generator</h3>
     <div style="background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--slate)">
       Applies your saved roster rules automatically. Configure rules in the <strong>📍 Sections</strong> tab.
@@ -4988,7 +5141,7 @@ function printRoster() {
       <div><label class="lbl">Min AFT Staff / Shift</label>
         <input class="inp" id="autoMinAFT" type="number" min="1" max="20" value="2">
       </div>
-      <div><label class="lbl">Gender Filter</label>
+      <div><label class="lbl">Gender Filter <small style="font-weight:400;text-transform:none">(for night/EVE only if checked below)</small></label>
         <select class="inp" id="autoGender">
           <option value="all">All</option>
           <option value="male">Male only</option>
@@ -5020,11 +5173,24 @@ function printRoster() {
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
           <input type="checkbox" id="autoNoEveToMor" checked style="accent-color:var(--gold)">Block EVE → MOR next day
         </label>
+        <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
+          <input type="checkbox" id="autoGenderNight" style="accent-color:var(--gold)">Apply gender filter to Night (EVE) shift only
+        </label>
       </div>
     </div>
     <div id="autoSchedulePreview" style="margin-top:12px;padding:12px;background:var(--ice2);border-radius:10px;font-size:11px;color:var(--slate);display:none"></div>
+    <div style="background:var(--red-l);border:1.5px solid var(--red);border-radius:8px;padding:10px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div><label class="lbl">📅 Roster Start Day</label>
+        <input class="inp" id="autoStartDay" type="number" min="1" max="31" value="1" placeholder="1">
+      </div>
+      <div><label class="lbl">📅 Roster End Day</label>
+        <input class="inp" id="autoEndDay" type="number" min="1" max="31" placeholder="Leave blank = month end">
+      </div>
+      <div class="ff" style="grid-column:1/-1;font-size:10px;color:var(--red)">⚠️ Optional: restrict auto-scheduling to a date range within the selected month.</div>
+    </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('autoScheduleModal')">Cancel</button>
+      <button class="btn btn-danger btn-sm" onclick="resetRosterCurrentMonth()" style="margin-right:auto">🗑 Reset Roster</button>
       <button class="btn btn-ghost" onclick="previewAutoSchedule()">👁 Preview</button>
       <button class="btn btn-primary" onclick="applyAutoSchedule()">✅ Generate Schedule</button>
     </div>
@@ -5132,10 +5298,21 @@ function openDutyModal(day, month, year, empId) {
     <div><div class="duty-label">Department</div><div class="duty-value">${emp.department}</div></div>
   </div>`;
 
-  if (emp.section) {
+  // Use day-specific section override if set, else fall back to emp.section
+  const daySec = (sectionOverrides[empId||currentEmpId]?.[schKey(year,month)]?.[day]) || emp.section || "";
+  if (daySec) {
     rows += `<div class="duty-row">
       <div class="duty-icon">📍</div>
-      <div><div class="duty-label">Section / Area</div><div class="duty-value" style="color:var(--gold2)">${emp.section}</div></div>
+      <div><div class="duty-label">Section / Area</div><div class="duty-value" style="color:var(--gold2)">${daySec}</div></div>
+    </div>`;
+  }
+  // Show block day event name if this day is blocked
+  const blockKey = schKey(year,month);
+  const blockEvt = (typeof blockDays !== 'undefined' && blockDays[blockKey]) ? (blockDays[blockKey][day]||'') : '';
+  if (blockEvt) {
+    rows += `<div class="duty-row" style="background:rgba(183,28,28,.15);border-radius:8px;padding:8px 10px;margin-top:4px">
+      <div class="duty-icon">🔴</div>
+      <div><div class="duty-label" style="color:#EF9A9A">Special Event Day</div><div class="duty-value" style="color:#FF5252;font-weight:800">${blockEvt}</div></div>
     </div>`;
   }
 
@@ -5195,6 +5372,23 @@ function showEmpDash(emp) {
   document.getElementById("es-alr").textContent=st.alRem;
   document.getElementById("es-ex").textContent=st.ex;
   document.getElementById("es-unp").textContent=st.unp;
+  // Show pending off carry-over alert
+  const prevP = st.prevPending;
+  let carryEl = document.getElementById("empCarryAlert");
+  if (prevP > 0) {
+    if (!carryEl) {
+      carryEl = document.createElement('div');
+      carryEl.id = "empCarryAlert";
+      carryEl.style.cssText = "background:rgba(230,92,0,.2);border:1.5px solid #E65C00;border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:11px;color:#FFB74D;display:flex;align-items:center;gap:8px";
+      const wgrid = document.getElementById("eWkGrid");
+      if(wgrid && wgrid.parentNode) wgrid.parentNode.insertBefore(carryEl, wgrid);
+    }
+    carryEl.innerHTML = "⚠️ <strong>Pending from last month:</strong> You have <strong style='color:#FFD54F'>" + prevP + " carry-over day(s) off</strong> not yet scheduled. Please coordinate with your manager.";
+    carryEl.style.display = "flex";
+  } else if (carryEl) { carryEl.style.display = "none"; }
+  // Also show sick count
+  let sickEl = document.getElementById("es-sick");
+  if(sickEl) sickEl.textContent = st.sick||0;
 
   const today=new Date();
   const days7=Array.from({length:7},(_,i)=>{const d=new Date(today);d.setDate(today.getDate()+i);return d;});
@@ -5207,11 +5401,14 @@ function showEmpDash(emp) {
     if(dMth===MONTH&&dYr===YEAR) code=sch[dNum]||"";
     else code=schedData[emp.id]?.[schKey(dYr,dMth)]?.[dNum]||"";
     const sh=SHIFTS[code];
-    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""}" onclick="openDutyModal(${dNum},${dMth},${dYr},'${emp.id}')">
+    const dSec = sectionOverrides[emp.id]?.[schKey(dYr,dMth)]?.[dNum] || '';
+    const dBlock = (typeof blockDays !== 'undefined' && blockDays[schKey(dYr,dMth)]) ? (blockDays[schKey(dYr,dMth)][dNum]||'') : '';
+    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""} ${dBlock?"blocked-day":""}" onclick="openDutyModal(${dNum},${dMth},${dYr},'${emp.id}')" style="${dBlock?'border-color:#FF5252;':''}" title="${dBlock?'🔴 '+dBlock:''}">
       <div class="wdn">${DAYS_S[d.getDay()]}</div>
-      <div class="wdnum">${dNum}</div>
+      <div class="wdnum">${dNum}${dBlock?'<span style="color:#FF5252;font-size:7px;display:block">🔴</span>':''}</div>
       ${sh?'<div class="wds" style="background:'+sh.bg+';color:'+sh.color+'">'+code+'</div><div class="wdt">'+shiftTimeOrLabel(sh)+'</div>'
           :'<div class="wds" style="background:#333;color:#777">—</div>'}
+      ${dSec?'<div class="wdt" style="color:#5EEAD4;font-size:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">📍'+dSec+'</div>':''}
       ${renderEmpHotel(emp.id, dYr, dMth, dNum)}
     </div>`;
   }).join("");
@@ -5237,6 +5434,7 @@ function closeModal(id) { document.getElementById(id).style.display="none"; }
 // ═══════════════════════════════════════════════════
 window.addEventListener("load", function() {
   try {
+    loadCustomShifts();     // Load any developer-added custom shifts
     reloadLocal();      // Load saved data immediately (works offline)
     seedStaffIfEmpty();    // Pre-load 100 employees if first time
     archiveMonthSnapshot(YEAR, MONTH, "boot snapshot");
