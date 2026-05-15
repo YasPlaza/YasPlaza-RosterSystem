@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Yas Plaza Hotels — Roster System</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
@@ -552,7 +555,9 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
 /* ════════ ADDED: Mobile improvements ════════ */
 @media (max-width:768px){
-  .duty-card{width:96vw!important;padding:28px 24px!important;border-radius:20px!important;max-height:90vh!important}
+  .duty-card{width:96vw!important;padding:20px 16px!important;border-radius:20px!important;max-height:88vh!important;overflow-y:auto!important}
+  .duty-date{font-size:20px!important}
+  #dutyModal{padding:8px!important}
   .duty-date{font-size:28px!important;line-height:1.15!important;word-break:break-word}
   .duty-row{gap:12px;padding:12px 0!important}.duty-icon{width:34px;font-size:22px}.duty-value{font-size:16px!important}
   .modal{width:96vw !important;max-width:96vw !important;max-height:90vh;overflow-y:auto;padding:14px !important}
@@ -580,9 +585,62 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   .conflict-badge{font-size:9px;padding:2px 5px;display:inline-block;max-width:100%;white-space:normal}
 }
 
+/* ════ BROADCAST MESSAGE BANNER ════ */
+#broadcastBanner{
+  display:none;position:fixed;top:0;left:0;right:0;z-index:9998;
+  background:linear-gradient(90deg,#1B2D4A,#243B5F);
+  border-bottom:2px solid var(--gold);
+  padding:0;animation:slideDown .4s ease both;
+}
+@keyframes slideDown{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+#broadcastBanner.show{display:block}
+.bc-inner{
+  display:flex;align-items:center;gap:12px;padding:12px 18px;
+  max-width:700px;margin:0 auto;position:relative;
+}
+.bc-icon{font-size:24px;flex-shrink:0}
+.bc-body{flex:1;min-width:0}
+.bc-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.bc-msg{font-size:13px;color:#fff;line-height:1.5;word-break:break-word}
+.bc-close{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.6);border-radius:6px;padding:4px 9px;cursor:pointer;font-size:13px;flex-shrink:0;transition:.2s}
+.bc-close:hover{background:rgba(255,255,255,.2);color:#fff}
+@media(max-width:600px){
+  .bc-inner{padding:10px 12px;gap:8px}
+  .bc-icon{font-size:20px}
+  .bc-msg{font-size:12px}
+}
+
+/* ════ MOBILE EMPLOYEE PORTAL FIXES ════ */
+@media(max-width:600px){
+  .el,.ed{padding:16px 14px !important;border-radius:16px !important}
+  .ehdr{padding-bottom:12px !important}
+  .eav{width:44px !important;height:44px !important;font-size:20px !important;border-radius:12px !important;flex-shrink:0}
+  .enm{font-size:18px !important}
+  .wgrid{grid-template-columns:repeat(7,1fr) !important;gap:3px !important}
+  .wd{padding:6px 2px !important;min-height:68px !important}
+  .wds{font-size:9px !important;padding:2px 3px !important}
+  .wdt{font-size:7px !important}
+  .estats{grid-template-columns:repeat(4,1fr) !important;gap:5px !important}
+  .estat{padding:8px 4px !important}
+  .esv{font-size:20px !important}
+  .esl{font-size:8px !important}
+}
+
 </style>
 </head>
 <body>
+
+<!-- Developer Broadcast Banner -->
+<div id="broadcastBanner">
+  <div class="bc-inner">
+    <div class="bc-icon">📢</div>
+    <div class="bc-body">
+      <div class="bc-title">Message from Management</div>
+      <div class="bc-msg" id="broadcastMsg"></div>
+    </div>
+    <button class="bc-close" onclick="dismissBroadcast()">✕</button>
+  </div>
+</div>
 
 <!-- Sync bar -->
 <div id="syncBar"></div>
@@ -1204,6 +1262,34 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 <div class="page" id="page-settings">
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 
+    <!-- DEVELOPER BROADCAST MESSAGE (Developer Only) -->
+    <div class="card dev-only-panel" style="grid-column:1/-1">
+      <div class="ch">
+        <div class="ct">📢 Broadcast Message to All Users</div>
+        <span style="font-size:10px;color:var(--slate2)">Developer Only — Message shown to all users when they open the app</span>
+      </div>
+      <div style="padding:18px">
+        <div style="margin-bottom:12px;font-size:12px;color:var(--slate);line-height:1.6;background:rgba(201,150,58,.08);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;padding:12px">
+          📣 This message will appear as a banner at the top of the screen for <strong>all users</strong> (employees and admins) when they open the app. Clear it to remove the banner.
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <label class="lbl">Message</label>
+            <textarea class="inp" id="broadcastInput" rows="3" placeholder="e.g. 'Welcome back! Schedules for June are now live. Have a great shift! ⭐'" style="resize:vertical;font-size:13px"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <button class="btn btn-gold" onclick="sendBroadcast()">📤 Send to All Users</button>
+            <button class="btn btn-danger" onclick="clearBroadcast()">🗑 Clear Message</button>
+            <span id="broadcastMsg2" style="font-size:11px;color:var(--green);min-height:16px"></span>
+          </div>
+          <div id="broadcastCurrentWrap" style="display:none;background:var(--navy2);border-radius:8px;padding:10px;border:1px solid rgba(201,150,58,.3)">
+            <div style="font-size:10px;font-weight:700;color:var(--gold2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Current Active Message:</div>
+            <div id="broadcastCurrentText" style="font-size:12px;color:#fff;line-height:1.5"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ACCESS GRANTS PANEL (Developer Only) -->
     <div class="card" style="grid-column:1/-1">
       <div class="ch">
@@ -1696,7 +1782,10 @@ function seedStaffIfEmpty() {
 let activeSchListener = null;
 let popEmpId = null, popDay = null;
 let sectionOverrides = JSON.parse(localStorage.getItem('sectionOverrides_v1')||'{}'); // {empId:{monthKey:{day:sectionName}}}
-function saveSectionOverrides(){ try{ localStorage.setItem('sectionOverrides_v1', JSON.stringify(sectionOverrides)); }catch(e){} }
+function saveSectionOverrides(){
+  try{ localStorage.setItem('sectionOverrides_v1', JSON.stringify(sectionOverrides)); }catch(e){}
+  if(typeof db !== 'undefined' && db){ try{ db.ref("sectionOverrides").set(sectionOverrides); }catch(e){} }
+}
 function setDaySection(empId, day, secName){
   const key = schKey();
   if(!sectionOverrides[empId]) sectionOverrides[empId] = {};
@@ -2513,7 +2602,103 @@ function setupRealtimeListeners() {
       if(settingsData.deptConfig.sections)   Object.assign(DEPT_SECTIONS, settingsData.deptConfig.sections);
       fillAllSelects();
     }
+    // Broadcast message
+    if (settingsData.broadcastMessage !== undefined) {
+      showBroadcastBanner(settingsData.broadcastMessage || '');
+      updateBroadcastSettingsUI(settingsData.broadcastMessage || '');
+    }
   });
+
+  // Section overrides listener (syncs per-day section assignments cross-device)
+  db.ref("sectionOverrides").on("value", snap => {
+    const val = snap.val();
+    if (val) {
+      sectionOverrides = val;
+      try { localStorage.setItem('sectionOverrides_v1', JSON.stringify(sectionOverrides)); } catch(e) {}
+    }
+    const active = document.querySelector(".tab.active")?.dataset.p;
+    if (active === "roster") renderRoster();
+    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+      refreshEmpDash(currentEmpId);
+    }
+  });
+
+  // Block days listener (special event days — syncs to mobile)
+  db.ref("blockDays").on("value", snap => {
+    const val = snap.val();
+    if (val) {
+      blockDays = val;
+      try { localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); } catch(e) {}
+    }
+    const active = document.querySelector(".tab.active")?.dataset.p;
+    if (active === "roster") renderRoster();
+    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+      refreshEmpDash(currentEmpId);
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════
+// DEVELOPER BROADCAST MESSAGE
+// ═══════════════════════════════════════════════════
+let _broadcastDismissed = '';
+function showBroadcastBanner(msg) {
+  const banner = document.getElementById('broadcastBanner');
+  const msgEl = document.getElementById('broadcastMsg');
+  if (!banner || !msgEl) return;
+  // Cache locally so offline users still see it
+  try { if (msg) localStorage.setItem('yph_broadcast', msg); else localStorage.removeItem('yph_broadcast'); } catch(e) {}
+  if (!msg || msg === _broadcastDismissed) { banner.classList.remove('show'); return; }
+  msgEl.innerHTML = msg.replace(/\n/g,'<br>');
+  banner.classList.add('show');
+}
+function dismissBroadcast() {
+  const banner = document.getElementById('broadcastBanner');
+  const msg = document.getElementById('broadcastMsg')?.textContent || '';
+  _broadcastDismissed = msg;
+  if (banner) banner.classList.remove('show');
+}
+function updateBroadcastSettingsUI(msg) {
+  const inp = document.getElementById('broadcastInput');
+  const wrap = document.getElementById('broadcastCurrentWrap');
+  const cur = document.getElementById('broadcastCurrentText');
+  if (inp && !inp.value) inp.value = msg || '';
+  if (wrap) wrap.style.display = msg ? 'block' : 'none';
+  if (cur) cur.textContent = msg || '';
+}
+async function sendBroadcast() {
+  if (!isDeveloper()) { alert('🔒 Only Developers can send broadcast messages.'); return; }
+  const msg = (document.getElementById('broadcastInput')?.value || '').trim();
+  if (!msg) { alert('Please enter a message.'); return; }
+  const msgEl = document.getElementById('broadcastMsg2');
+  if (db) {
+    try {
+      await db.ref('settings/broadcastMessage').set(msg);
+      showBroadcastBanner(msg);
+      updateBroadcastSettingsUI(msg);
+      if (msgEl) { msgEl.textContent = '✅ Message sent to all users!'; setTimeout(()=>msgEl.textContent='', 3000); }
+    } catch(e) {
+      if (msgEl) { msgEl.style.color='var(--red)'; msgEl.textContent = '❌ Failed — check Firebase connection.'; setTimeout(()=>msgEl.textContent='', 4000); }
+    }
+  } else {
+    if (msgEl) { msgEl.style.color='var(--red)'; msgEl.textContent = '❌ Firebase not connected. Message will only show locally.'; }
+    showBroadcastBanner(msg);
+    updateBroadcastSettingsUI(msg);
+  }
+}
+async function clearBroadcast() {
+  if (!isDeveloper()) return;
+  if (!confirm('Remove the broadcast message for all users?')) return;
+  const msgEl = document.getElementById('broadcastMsg2');
+  const inp = document.getElementById('broadcastInput');
+  if (inp) inp.value = '';
+  if (db) {
+    try { await db.ref('settings/broadcastMessage').remove(); } catch(e) {}
+  }
+  showBroadcastBanner('');
+  updateBroadcastSettingsUI('');
+  _broadcastDismissed = '';
+  if (msgEl) { msgEl.style.color='var(--green)'; msgEl.textContent = '✅ Message cleared.'; setTimeout(()=>msgEl.textContent='', 2500); }
 }
 
 // Start per-employee listener when employee logs in
@@ -2538,6 +2723,29 @@ function startEmpListener(empId) {
       }
     }
   });
+  // Listen to sectionOverrides for this employee (their section assignments)
+  db.ref("sectionOverrides/" + empId).on("value", snap => {
+    const val = snap.val();
+    if (!sectionOverrides[empId]) sectionOverrides[empId] = {};
+    if (val) sectionOverrides[empId] = val;
+    if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+      refreshEmpDash(empId);
+    }
+  });
+  // Listen to blockDays for current month
+  db.ref("blockDays/" + key).on("value", snap => {
+    const val = snap.val();
+    if (!blockDays[key]) blockDays[key] = {};
+    if (val) blockDays[key] = val;
+    if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+      refreshEmpDash(empId);
+    }
+  });
+  // Listen to broadcast message
+  db.ref("settings/broadcastMessage").on("value", snap => {
+    const msg = snap.val() || '';
+    showBroadcastBanner(msg);
+  });
 }
 
 function stopEmpListener(empId) {
@@ -2545,6 +2753,9 @@ function stopEmpListener(empId) {
   try {
     db.ref("schedules/" + empId + "/" + schKey()).off();
     db.ref("staff/" + empId).off();
+    db.ref("sectionOverrides/" + empId).off();
+    db.ref("blockDays/" + schKey()).off();
+    db.ref("settings/broadcastMessage").off();
   } catch(e) {}
 }
 
@@ -4688,6 +4899,9 @@ function renderSettings() {
   document.querySelectorAll('.dev-only-btn').forEach(el => {
     el.style.display = isDev ? "" : "none";
   });
+  document.querySelectorAll('.dev-only-panel').forEach(el => {
+    el.style.display = isDev ? "" : "none";
+  });
 
   // Shift settings grid — readonly for non-devs
   const grid = document.getElementById("shiftSettingsGrid");
@@ -5288,6 +5502,11 @@ function loginEmp() {
   showEmpDash(emp);
   renderSwapList();
   renderLeaveList();
+  // Show cached broadcast if any
+  try {
+    const cached = localStorage.getItem('yph_broadcast');
+    if (cached) showBroadcastBanner(cached);
+  } catch(e) {}
 }
 
 
@@ -5610,6 +5829,8 @@ window.addEventListener("load", function() {
     archiveMonthSnapshot(YEAR, MONTH, "boot snapshot");
     tryAutoConnect();      // Try Firebase in background if config exists
     try { setRosterView(rosterViewMode); } catch(e) {}
+    // Show cached broadcast message if any
+    try { const b = localStorage.getItem('yph_broadcast'); if (b) showBroadcastBanner(b); } catch(e) {}
   } catch(e) {
     console.warn("Boot error:", e);
     updateStatus("offline","Offline Mode");
@@ -5620,7 +5841,10 @@ window.addEventListener("load", function() {
 // ADDED: Special Event Block Days
 // ════════════════════════════════════════════════
 let blockDays = JSON.parse(localStorage.getItem('blockDays_v1') || '{}');
-function saveBlockDays(){ try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){} }
+function saveBlockDays(){
+  try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){}
+  if(typeof db !== 'undefined' && db){ try{ db.ref("blockDays").set(blockDays); }catch(e){} }
+}
 function getBlockedDays(monthKey){ return blockDays[monthKey || schKey()] || {}; }
 function openBlockDaysModal(){
   const key = schKey(); const numDays = getDIM();
