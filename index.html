@@ -1372,8 +1372,40 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       </div>
       <div style="padding:18px">
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
-        <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
-        <span id="shiftSaveMsg" style="font-size:11px;margin-left:12px;min-height:16px"></span>
+
+        <!-- Add New Shift Row — Developer Only -->
+        <div class="dev-only-btn" style="margin-bottom:14px;padding:14px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
+          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:10px">➕ Add New Shift Type</div>
+          <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px auto;gap:8px;align-items:flex-end;flex-wrap:wrap">
+            <div>
+              <label class="lbl">Code</label>
+              <input class="inp" id="newShiftCode" placeholder="e.g. N1" maxlength="6" style="text-transform:uppercase;font-family:'DM Mono',monospace;font-weight:700" oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div>
+              <label class="lbl">Label / Name</label>
+              <input class="inp" id="newShiftLabel" placeholder="e.g. Night-1">
+            </div>
+            <div>
+              <label class="lbl">Time</label>
+              <input class="inp" id="newShiftTime" placeholder="e.g. 23:00-08:00" style="font-family:'DM Mono',monospace">
+            </div>
+            <div>
+              <label class="lbl">Hours</label>
+              <select class="inp" id="newShiftHours">
+                ${[0,4,8,9,10,12].map(n=>`<option value="${n}"${n===9?' selected':''}>${n}h</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <button class="btn btn-gold" onclick="addNewShift()" style="white-space:nowrap">+ Add Shift</button>
+            </div>
+          </div>
+          <div id="newShiftMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
+          <span id="shiftSaveMsg" style="font-size:11px;min-height:16px"></span>
+        </div>
       </div>
     </div>
 
@@ -2494,7 +2526,12 @@ function reloadLocal() {
     if(settingsData && settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
     if(settingsData && settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
-        if(SHIFTS[k]) { SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours; }
+        if(SHIFTS[k]) {
+          SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours;
+        } else if(v.label) {
+          SHIFTS[k] = { label:v.label, time:v.time||'—', hours:v.hours||9,
+            bg:v.bg||'#E8F5E9', color:v.color||'#1B5E20', border:v.border||'#66BB6A' };
+        }
       });
     }
     if(stored.deptConfig) {
@@ -2592,7 +2629,14 @@ function setupRealtimeListeners() {
     if (settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
     if (settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
-        if(SHIFTS[k]) { SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours; }
+        if(SHIFTS[k]) {
+          // Update existing shift
+          SHIFTS[k].time=v.time; SHIFTS[k].hours=v.hours;
+        } else if(v.label) {
+          // Restore custom shift (has label saved)
+          SHIFTS[k] = { label:v.label, time:v.time||'—', hours:v.hours||9,
+            bg:v.bg||'#E8F5E9', color:v.color||'#1B5E20', border:v.border||'#66BB6A' };
+        }
       });
     }
     // Load dept config from Firebase
@@ -3863,6 +3907,8 @@ selectShift = async function(code) {
 function openAutoSchedule() {
   loadRosterRules();
   const r = rosterRules;
+  _excludePosList = [];
+  _noNightPosList = [];
   const deptSel = document.getElementById('autoDept');
   const hotelSel = document.getElementById('autoHotel');
 
@@ -3875,6 +3921,8 @@ function openAutoSchedule() {
       HOTELS.filter(h => h.id !== 'all').map(h => `<option value="${h.id}">${h.name}</option>`).join('');
   }
   refreshAutoSectionPosition();
+  renderExcludePosPills();
+  renderNoNightPosPills();
 
   // Load saved rules into modal
   const setV = (id, v) => { const el=document.getElementById(id); if(el && v!==undefined) el.value=v; };
@@ -3907,12 +3955,57 @@ function refreshAutoSectionPosition() {
   const positions = Array.from(new Set(pool.map(e => e.position).filter(Boolean))).sort();
   const secSel = document.getElementById('autoSection');
   const posSel = document.getElementById('autoPosition');
-  const exPos  = document.getElementById('autoExcludePositions');
-  const noNight = document.getElementById('autoNoNightPositions');
+  const exPosAdd  = document.getElementById('excludePosAdd');
+  const noNightAdd = document.getElementById('noNightPosAdd');
   if (secSel) secSel.innerHTML = '<option value="all">All Sections</option>' + sections.map(s=>`<option>${s}</option>`).join('');
   if (posSel) posSel.innerHTML = '<option value="all">All Positions</option>' + positions.map(p=>`<option>${p}</option>`).join('');
-  if (exPos)  exPos.innerHTML  = positions.map(p=>`<option>${p}</option>`).join('');
-  if (noNight) noNight.innerHTML = positions.map(p=>`<option>${p}</option>`).join('');
+  if (exPosAdd)  { const cur = exPosAdd.value; exPosAdd.innerHTML  = '<option value="">— select position to exclude —</option>' + positions.map(p=>`<option>${p}</option>`).join(''); exPosAdd.value = cur; }
+  if (noNightAdd) { const cur = noNightAdd.value; noNightAdd.innerHTML = '<option value="">— select position to exclude from night —</option>' + positions.map(p=>`<option>${p}</option>`).join(''); noNightAdd.value = cur; }
+}
+
+// ── Position pill management for Auto Schedule ──────────────────────────
+let _excludePosList = [];
+let _noNightPosList = [];
+
+function renderExcludePosPills() {
+  const container = document.getElementById('excludePosPills');
+  const hidden = document.getElementById('autoExcludePositions');
+  if (!container) return;
+  container.innerHTML = _excludePosList.length
+    ? _excludePosList.map(p=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#FFCDD2;color:#B71C1C;border:1px solid #EF9A9A;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:600">${p}<button onclick="removeExcludePos('${p.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#B71C1C;font-size:13px;line-height:1;padding:0 2px">✕</button></span>`).join('')
+    : '<span style="font-size:11px;color:var(--slate2);padding:2px">None — all positions will be auto-scheduled</span>';
+  if (hidden) hidden.value = _excludePosList.join('||');
+}
+function renderNoNightPosPills() {
+  const container = document.getElementById('noNightPosPills');
+  const hidden = document.getElementById('autoNoNightPositions');
+  if (!container) return;
+  container.innerHTML = _noNightPosList.length
+    ? _noNightPosList.map(p=>`<span style="display:inline-flex;align-items:center;gap:4px;background:#E0F2F1;color:#004D40;border:1px solid #80CBC4;border-radius:100px;padding:3px 10px;font-size:11px;font-weight:600">${p}<button onclick="removeNoNightPos('${p.replace(/'/g,"\\'")}')" style="background:none;border:none;cursor:pointer;color:#004D40;font-size:13px;line-height:1;padding:0 2px">✕</button></span>`).join('')
+    : '<span style="font-size:11px;color:var(--slate2);padding:2px">None — all positions can do night shifts</span>';
+  if (hidden) hidden.value = _noNightPosList.join('||');
+}
+function addExcludePos() {
+  const sel = document.getElementById('excludePosAdd');
+  const val = sel?.value?.trim();
+  if (!val) return;
+  if (!_excludePosList.includes(val)) { _excludePosList.push(val); renderExcludePosPills(); }
+  if (sel) sel.value = '';
+}
+function removeExcludePos(pos) {
+  _excludePosList = _excludePosList.filter(p=>p!==pos);
+  renderExcludePosPills();
+}
+function addNoNightPos() {
+  const sel = document.getElementById('noNightPosAdd');
+  const val = sel?.value?.trim();
+  if (!val) return;
+  if (!_noNightPosList.includes(val)) { _noNightPosList.push(val); renderNoNightPosPills(); }
+  if (sel) sel.value = '';
+}
+function removeNoNightPos(pos) {
+  _noNightPosList = _noNightPosList.filter(p=>p!==pos);
+  renderNoNightPosPills();
 }
 
 function previewAutoSchedule() {
@@ -3950,8 +4043,8 @@ function generateAutoSchedule(previewOnly = false) {
   const noEveToMor = document.getElementById('autoNoEveToMor')?.checked ?? true;
   const genderFilter = document.getElementById('autoGender')?.value || 'all';
   const genderIsNightFilter = document.getElementById('autoGenderNight')?.checked ?? false;
-  const excludePositions = Array.from(document.getElementById('autoExcludePositions')?.selectedOptions || []).map(o=>o.value);
-  const noNightPositions = Array.from(document.getElementById('autoNoNightPositions')?.selectedOptions || []).map(o=>o.value);
+  const excludePositions = (document.getElementById('autoExcludePositions')?.value || '').split('||').filter(Boolean);
+  const noNightPositions = (document.getElementById('autoNoNightPositions')?.value || '').split('||').filter(Boolean);
 
   const startDay = Math.max(1, parseInt(document.getElementById('autoStartDay')?.value || 1) || 1);
   const endDay = Math.min(parseInt(document.getElementById('autoEndDay')?.value || getDIM()) || getDIM(), getDIM());
@@ -4906,8 +4999,12 @@ function renderSettings() {
   // Shift settings grid — readonly for non-devs
   const grid = document.getElementById("shiftSettingsGrid");
   if (grid) {
-    grid.innerHTML = Object.entries(SHIFTS).map(([k,v]) => `
-      <div style="display:flex;align-items:center;gap:10px;background:var(--ice2);border:1.5px solid ${v.border};border-radius:10px;padding:10px 12px">
+    // Define core/protected shifts that cannot be deleted
+    const PROTECTED_SHIFTS = ['MOR','AFT','EVE','OFF','AL','EX','UNP','SH','TRN','SPL','FLEX','M11','M12'];
+    grid.innerHTML = Object.entries(SHIFTS).map(([k,v]) => {
+      const canDelete = isDev && !PROTECTED_SHIFTS.includes(k);
+      return `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--ice2);border:1.5px solid ${v.border};border-radius:10px;padding:10px 12px;position:relative">
         <span class="sp sp-${k}" style="cursor:default;min-width:36px;font-size:10px">${k}</span>
         <span style="font-size:11px;font-weight:600;color:var(--slate);min-width:70px">${v.label}</span>
         <div style="flex:1"><label class="lbl" style="margin-bottom:2px">Time</label>
@@ -4918,7 +5015,9 @@ function renderSettings() {
             ${[0,4,8,9,10,12].map(n=>'<option value="'+n+'" '+(v.hours===n?'selected':'')+'>'+n+'h</option>').join("")}
           </select>
         </div>
-      </div>`).join("");
+        ${canDelete ? `<button class="btn btn-danger btn-xs" onclick="deleteShift('${k}')" title="Delete this shift type" style="flex-shrink:0">🗑</button>` : ''}
+      </div>`;
+    }).join("");
   }
 
   // Firebase status
@@ -5119,13 +5218,72 @@ function saveShiftSettings() {
   });
   // Save to local/Firebase
   const shiftConfig={};
-  Object.entries(SHIFTS).forEach(([k,v])=>{ shiftConfig[k]={time:v.time,hours:v.hours}; });
+  Object.entries(SHIFTS).forEach(([k,v])=>{ shiftConfig[k]={time:v.time,hours:v.hours,label:v.label,bg:v.bg,color:v.color,border:v.border}; });
   if(db) { try{ db.ref("settings/shifts").set(shiftConfig); }catch(e){} }
   saveLocal();
   const msg=document.getElementById("shiftSaveMsg");
   if(msg){ msg.textContent="✅ Saved!"; msg.style.color="var(--green)"; setTimeout(()=>msg.textContent="",2500); }
   // Re-render roster to reflect new hours
   renderAll();
+}
+
+function addNewShift() {
+  if (!isDeveloper()) { alert("🔒 Only Developers can add shift types."); return; }
+  const codeEl = document.getElementById('newShiftCode');
+  const labelEl = document.getElementById('newShiftLabel');
+  const timeEl = document.getElementById('newShiftTime');
+  const hrsEl = document.getElementById('newShiftHours');
+  const msgEl = document.getElementById('newShiftMsg');
+  const code = (codeEl?.value || '').trim().toUpperCase();
+  const label = (labelEl?.value || '').trim();
+  const time = (timeEl?.value || '').trim() || '—';
+  const hours = parseInt(hrsEl?.value || 9);
+  if (!code) { if(msgEl){msgEl.style.color='var(--red)';msgEl.textContent='❌ Shift code is required.';} return; }
+  if (code.length < 2) { if(msgEl){msgEl.style.color='var(--red)';msgEl.textContent='❌ Code must be at least 2 characters.';} return; }
+  if (SHIFTS[code]) { if(msgEl){msgEl.style.color='var(--amber)';msgEl.textContent='⚠️ Shift code "'+code+'" already exists.';} return; }
+  if (!label) { if(msgEl){msgEl.style.color='var(--red)';msgEl.textContent='❌ Label/name is required.';} return; }
+  // Auto-generate a color from the code hash
+  const PALETTE = [
+    {bg:'#E8F5E9',color:'#1B5E20',border:'#66BB6A'},
+    {bg:'#E3F2FD',color:'#0D47A1',border:'#42A5F5'},
+    {bg:'#FFF3E0',color:'#E65C00',border:'#FFA726'},
+    {bg:'#F3E5F5',color:'#6A1B9A',border:'#AB47BC'},
+    {bg:'#FCE4EC',color:'#880E4F',border:'#EC407A'},
+    {bg:'#E0F7FA',color:'#006064',border:'#26C6DA'},
+    {bg:'#FFFDE7',color:'#F57F17',border:'#FFD54F'},
+    {bg:'#FBE9E7',color:'#BF360C',border:'#FF7043'},
+  ];
+  const colorIdx = code.split('').reduce((s,c)=>s+c.charCodeAt(0),0) % PALETTE.length;
+  const palette = PALETTE[colorIdx];
+  SHIFTS[code] = { label, time, hours, bg:palette.bg, color:palette.color, border:palette.border };
+  // Clear inputs
+  if(codeEl) codeEl.value='';
+  if(labelEl) labelEl.value='';
+  if(timeEl) timeEl.value='';
+  // Save
+  const shiftConfig={};
+  Object.entries(SHIFTS).forEach(([k,v])=>{ shiftConfig[k]={time:v.time,hours:v.hours,label:v.label,bg:v.bg,color:v.color,border:v.border}; });
+  if(db) { try{ db.ref("settings/shifts").set(shiftConfig); }catch(e){} }
+  saveLocal();
+  if(msgEl){msgEl.style.color='var(--green)';msgEl.textContent='✅ Shift "'+code+'" added!'; setTimeout(()=>msgEl.textContent='',3000);}
+  renderSettings();
+  fillShiftPicker();
+}
+
+function deleteShift(code) {
+  if (!isDeveloper()) { alert("🔒 Only Developers can delete shift types."); return; }
+  const PROTECTED = ['MOR','AFT','EVE','OFF','AL','EX','UNP','SH','TRN','SPL','FLEX','M11','M12'];
+  if (PROTECTED.includes(code)) { alert('🔒 Core shift types cannot be deleted.'); return; }
+  if (!confirm(`Delete shift type "${code}" (${SHIFTS[code]?.label || ''})?`)) return;
+  delete SHIFTS[code];
+  const shiftConfig={};
+  Object.entries(SHIFTS).forEach(([k,v])=>{ shiftConfig[k]={time:v.time,hours:v.hours,label:v.label,bg:v.bg,color:v.color,border:v.border}; });
+  if(db) { try{ db.ref("settings/shifts").set(shiftConfig); }catch(e){} }
+  saveLocal();
+  renderSettings();
+  fillShiftPicker();
+  const msg=document.getElementById("shiftSaveMsg");
+  if(msg){msg.style.color='var(--green)';msg.textContent='✅ Shift "'+code+'" deleted.';setTimeout(()=>msg.textContent='',2500);}
 }
 async function changePassword() {
   if (!isDeveloper()) { alert("🔒 Only Developers can change passwords."); return; }
@@ -5408,12 +5566,26 @@ function printRoster() {
       </div>
       <div class="ff" style="grid-column:1/-1">
         <label class="lbl">Exclude Positions (these staff will not be auto-scheduled)</label>
-        <select class="inp" id="autoExcludePositions" multiple size="4" style="height:auto;min-height:78px"></select>
-        <div style="font-size:10px;color:var(--slate);margin-top:4px">Hold Ctrl/⌘ to select multiple.</div>
+        <div id="excludePosPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:32px;padding:8px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:8px"></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="inp inp-sm" id="excludePosAdd" style="flex:1">
+            <option value="">— select position to exclude —</option>
+          </select>
+          <button class="btn btn-ghost btn-xs" onclick="addExcludePos()">+ Add</button>
+        </div>
+        <input type="hidden" id="autoExcludePositions">
+        <div style="font-size:10px;color:var(--slate);margin-top:4px">Click ✕ on a position to remove it from this list.</div>
       </div>
       <div class="ff" style="grid-column:1/-1">
         <label class="lbl">Positions excluded from NIGHT (EVE) shift</label>
-        <select class="inp" id="autoNoNightPositions" multiple size="4" style="height:auto;min-height:78px"></select>
+        <div id="noNightPosPills" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:32px;padding:8px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:8px"></div>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="inp inp-sm" id="noNightPosAdd" style="flex:1">
+            <option value="">— select position to exclude from night —</option>
+          </select>
+          <button class="btn btn-ghost btn-xs" onclick="addNoNightPos()">+ Add</button>
+        </div>
+        <input type="hidden" id="autoNoNightPositions">
         <div style="font-size:10px;color:var(--slate);margin-top:4px">These positions will be assigned MOR / AFT only.</div>
       </div>
       <div class="ff" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px;background:var(--ice2);border-radius:8px">
