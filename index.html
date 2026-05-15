@@ -501,6 +501,18 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   pointer-events: none;
 }
 
+/* ════ HANDOVER ════ */
+.ho-card{background:#fff;border:1.5px solid var(--ice);border-radius:var(--r);padding:16px;margin-bottom:10px;transition:.2s;box-shadow:var(--sh)}
+.ho-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(201,150,58,.12)}
+.ho-card-dark{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:10px}
+.ho-meta{font-size:10px;color:var(--slate2);display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.ho-note{font-size:13px;color:var(--navy);line-height:1.65;white-space:pre-wrap}
+.ho-note-dark{font-size:13px;color:rgba(255,255,255,.85);line-height:1.65;white-space:pre-wrap}
+.ho-empty{text-align:center;padding:32px;color:var(--slate2);font-size:12px}
+.ho-resolved{opacity:.45}
+.ho-resolve-btn{background:var(--green-l);color:var(--green);border:1px solid rgba(27,107,58,.2);border-radius:8px;padding:4px 12px;font-size:10px;font-weight:700;cursor:pointer;transition:.2s;margin-left:auto}
+.ho-resolve-btn:hover{background:var(--green);color:#fff}
+
 /* ════ DUTY DETAIL MODAL ════ */
 #dutyModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;z-index:3000;padding:16px}
 #dutyModal.show{display:flex}
@@ -717,6 +729,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('schedule')" id="btnTabSchedule">📅 Schedule</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('swap')" id="btnTabSwap">🔄 Swap Board</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('leave')" id="btnTabLeave">🏖 Leave / Training</button>
+      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('handover')" id="btnTabHandover">📝 Handover</button>
     </div>
 
     <!-- SCHEDULE TAB -->
@@ -797,6 +810,22 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     </div>
 
     <div style="text-align:center;margin-top:8px"><button class="link-btn" onclick="logoutEmp()">← Back to Login</button></div>
+
+    <!-- HANDOVER TAB -->
+    <div id="empTabHandover" style="display:none">
+      <!-- Write -->
+      <div class="esmbox" style="background:rgba(201,150,58,.08);border-color:rgba(201,150,58,.25);margin-bottom:10px">
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold2);margin-bottom:10px">✍️ Write Handover Note</div>
+        <textarea class="inp" id="empHoNote" rows="4" placeholder="What does the next shift need to know? Guests, pending tasks, incidents…" style="background:rgba(255,255,255,.07);border-color:rgba(201,150,58,.25);color:#fff;resize:vertical;margin-bottom:10px"></textarea>
+        <button class="elb" style="padding:10px;font-size:12px;background:linear-gradient(135deg,var(--gold),var(--gold2))" onclick="submitEmpHandover()">📤 Submit to Next Shift</button>
+      </div>
+      <!-- Read -->
+      <div class="esmbox">
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">📋 Handover Feed</div>
+        <div id="empHoList"></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -811,6 +840,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <button class="tab"        data-p="coverage" onclick="switchPage('coverage')">⚠️ Coverage</button>
       <button class="tab"        data-p="requests" onclick="switchPage('requests')">📋 Requests</button>
       <button class="tab"        data-p="archives" onclick="switchPage('archives')">🗄️ Archives</button>
+      <button class="tab"        data-p="handover" onclick="switchPage('handover')">📝 Handover</button>
       <button class="tab"        data-p="sections" onclick="switchPage('sections')">📍 Sections</button>
       <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Settings</button>
     </div>
@@ -1135,6 +1165,39 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ══ HANDOVER PAGE ══ -->
+<div class="page" id="page-handover">
+  <div style="max-width:860px;margin:0 auto">
+
+    <!-- Write card -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="ch">
+        <div class="ct">✍️ Write Handover Note</div>
+        <div style="font-size:10px;color:var(--slate)">Outgoing shift → incoming shift</div>
+      </div>
+      <div style="padding:16px">
+        <textarea class="inp" id="hoNote" rows="4" placeholder="What does the next shift need to know? Guests, pending tasks, incidents…" style="margin-bottom:12px;resize:vertical"></textarea>
+        <div style="display:flex;align-items:center;gap:10px">
+          <button class="btn btn-gold" onclick="submitAdminHandover()">📤 Submit Handover</button>
+          <span id="hoSaveMsg" style="font-size:11px;color:var(--green)"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feed -->
+    <div class="card">
+      <div class="ch">
+        <div class="ct">📋 Handover Log</div>
+        <button class="btn btn-ghost btn-sm" onclick="loadAndRenderAdminHandovers()">🔄 Refresh</button>
+      </div>
+      <div style="padding:16px" id="adminHoList">
+        <div class="ho-empty">Loading…</div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1707,12 +1770,13 @@ function tryAutoConnect() {
 // ═══════════════════════════════════════════════════
 
 function showEmpTab(tab) {
-  ["schedule","swap","leave"].forEach(t => {
+  ["schedule","swap","leave","handover"].forEach(t => {
     document.getElementById("empTab" + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t===tab ? "block" : "none";
     document.getElementById("btnTab" + t.charAt(0).toUpperCase() + t.slice(1)).style.background = t===tab ? "linear-gradient(135deg,var(--gold),var(--gold2))" : "rgba(255,255,255,.08)";
   });
-  if (tab === "swap") { populateSwapForm(); renderSwapList(); }
-  if (tab === "leave") { populateLeaveForm(); renderLeaveList(); }
+  if (tab === "swap")     { populateSwapForm(); renderSwapList(); }
+  if (tab === "leave")    { populateLeaveForm(); renderLeaveList(); }
+  if (tab === "handover") { renderEmpHandovers(); }
 }
 
 function reqTypeLabel(type) {
@@ -2706,6 +2770,7 @@ function _switchPageOriginal(name) {
   if(name==="archives") renderArchives();
   if(name==="settings") renderSettings();
   if(name==="sections") { initSectionsPage(); initRosterRulesUI(); }
+  if(name==="handover") initHandoverPage();
 }
 let switchPage = _switchPageOriginal;
 
@@ -3631,62 +3696,12 @@ function refreshAutoSectionPosition() {
   const positions = Array.from(new Set(pool.map(e => e.position).filter(Boolean))).sort();
   const secSel = document.getElementById('autoSection');
   const posSel = document.getElementById('autoPosition');
+  const exPos  = document.getElementById('autoExcludePositions');
+  const noNight = document.getElementById('autoNoNightPositions');
   if (secSel) secSel.innerHTML = '<option value="all">All Sections</option>' + sections.map(s=>`<option>${s}</option>`).join('');
   if (posSel) posSel.innerHTML = '<option value="all">All Positions</option>' + positions.map(p=>`<option>${p}</option>`).join('');
-
-  // Load saved selections
-  const savedExPos   = (typeof rosterRules !== 'undefined' && rosterRules.excludePositions)   || [];
-  const savedNoNight = (typeof rosterRules !== 'undefined' && rosterRules.noNightPositions) || [];
-
-  function renderPillGroup(wrapId, hiddenSelId, posList, savedSel) {
-    const wrap = document.getElementById(wrapId);
-    const hiddenSel = document.getElementById(hiddenSelId);
-    if (!wrap) return;
-    wrap.innerHTML = '';
-    if (hiddenSel) hiddenSel.innerHTML = '';
-    if (posList.length === 0) {
-      wrap.innerHTML = '<span style="font-size:11px;color:var(--slate);opacity:.6">No positions found.</span>';
-      return;
-    }
-    posList.forEach(p => {
-      const active = savedSel.includes(p);
-      if (hiddenSel) {
-        const opt = document.createElement('option');
-        opt.value = p; opt.textContent = p; opt.selected = active;
-        hiddenSel.appendChild(opt);
-      }
-      const pill = document.createElement('button');
-      pill.type = 'button';
-      pill.textContent = p;
-      pill.dataset.pos = p;
-      pill.dataset.active = active ? '1' : '0';
-      const setStyle = (on) => {
-        pill.style.cssText = `padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1.5px solid;transition:.15s;white-space:nowrap;line-height:1.4;` +
-          (on ? `background:var(--navy);color:#fff;border-color:var(--navy);`
-              : `background:#f1f5f9;color:var(--slate);border-color:#dde3f0;`);
-      };
-      setStyle(active);
-      pill.onclick = function() {
-        const nowActive = this.dataset.active !== '1';
-        this.dataset.active = nowActive ? '1' : '0';
-        setStyle(nowActive);
-        if (hiddenSel) {
-          const opt = Array.from(hiddenSel.options).find(o => o.value === this.dataset.pos);
-          if (opt) opt.selected = nowActive;
-        }
-        if (typeof rosterRules !== 'undefined') {
-          const vals = Array.from(document.getElementById(hiddenSelId)?.selectedOptions||[]).map(o=>o.value);
-          if (hiddenSelId === 'autoExcludePositions') rosterRules.excludePositions = vals;
-          else rosterRules.noNightPositions = vals;
-          try { localStorage.setItem('rosterRules', JSON.stringify(rosterRules)); } catch(e) {}
-        }
-      };
-      wrap.appendChild(pill);
-    });
-  }
-
-  renderPillGroup('autoExcludePositionsWrap', 'autoExcludePositions', positions, savedExPos);
-  renderPillGroup('autoNoNightPositionsWrap', 'autoNoNightPositions', positions, savedNoNight);
+  if (exPos)  exPos.innerHTML  = positions.map(p=>`<option>${p}</option>`).join('');
+  if (noNight) noNight.innerHTML = positions.map(p=>`<option>${p}</option>`).join('');
 }
 
 function previewAutoSchedule() {
@@ -5179,17 +5194,13 @@ function printRoster() {
       </div>
       <div class="ff" style="grid-column:1/-1">
         <label class="lbl">Exclude Positions (these staff will not be auto-scheduled)</label>
-        <div id="autoExcludePositionsWrap" style="border:1.5px solid #dde3f0;border-radius:8px;padding:8px 10px;background:#fff;max-height:130px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px"></div>
-        <div style="font-size:10px;color:var(--slate);margin-top:4px">Click a position to toggle. Highlighted = excluded.</div>
-        <!-- Hidden select kept for backward-compat with generateAutoSchedule() -->
-        <select id="autoExcludePositions" multiple style="display:none"></select>
+        <select class="inp" id="autoExcludePositions" multiple size="4" style="height:auto;min-height:78px"></select>
+        <div style="font-size:10px;color:var(--slate);margin-top:4px">Hold Ctrl/⌘ to select multiple.</div>
       </div>
       <div class="ff" style="grid-column:1/-1">
         <label class="lbl">Positions excluded from NIGHT (EVE) shift</label>
-        <div id="autoNoNightPositionsWrap" style="border:1.5px solid #dde3f0;border-radius:8px;padding:8px 10px;background:#fff;max-height:130px;overflow-y:auto;display:flex;flex-wrap:wrap;gap:6px"></div>
+        <select class="inp" id="autoNoNightPositions" multiple size="4" style="height:auto;min-height:78px"></select>
         <div style="font-size:10px;color:var(--slate);margin-top:4px">These positions will be assigned MOR / AFT only.</div>
-        <!-- Hidden select kept for backward-compat with generateAutoSchedule() -->
-        <select id="autoNoNightPositions" multiple style="display:none"></select>
       </div>
       <div class="ff" style="display:flex;flex-wrap:wrap;gap:12px;padding:10px;background:var(--ice2);border-radius:8px">
         <label style="display:flex;align-items:center;gap:7px;cursor:pointer;font-size:12px">
@@ -5360,6 +5371,157 @@ function openDutyModal(day, month, year, empId) {
 
 function closeDutyModal() {
   document.getElementById("dutyModal").classList.remove("show");
+}
+
+// ══════════════════════════════════════════════════════════════
+// HANDOVER SYSTEM
+// ══════════════════════════════════════════════════════════════
+let _hoListener = null; // Firebase real-time listener ref
+
+function hoGenId() { return 'ho_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+
+function hoWhoAmI() {
+  // Admin side: use role/dept label
+  if (typeof ADMIN_ROLE !== 'undefined') {
+    if (ADMIN_ROLE === 'developer') return 'Developer';
+    if (typeof CURRENT_DEPT !== 'undefined' && CURRENT_DEPT && CURRENT_DEPT !== 'all') return CURRENT_DEPT;
+    return 'Admin';
+  }
+  // Employee side
+  if (currentEmpId) {
+    const emp = staffData[currentEmpId];
+    return emp?.name || currentEmpId;
+  }
+  return 'Unknown';
+}
+
+function hoFmtTime(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+       + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ── ADMIN SIDE ──────────────────────────────────────────────
+
+function initHandoverPage() {
+  loadAndRenderAdminHandovers();
+  // Attach live Firebase listener (once per page visit)
+  if (typeof db !== 'undefined' && db) {
+    if (_hoListener) { try { db.ref('handovers').off('value', _hoListener); } catch(e){} }
+    _hoListener = db.ref('handovers').orderByChild('at').limitToLast(100).on('value', snap => {
+      renderAdminHandoverList(snap.val() || {});
+    });
+  }
+}
+
+function loadAndRenderAdminHandovers() {
+  const list = document.getElementById('adminHoList');
+  if (list) list.innerHTML = '<div class="ho-empty">Loading…</div>';
+  if (typeof db !== 'undefined' && db) {
+    db.ref('handovers').orderByChild('at').limitToLast(100).once('value').then(snap => {
+      renderAdminHandoverList(snap.val() || {});
+    }).catch(() => renderAdminHandoverList({}));
+  } else {
+    renderAdminHandoverList({});
+  }
+}
+
+function renderAdminHandoverList(data) {
+  const list = document.getElementById('adminHoList');
+  if (!list) return;
+  const entries = Object.entries(data).sort((a,b) => (b[1].at||'').localeCompare(a[1].at||''));
+  if (!entries.length) { list.innerHTML = '<div class="ho-empty">No handover notes yet.</div>'; return; }
+  list.innerHTML = entries.map(([id, h]) => {
+    const resolved = h.resolved;
+    return `<div class="ho-card${resolved ? ' ho-resolved' : ''}" id="hocard-${id}">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="flex:1">
+          <div class="ho-note">${(h.note||'').replace(/\n/g,'<br>')}</div>
+          <div class="ho-meta">
+            <span>✍️ <strong>${h.by||'—'}</strong></span>
+            <span>🕐 ${hoFmtTime(h.at)}</span>
+            ${resolved ? `<span style="color:var(--green)">✓ Resolved by ${h.resolvedBy||'—'} · ${hoFmtTime(h.resolvedAt)}</span>` : ''}
+          </div>
+        </div>
+        ${!resolved ? `<button class="ho-resolve-btn" onclick="resolveHandover('${id}')">✓ Resolve</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function submitAdminHandover() {
+  const note = (document.getElementById('hoNote')?.value||'').trim();
+  if (!note) { alert('Please write a handover note first.'); return; }
+  const id = hoGenId();
+  const entry = { note, by: hoWhoAmI(), at: new Date().toISOString(), resolved: false };
+  if (typeof db !== 'undefined' && db) {
+    db.ref('handovers/' + id).set(entry).then(() => {
+      document.getElementById('hoNote').value = '';
+      const msg = document.getElementById('hoSaveMsg');
+      if (msg) { msg.textContent = '✅ Submitted!'; setTimeout(()=>msg.textContent='', 3000); }
+    }).catch(() => alert('Failed to save. Check Firebase connection.'));
+  } else {
+    alert('Firebase not connected. Cannot save handover.');
+  }
+}
+
+function resolveHandover(id) {
+  if (!confirm('Mark this handover as resolved?')) return;
+  const update = { resolved: true, resolvedBy: hoWhoAmI(), resolvedAt: new Date().toISOString() };
+  if (typeof db !== 'undefined' && db) {
+    db.ref('handovers/' + id).update(update).catch(()=>{});
+  }
+}
+
+// ── EMPLOYEE SIDE ────────────────────────────────────────────
+
+function renderEmpHandovers() {
+  const list = document.getElementById('empHoList');
+  if (!list) return;
+  list.innerHTML = '<div class="ho-empty" style="color:rgba(255,255,255,.35)">Loading…</div>';
+  if (typeof db !== 'undefined' && db) {
+    db.ref('handovers').orderByChild('at').limitToLast(50).once('value').then(snap => {
+      renderEmpHandoverList(snap.val() || {});
+    }).catch(() => renderEmpHandoverList({}));
+  } else {
+    renderEmpHandoverList({});
+  }
+}
+
+function renderEmpHandoverList(data) {
+  const list = document.getElementById('empHoList');
+  if (!list) return;
+  const entries = Object.entries(data).sort((a,b) => (b[1].at||'').localeCompare(a[1].at||''));
+  if (!entries.length) { list.innerHTML = '<div class="ho-empty" style="color:rgba(255,255,255,.35)">No handover notes yet.</div>'; return; }
+  list.innerHTML = entries.map(([, h]) => {
+    const resolved = h.resolved;
+    return `<div class="ho-card-dark${resolved ? ' ho-resolved' : ''}">
+      <div class="ho-note-dark">${(h.note||'').replace(/\n/g,'<br>')}</div>
+      <div class="ho-meta">
+        <span style="color:rgba(255,255,255,.4)">✍️ ${h.by||'—'}</span>
+        <span style="color:rgba(255,255,255,.4)">🕐 ${hoFmtTime(h.at)}</span>
+        ${resolved ? `<span style="color:rgba(74,222,128,.6)">✓ Resolved</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function submitEmpHandover() {
+  const note = (document.getElementById('empHoNote')?.value||'').trim();
+  if (!note) { alert('Please write a handover note first.'); return; }
+  const id = hoGenId();
+  const emp = staffData[currentEmpId];
+  const entry = { note, by: emp?.name || currentEmpId, byId: currentEmpId, at: new Date().toISOString(), resolved: false };
+  if (typeof db !== 'undefined' && db) {
+    db.ref('handovers/' + id).set(entry).then(() => {
+      document.getElementById('empHoNote').value = '';
+      alert('✅ Handover submitted successfully!');
+      renderEmpHandovers();
+    }).catch(() => alert('Failed to save. Check your connection.'));
+  } else {
+    alert('Firebase not connected.');
+  }
 }
 
 function logoutEmp() {
