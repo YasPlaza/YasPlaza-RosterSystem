@@ -7,6 +7,26 @@
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Yas Plaza Hotels — Roster System</title>
+
+<!-- ═══ PWA ═══ -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0F1E35">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="YPH Roster">
+<meta name="application-name" content="YPH Roster">
+<meta name="msapplication-TileColor" content="#0F1E35">
+<meta name="msapplication-TileImage" content="icons/icon-144.png">
+<!-- Apple touch icons -->
+<link rel="apple-touch-icon" href="icons/icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32"  href="icons/icon-96.png">
+<!-- Apple Splash (optional — covers most iPhones) -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase SDK loaded dynamically only when config is provided -->
@@ -5488,6 +5508,66 @@ function printRoster() {
   <div style="margin-top:6px;display:flex;gap:5px;flex-wrap:wrap">
     ${Object.entries(SHIFTS).map(([k,v])=>'<span style="background:'+v.bg+';color:'+v.color+';border:1px solid '+v.border+';border-radius:3px;padding:1px 5px;font-size:7px"><b>'+k+'</b> '+shiftTimeOrLabel(v)+'</span>').join("")}
   </div>
+<!-- ═══ PWA: Service Worker + Install Prompt ═══ -->
+<script>
+(function(){
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        console.log('[PWA] SW registered:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+          });
+        });
+      }).catch(err => console.warn('[PWA] SW failed:', err));
+    });
+  }
+
+  function showUpdateBanner() {
+    if (document.getElementById('pwaBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'pwaBanner';
+    b.innerHTML = '<span>\u{1F504} New version available</span><button id="pwaUpdateBtn">Update Now<\/button><button id="pwaDismissBtn">\u2715<\/button>';
+    Object.assign(b.style, {position:'fixed',bottom:'70px',left:'50%',transform:'translateX(-50%)',
+      background:'#1B2D4A',border:'1px solid rgba(201,150,58,.4)',borderRadius:'12px',
+      padding:'10px 16px',display:'flex',alignItems:'center',gap:'12px',
+      color:'#fff',fontSize:'13px',fontWeight:'600',zIndex:'9999',
+      boxShadow:'0 8px 32px rgba(0,0,0,.4)',whiteSpace:'nowrap'});
+    document.body.appendChild(b);
+    Object.assign(document.getElementById('pwaUpdateBtn').style,{background:'#C9963A',border:'none',borderRadius:'8px',color:'#fff',padding:'6px 14px',cursor:'pointer',fontWeight:'700',fontSize:'12px'});
+    Object.assign(document.getElementById('pwaDismissBtn').style,{background:'transparent',border:'none',color:'rgba(255,255,255,.5)',cursor:'pointer',fontSize:'18px',lineHeight:'1'});
+    document.getElementById('pwaUpdateBtn').onclick = () => { navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'}); location.reload(); };
+    document.getElementById('pwaDismissBtn').onclick = () => b.remove();
+  }
+
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstallBtn(); });
+
+  function showInstallBtn() {
+    if (document.getElementById('pwaInstallBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'pwaInstallBtn';
+    btn.textContent = '\u{1F4F2} Install App';
+    Object.assign(btn.style, {position:'fixed',bottom:'70px',right:'16px',
+      background:'linear-gradient(135deg,#C9963A,#E8B04A)',border:'none',borderRadius:'10px',
+      color:'#fff',padding:'10px 16px',fontSize:'12px',fontWeight:'700',cursor:'pointer',
+      zIndex:'9999',boxShadow:'0 4px 20px rgba(201,150,58,.45)',fontFamily:"'Syne',sans-serif"});
+    btn.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const {outcome} = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') btn.remove();
+      deferredPrompt = null;
+    };
+    document.body.appendChild(btn);
+  }
+
+  window.addEventListener('appinstalled', () => { const b = document.getElementById('pwaInstallBtn'); if(b) b.remove(); });
+})();
+</script>
 </body></html>`);
   win.document.close();
 }
@@ -6158,5 +6238,65 @@ function wireLegendPills(){
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+<!-- ═══ PWA: Service Worker + Install Prompt ═══ -->
+<script>
+(function(){
+  // ── Register Service Worker ──
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').then(reg => {
+        console.log('[PWA] SW registered:', reg.scope);
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing;
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) showUpdateBanner();
+          });
+        });
+      }).catch(err => console.warn('[PWA] SW failed:', err));
+    });
+  }
+
+  function showUpdateBanner() {
+    if (document.getElementById('pwaBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'pwaBanner';
+    b.innerHTML = '<span>\u{1F504} New version available</span><button id="pwaUpdateBtn">Update Now<\/button><button id="pwaDismissBtn">\u2715<\/button>';
+    Object.assign(b.style, {position:'fixed',bottom:'70px',left:'50%',transform:'translateX(-50%)',
+      background:'#1B2D4A',border:'1px solid rgba(201,150,58,.4)',borderRadius:'12px',
+      padding:'10px 16px',display:'flex',alignItems:'center',gap:'12px',
+      color:'#fff',fontSize:'13px',fontWeight:'600',zIndex:'9999',
+      boxShadow:'0 8px 32px rgba(0,0,0,.4)',whiteSpace:'nowrap'});
+    document.body.appendChild(b);
+    Object.assign(document.getElementById('pwaUpdateBtn').style,{background:'#C9963A',border:'none',borderRadius:'8px',color:'#fff',padding:'6px 14px',cursor:'pointer',fontWeight:'700',fontSize:'12px'});
+    Object.assign(document.getElementById('pwaDismissBtn').style,{background:'transparent',border:'none',color:'rgba(255,255,255,.5)',cursor:'pointer',fontSize:'18px',lineHeight:'1'});
+    document.getElementById('pwaUpdateBtn').onclick = () => { navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'}); location.reload(); };
+    document.getElementById('pwaDismissBtn').onclick = () => b.remove();
+  }
+
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; showInstallBtn(); });
+
+  function showInstallBtn() {
+    if (document.getElementById('pwaInstallBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'pwaInstallBtn';
+    btn.textContent = '\u{1F4F2} Install App';
+    Object.assign(btn.style, {position:'fixed',bottom:'70px',right:'16px',
+      background:'linear-gradient(135deg,#C9963A,#E8B04A)',border:'none',borderRadius:'10px',
+      color:'#fff',padding:'10px 16px',fontSize:'12px',fontWeight:'700',cursor:'pointer',
+      zIndex:'9999',boxShadow:'0 4px 20px rgba(201,150,58,.45)',fontFamily:"'Syne',sans-serif"});
+    btn.onclick = async () => {
+      if (!deferredPrompt) return;
+      deferredPrompt.prompt();
+      const {outcome} = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') btn.remove();
+      deferredPrompt = null;
+    };
+    document.body.appendChild(btn);
+  }
+
+  window.addEventListener('appinstalled', () => { const b = document.getElementById('pwaInstallBtn'); if(b) b.remove(); });
+})();
+</script>
 </body>
 </html>
