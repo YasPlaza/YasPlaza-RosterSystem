@@ -3372,9 +3372,18 @@ async function selectShift(code) {
     if(!schedData[popEmpId][key]) schedData[popEmpId][key]={};
     schedData[popEmpId][key][popDay]=code;
     queueArchiveSnapshot(key, "shift changed");
+    // Record who made this change and when
+    const editorLabel = (typeof ADMIN_ROLE !== 'undefined' && ADMIN_ROLE === 'developer') ? 'Developer' :
+                        (typeof CURRENT_DEPT !== 'undefined' && CURRENT_DEPT && CURRENT_DEPT !== 'all') ? CURRENT_DEPT : 'Admin';
+    const metaKey = `schedMeta`;
+    if (!window.schedMeta) window.schedMeta = {};
+    if (!window.schedMeta[popEmpId]) window.schedMeta[popEmpId] = {};
+    if (!window.schedMeta[popEmpId][key]) window.schedMeta[popEmpId][key] = {};
+    window.schedMeta[popEmpId][key][popDay] = { by: editorLabel, at: new Date().toISOString() };
     if(db) {
       try { await db.ref("schedules/"+popEmpId+"/"+key+"/"+popDay).set(code); }
       catch(e) { saveLocal(); }
+      try { db.ref("schedMeta/"+popEmpId+"/"+key+"/"+popDay).set(window.schedMeta[popEmpId][key][popDay]).catch(()=>{}); } catch(e){}
     } else { saveLocal(); }
     renderRoster();
   }
@@ -3637,6 +3646,12 @@ function refreshAutoSectionPosition() {
   if (posSel) posSel.innerHTML = '<option value="all">All Positions</option>' + positions.map(p=>`<option>${p}</option>`).join('');
   if (exPos)  exPos.innerHTML  = positions.map(p=>`<option>${p}</option>`).join('');
   if (noNight) noNight.innerHTML = positions.map(p=>`<option>${p}</option>`).join('');
+
+  // Restore saved selections from rosterRules
+  const savedExPos   = (typeof rosterRules !== 'undefined' && rosterRules.excludePositions)   || [];
+  const savedNoNight = (typeof rosterRules !== 'undefined' && rosterRules.noNightPositions) || [];
+  if (exPos)   Array.from(exPos.options).forEach(o   => { if (savedExPos.includes(o.value))   o.selected = true; });
+  if (noNight) Array.from(noNight.options).forEach(o => { if (savedNoNight.includes(o.value)) o.selected = true; });
 }
 
 function previewAutoSchedule() {
@@ -3893,6 +3908,12 @@ async function resetRosterCurrentMonth() {
 }
 
 async function applyAutoSchedule() {
+  // Persist exclude position selections so they survive modal re-opens
+  if (typeof rosterRules !== 'undefined') {
+    rosterRules.excludePositions  = Array.from(document.getElementById('autoExcludePositions')?.selectedOptions||[]).map(o=>o.value);
+    rosterRules.noNightPositions  = Array.from(document.getElementById('autoNoNightPositions')?.selectedOptions||[]).map(o=>o.value);
+    try { localStorage.setItem('rosterRules', JSON.stringify(rosterRules)); } catch(e) {}
+  }
   const result = generateAutoSchedule(true);
 
   if (result.conflicts.length) {
@@ -3998,7 +4019,8 @@ let rosterRules = {
   noConsecOff:false, spreadOff:true, maxConsecWork:6, minRest:11,
   yph:true, balanceHotels:false, minPerHotel:1,
   maxALSameDay:3, noALPeak:false, respectLeave:true,
-  defaultPattern:'rotate', seniorityFirst:false, autoApply:false
+  defaultPattern:'rotate', seniorityFirst:false, autoApply:false,
+  excludePositions:[], noNightPositions:[]
 };
 
 function loadRosterRules() {
@@ -4040,7 +4062,9 @@ function getRulesFromUI() {
     maxConsecWork:gV('ruleMaxConsecWork'), minRest:gV('ruleMinRest'),
     yph:gC('ruleYPHCoverage'), balanceHotels:gC('ruleBalanceHotels'), minPerHotel:gV('ruleMinPerHotel'),
     maxALSameDay:gV('ruleMaxALSameDay'), noALPeak:gC('ruleNoALPeak'), respectLeave:gC('ruleRespectLeave'),
-    defaultPattern:gV('ruleDefaultPattern'), seniorityFirst:gC('ruleSeniorityFirst'), autoApply:gC('ruleAutoApply')
+    defaultPattern:gV('ruleDefaultPattern'), seniorityFirst:gC('ruleSeniorityFirst'), autoApply:gC('ruleAutoApply'),
+    excludePositions: Array.from(document.getElementById('autoExcludePositions')?.selectedOptions||[]).map(o=>o.value),
+    noNightPositions: Array.from(document.getElementById('autoNoNightPositions')?.selectedOptions||[]).map(o=>o.value)
   };
 }
 
@@ -5203,6 +5227,22 @@ function loginEmp() {
       }
       staffData[id]=emp;
       currentEmpId=id;
+      // Load blockDays from Firebase so employee portal shows special event days
+      db.ref('blockDays').once('value').then(bSnap=>{
+        const bVal = bSnap.val();
+        if (bVal && typeof blockDays !== 'undefined') {
+          Object.assign(blockDays, bVal);
+          try { localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); } catch(e) {}
+        }
+      }).catch(()=>{});
+      // Load schedMeta (updated-by info) from Firebase
+      db.ref('schedMeta/'+id).once('value').then(mSnap=>{
+        const mVal = mSnap.val();
+        if (mVal) {
+          if (!window.schedMeta) window.schedMeta = {};
+          window.schedMeta[id] = mVal;
+        }
+      }).catch(()=>{});
       startEmpListener(id);   // Start real-time listener for this employee
       showEmpDash(emp);
       updateStatus("online","Live Sync ✓");
@@ -5297,6 +5337,19 @@ function openDutyModal(day, month, year, empId) {
     rows += `<div class="duty-row">
       <div class="duty-icon">🏨</div>
       <div><div class="duty-label">Hotel</div><div class="duty-value" style="color:${hotelObj.color}">${hotelObj.name}</div></div>
+    </div>`;
+  }
+
+  // Show "Updated By" if schedule meta is available
+  const metaEntry = (window.schedMeta && window.schedMeta[empId||currentEmpId]
+                      && window.schedMeta[empId||currentEmpId][schKey(year,month)]
+                      && window.schedMeta[empId||currentEmpId][schKey(year,month)][day]) || null;
+  if (metaEntry && metaEntry.by) {
+    const atDate = metaEntry.at ? new Date(metaEntry.at) : null;
+    const atStr = atDate ? atDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) + ' ' + atDate.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) : '';
+    rows += `<div class="duty-row" style="border-top:1px solid rgba(255,255,255,.06);margin-top:4px">
+      <div class="duty-icon">✏️</div>
+      <div><div class="duty-label">Updated By</div><div class="duty-value" style="font-size:14px;color:var(--gold2)">${metaEntry.by}${atStr ? `<span style="font-size:11px;opacity:.6;margin-left:8px">${atStr}</span>` : ''}</div></div>
     </div>`;
   }
 
@@ -5404,7 +5457,13 @@ window.addEventListener("load", function() {
 // ADDED: Special Event Block Days
 // ════════════════════════════════════════════════
 let blockDays = JSON.parse(localStorage.getItem('blockDays_v1') || '{}');
-function saveBlockDays(){ try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){} }
+function saveBlockDays(){
+  try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){}
+  // Sync to Firebase so employee portal can read it
+  if (typeof db !== 'undefined' && db) {
+    try { db.ref('blockDays').set(blockDays).catch(()=>{}); } catch(e){}
+  }
+}
 function getBlockedDays(monthKey){ return blockDays[monthKey || schKey()] || {}; }
 function openBlockDaysModal(){
   const key = schKey(); const numDays = getDIM();
