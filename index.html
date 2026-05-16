@@ -2,20 +2,11 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
 <title>Yas Plaza Hotels — Roster System</title>
-<link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#0F1E35">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="YPH Roster">
-<link rel="apple-touch-icon" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="32x32" href="icons/icon-96.png">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 
 <!-- Firebase SDK loaded dynamically only when config is provided -->
@@ -67,7 +58,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 @keyframes orbFloat{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(20px,-20px) scale(1.05)}}
 .land-card{background:rgba(255,255,255,.03);backdrop-filter:blur(24px);border:1px solid rgba(201,150,58,.18);border-radius:24px;padding:50px 44px;width:430px;max-width:95vw;text-align:center;position:relative;animation:fadeUp .6s ease both}
 @keyframes fadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
-.land-logo{width:160px;height:160px;background:transparent;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5)}
+.land-logo{width:70px;height:70px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 22px;box-shadow:0 8px 32px rgba(201,150,58,.45)}
 .land-title{font-family:'Syne',sans-serif;font-size:23px;font-weight:800;color:#fff;letter-spacing:-.3px}
 .land-sub{color:rgba(255,255,255,.4);font-size:12px;margin:6px 0 32px;line-height:1.6}
 .land-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:rgba(255,255,255,.15);font-size:11px}
@@ -198,6 +189,33 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .dev-only-btn[style*="display: none"]{display:none!important}
 .dev-only-btn{display:block}
 button.dev-only-btn{display:inline-flex}
+
+/* ════ DEV PANEL NAV ════ */
+.dev-nav-btn{display:flex;width:100%;padding:9px 11px;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:.18s;color:var(--navy);background:transparent;text-align:left;font-family:'DM Sans',sans-serif;margin-bottom:2px}
+.dev-nav-btn:hover{background:var(--ice);color:var(--navy)}
+.dev-nav-btn.active{background:rgba(201,150,58,.15);color:var(--amber);font-weight:700}
+.dev-nav-btn.danger{color:var(--red)}
+.dev-nav-btn.danger:hover{background:var(--red-l)}
+.dev-nav-btn.danger.active{background:var(--red-l);color:var(--red)}
+/* Module toggles */
+.module-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;transition:.2s}
+.module-toggle-row:hover{border-color:var(--gold);background:var(--gold-l)}
+.toggle-switch{position:relative;width:42px;height:22px;flex-shrink:0}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.25s}
+.toggle-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s}
+input:checked+.toggle-slider{background:var(--gold)}
+input:checked+.toggle-slider:before{transform:translateX(20px)}
+/* Log entries */
+.log-entry{display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:7px;margin-bottom:4px;border-left:3px solid transparent}
+.log-entry.info{background:rgba(15,118,110,.06);border-color:var(--teal)}
+.log-entry.warn{background:var(--amber-l);border-color:var(--amber)}
+.log-entry.danger{background:var(--red-l);border-color:var(--red)}
+.log-entry.success{background:var(--green-l);border-color:var(--green)}
+.log-time{font-size:9px;color:var(--slate2);white-space:nowrap;margin-top:1px;font-family:'DM Mono',monospace}
+/* Hotel mgmt */
+.hotel-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;margin-bottom:7px}
+.hotel-color-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.1)}
 
 /* ════ SHIFT POPUP ════ */
 .spop{position:fixed;z-index:800;background:#fff;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.22);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:190px;border:1.5px solid var(--ice);animation:popIn .12s ease both}
@@ -341,6 +359,10 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   #page-requests > .req-grid{grid-template-columns:1fr !important}
   #page-sections .card[style*="grid-column:1/-1"]{grid-column:1 !important}
   #page-sections > div{grid-template-columns:1fr !important}
+  #page-settings > div:nth-child(2){grid-template-columns:1fr !important}
+  #devSideNav{display:flex;flex-wrap:wrap;gap:4px;padding:6px}
+  .dev-nav-btn{width:auto;padding:6px 10px;flex-shrink:0}
+  #page-settings > div:nth-child(2) > div:first-child{position:static}
 }
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
@@ -635,9 +657,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   .esl{font-size:8px !important}
 }
 
-
-/* PWA Touch */
-*, *::before, *::after{-webkit-tap-highlight-color:transparent}button,[onclick]{touch-action:manipulation}body{-webkit-overflow-scrolling:touch;overscroll-behavior:none}
 </style>
 </head>
 <body>
@@ -912,7 +931,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <button class="tab"        data-p="archives" onclick="switchPage('archives')">🗄️ Archives</button>
       <button class="tab"        data-p="handover" onclick="switchPage('handover')">📝 Handover</button>
       <button class="tab"        data-p="sections" onclick="switchPage('sections')">📍 Sections</button>
-      <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Settings</button>
+      <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Dev Panel</button>
     </div>
     <div class="topbar-r">
       <select class="inp inp-sm" id="deptFilter" onchange="changeDept(this.value)" style="width:130px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">
@@ -1272,184 +1291,307 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 </div>
 
 <div class="page" id="page-settings">
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
 
-    <!-- DEVELOPER BROADCAST MESSAGE (Developer Only) -->
-    <div class="card dev-only-panel" style="grid-column:1/-1">
-      <div class="ch">
-        <div class="ct">📢 Broadcast Message to All Users</div>
-        <span style="font-size:10px;color:var(--slate2)">Developer Only — Message shown to all users when they open the app</span>
-      </div>
-      <div style="padding:18px">
-        <div style="margin-bottom:12px;font-size:12px;color:var(--slate);line-height:1.6;background:rgba(201,150,58,.08);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;padding:12px">
-          📣 This message will appear as a banner at the top of the screen for <strong>all users</strong> (employees and admins) when they open the app. Clear it to remove the banner.
-        </div>
-        <div style="display:flex;flex-direction:column;gap:10px">
-          <div>
-            <label class="lbl">Message</label>
-            <textarea class="inp" id="broadcastInput" rows="3" placeholder="e.g. 'Welcome back! Schedules for June are now live. Have a great shift! ⭐'" style="resize:vertical;font-size:13px"></textarea>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="btn btn-gold" onclick="sendBroadcast()">📤 Send to All Users</button>
-            <button class="btn btn-danger" onclick="clearBroadcast()">🗑 Clear Message</button>
-            <span id="broadcastMsg2" style="font-size:11px;color:var(--green);min-height:16px"></span>
-          </div>
-          <div id="broadcastCurrentWrap" style="display:none;background:var(--navy2);border-radius:8px;padding:10px;border:1px solid rgba(201,150,58,.3)">
-            <div style="font-size:10px;font-weight:700;color:var(--gold2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Current Active Message:</div>
-            <div id="broadcastCurrentText" style="font-size:12px;color:#fff;line-height:1.5"></div>
-          </div>
-        </div>
-      </div>
+<!-- ════ DEV CONTROL PANEL HEADER ════ -->
+<div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r);padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;box-shadow:var(--sh-lg)">
+  <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 16px rgba(201,150,58,.4)">⚙️</div>
+  <div style="flex:1">
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff">Developer Control Panel</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">Complete system administration — all changes logged automatically</div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <div id="devPanelFirebaseStatus" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:5px 12px;font-size:11px;font-weight:600;color:#fff">
+      <span class="status-dot" id="devStatusDot"></span><span id="devStatusText">—</span>
     </div>
-
-    <!-- ACCESS GRANTS PANEL (Developer Only) -->
-    <div class="card" style="grid-column:1/-1">
-      <div class="ch">
-        <div class="ct">🔑 Department Access Grants</div>
-        <span style="font-size:10px;color:var(--slate2)">Developer Only — Grant departments access to specific settings</span>
-      </div>
-      <div style="padding:18px">
-        <div style="margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.6;background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:12px">
-          🔐 By default, only the Developer can access Settings. You can grant individual departments access to specific panels below. Access can be revoked at any time.
-        </div>
-        <div id="accessGrantsList" style="margin-bottom:14px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
-          <div>
-            <label class="lbl">Department</label>
-            <select class="inp" id="grantDeptSel" style="max-width:100%">
-              <option value="">-- Select Department --</option>
-            </select>
-          </div>
-          <div>
-            <label class="lbl">Access Panel</label>
-            <select class="inp" id="grantPanelSel">
-              <option value="passwords">🔑 Password Management</option>
-              <option value="firebase">🔥 Firebase Connection</option>
-              <option value="data">🗄️ Data Management</option>
-              <option value="departments">🏢 Department & Position Management</option>
-              <option value="shifts">⏰ Shift Time Settings (view only)</option>
-            </select>
-          </div>
-          <button class="btn btn-gold" onclick="grantAccess()">+ Grant Access</button>
-        </div>
-        <div id="grantMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-      </div>
-    </div>
-
-    <!-- PASSWORD MANAGEMENT -->
-    <div class="card settings-panel" data-panel="passwords">
-      <div class="ch"><div class="ct">🔑 Password Management</div><span style="font-size:10px;color:var(--slate2)">Developer Only</span></div>
-      <div style="padding:18px;display:flex;flex-direction:column;gap:11px">
-        <div style="background:var(--ice2);border-radius:8px;padding:10px;margin-bottom:4px">
-          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🔧 Developer Password</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><label class="lbl">Current Password</label><input class="inp" type="password" id="curP"></div>
-            <div><label class="lbl">New Password</label><input class="inp" type="password" id="newP"></div>
-          </div>
-          <div style="margin-top:8px"><label class="lbl">Confirm New Password</label><input class="inp" type="password" id="conP"></div>
-          <button class="btn btn-primary" style="margin-top:10px" onclick="changePassword()">Update Developer Password</button>
-        </div>
-        <div style="background:var(--ice2);border-radius:8px;padding:10px;border:1.5px dashed var(--gold)">
-          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px">🏢 Department Passwords</div>
-          <div id="deptPassList" style="margin-bottom:10px"></div>
-          <div style="display:flex;gap:8px;align-items:flex-end">
-            <div style="flex:1"><label class="lbl">Department</label>
-              <select class="inp" id="setDeptPassSelect"></select>
-            </div>
-            <div style="flex:1"><label class="lbl">New Password</label>
-              <input class="inp" type="password" id="setDeptPassInp" placeholder="Min 4 chars">
-            </div>
-            <button class="btn btn-gold" onclick="setDeptPassword()">Set Password</button>
-          </div>
-          <div id="deptPassMsg" style="font-size:11px;margin-top:6px;min-height:16px"></div>
-        </div>
-        <div id="pMsg" style="font-size:11px;min-height:16px"></div>
-      </div>
-    </div>
-
-    <!-- FIREBASE CONNECTION -->
-    <div class="card settings-panel" data-panel="firebase">
-      <div class="ch"><div class="ct">🔥 Firebase Connection</div></div>
-      <div style="padding:18px">
-        <div id="fbStatusCard" style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px"></div>
-        <button class="btn btn-ghost btn-sm dev-only-btn" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
-      </div>
-    </div>
-
-    <!-- SHIFT TIME SETTINGS -->
-    <div class="card settings-panel" style="grid-column:1/-1" data-panel="shifts">
-      <div class="ch">
-        <div class="ct">⏰ Shift Time & Hours Settings</div>
-        <span style="font-size:11px;color:var(--slate2)">View shift times — only Developer can edit</span>
-      </div>
-      <div style="padding:18px">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
-
-        <!-- Add New Shift Row — Developer Only -->
-        <div class="dev-only-btn" style="margin-bottom:14px;padding:14px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
-          <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:10px">➕ Add New Shift Type</div>
-          <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px auto;gap:8px;align-items:flex-end;flex-wrap:wrap">
-            <div>
-              <label class="lbl">Code</label>
-              <input class="inp" id="newShiftCode" placeholder="e.g. N1" maxlength="6" style="text-transform:uppercase;font-family:'DM Mono',monospace;font-weight:700" oninput="this.value=this.value.toUpperCase()">
-            </div>
-            <div>
-              <label class="lbl">Label / Name</label>
-              <input class="inp" id="newShiftLabel" placeholder="e.g. Night-1">
-            </div>
-            <div>
-              <label class="lbl">Time</label>
-              <input class="inp" id="newShiftTime" placeholder="e.g. 23:00-08:00" style="font-family:'DM Mono',monospace">
-            </div>
-            <div>
-              <label class="lbl">Hours</label>
-              <select class="inp" id="newShiftHours">
-                ${[0,4,8,9,10,12].map(n=>`<option value="${n}"${n===9?' selected':''}>${n}h</option>`).join('')}
-              </select>
-            </div>
-            <div>
-              <button class="btn btn-gold" onclick="addNewShift()" style="white-space:nowrap">+ Add Shift</button>
-            </div>
-          </div>
-          <div id="newShiftMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-        </div>
-
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
-          <span id="shiftSaveMsg" style="font-size:11px;min-height:16px"></span>
-        </div>
-      </div>
-    </div>
-
-    <!-- DATA MANAGEMENT -->
-    <div class="card settings-panel" style="grid-column:1/-1" data-panel="data">
-      <div class="ch"><div class="ct">🗄️ Data Management</div></div>
-      <div style="padding:18px;display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-gold" onclick="exportCSV()">⬇ Export CSV</button>
-        <button class="btn btn-primary" onclick="printRoster()">🖨 Print Roster PDF</button>
-        <button class="btn btn-ghost dev-only-btn" onclick="resetSchedules()">🗓 Reset Schedules</button>
-        <button class="btn btn-danger dev-only-btn" onclick="clearAll()">⚠️ Clear ALL Data</button>
-      </div>
-    </div>
-
-    <!-- DEPARTMENT & POSITION MANAGEMENT -->
-    <div class="card settings-panel" style="grid-column:1/-1" data-panel="departments">
-      <div class="ch">
-        <div class="ct">🏢 Department & Position Management</div>
-        <span style="font-size:10px;color:var(--slate2)">Add new departments with their positions</span>
-      </div>
-      <div style="padding:18px">
-        <div id="deptMgmtList" style="margin-bottom:16px"></div>
-        <div class="dev-only-btn" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
-          <div style="flex:1;min-width:150px"><label class="lbl">New Department Name</label><input class="inp" id="newDeptName" placeholder="e.g. Engineering, F&amp;B…"></div>
-          <div style="flex:2;min-width:200px"><label class="lbl">Positions (comma separated)</label><input class="inp" id="newDeptPos" placeholder="e.g. F&amp;B Manager, Waiter, Chef…"></div>
-          <button class="btn btn-gold" onclick="addNewDept()">+ Add Department</button>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
+
+<!-- ════ SIDEBAR TABS + CONTENT ════ -->
+<div style="display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start">
+
+  <!-- SIDEBAR NAV -->
+  <div style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;position:sticky;top:72px">
+    <div style="padding:10px 14px;background:var(--navy);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase">Navigation</div>
+    <div id="devSideNav" style="padding:8px">
+      <button class="dev-nav-btn active" onclick="showDevPanel('modules')" data-panel="modules">🧩 Modules</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('access')" data-panel="access">🔑 Access & Passwords</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('hotels')" data-panel="hotels">🏨 Hotels</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('departments')" data-panel="departments">🏢 Departments</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('shifts')" data-panel="shifts">⏰ Shifts</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('autoroster')" data-panel="autoroster">📋 Auto-Roster</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('firebase')" data-panel="firebase">🔥 Firebase</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('notifications')" data-panel="notifications">🔔 Notifications</button>
+      <button class="dev-nav-btn" onclick="showDevPanel('logs')" data-panel="logs">📋 Activity Logs</button>
+      <button class="dev-nav-btn danger" onclick="showDevPanel('danger')" data-panel="danger">⚠️ Danger Zone</button>
+    </div>
+  </div>
+
+  <!-- PANEL CONTENT -->
+  <div id="devPanelContent">
+
+    <!-- ── MODULES ── -->
+    <div class="dev-panel active" id="devPanel-modules">
+      <div class="card">
+        <div class="ch"><div class="ct">🧩 Module Control</div><span style="font-size:10px;color:var(--slate2)">Toggle system features ON / OFF</span></div>
+        <div style="padding:18px">
+          <div style="display:grid;gap:8px" id="moduleToggles">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCESS & PASSWORDS ── -->
+    <div class="dev-panel" id="devPanel-access" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <!-- Developer password -->
+        <div class="card settings-panel" data-panel="passwords">
+          <div class="ch"><div class="ct">🔧 Developer Password</div></div>
+          <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div><label class="lbl">Current Password</label><input class="inp" type="password" id="curP"></div>
+              <div><label class="lbl">New Password</label><input class="inp" type="password" id="newP"></div>
+            </div>
+            <div><label class="lbl">Confirm New Password</label><input class="inp" type="password" id="conP"></div>
+            <button class="btn btn-primary" onclick="changePassword()">🔑 Update Developer Password</button>
+            <div id="pMsg" style="font-size:11px;min-height:16px"></div>
+          </div>
+        </div>
+        <!-- Dept passwords -->
+        <div class="card settings-panel" data-panel="passwords">
+          <div class="ch"><div class="ct">🏢 Department Passwords</div></div>
+          <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
+            <div id="deptPassList" style="margin-bottom:2px"></div>
+            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div style="flex:1;min-width:120px"><label class="lbl">Department</label><select class="inp" id="setDeptPassSelect"></select></div>
+              <div style="flex:1;min-width:120px"><label class="lbl">New Password</label><input class="inp" type="password" id="setDeptPassInp" placeholder="Min 4 chars"></div>
+              <button class="btn btn-gold" onclick="setDeptPassword()">Set</button>
+            </div>
+            <div id="deptPassMsg" style="font-size:11px;min-height:16px"></div>
+          </div>
+        </div>
+        <!-- Access grants -->
+        <div class="card" style="grid-column:1/-1">
+          <div class="ch"><div class="ct">🔑 Department Access Grants</div><span style="font-size:10px;color:var(--slate2)">Grant departments access to specific panels</span></div>
+          <div style="padding:18px">
+            <div style="margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.6;background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:12px">
+              🔐 By default, only the Developer can access Settings. Grant individual departments access to specific panels below.
+            </div>
+            <div id="accessGrantsList" style="margin-bottom:14px"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
+              <div>
+                <label class="lbl">Department</label>
+                <select class="inp" id="grantDeptSel"><option value="">-- Select Department --</option></select>
+              </div>
+              <div>
+                <label class="lbl">Access Panel</label>
+                <select class="inp" id="grantPanelSel">
+                  <option value="passwords">🔑 Password Management</option>
+                  <option value="firebase">🔥 Firebase Connection</option>
+                  <option value="data">🗄️ Data Management</option>
+                  <option value="departments">🏢 Department & Position Management</option>
+                  <option value="shifts">⏰ Shift Time Settings (view only)</option>
+                </select>
+              </div>
+              <button class="btn btn-gold" onclick="grantAccess()">+ Grant</button>
+            </div>
+            <div id="grantMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── HOTELS ── -->
+    <div class="dev-panel" id="devPanel-hotels" style="display:none">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">🏨 Hotel Management</div>
+          <button class="btn btn-gold btn-sm" onclick="openAddHotelModal()">+ Add Hotel</button>
+        </div>
+        <div style="padding:18px">
+          <div id="hotelMgmtList" style="display:grid;gap:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DEPARTMENTS ── -->
+    <div class="dev-panel" id="devPanel-departments" style="display:none">
+      <div class="card settings-panel" data-panel="departments">
+        <div class="ch">
+          <div class="ct">🏢 Department & Position Management</div>
+          <span style="font-size:10px;color:var(--slate2)">Full CRUD — add, edit, delete departments & positions</span>
+        </div>
+        <div style="padding:18px">
+          <div id="deptMgmtList" style="margin-bottom:16px"></div>
+          <div class="dev-only-btn" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
+            <div style="flex:1;min-width:150px"><label class="lbl">New Department Name</label><input class="inp" id="newDeptName" placeholder="e.g. Engineering, F&amp;B…"></div>
+            <div style="flex:2;min-width:200px"><label class="lbl">Positions (comma separated)</label><input class="inp" id="newDeptPos" placeholder="e.g. F&amp;B Manager, Waiter, Chef…"></div>
+            <button class="btn btn-gold" onclick="addNewDept()">+ Add Department</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SHIFTS ── -->
+    <div class="dev-panel" id="devPanel-shifts" style="display:none">
+      <div class="card settings-panel" data-panel="shifts">
+        <div class="ch">
+          <div class="ct">⏰ Shift Types & Hours</div>
+          <span style="font-size:11px;color:var(--slate2)">Edit times, hours — Developer only</span>
+        </div>
+        <div style="padding:18px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
+          <div class="dev-only-btn" style="margin-bottom:14px;padding:14px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:10px">➕ Add New Shift Type</div>
+            <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px auto;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <div><label class="lbl">Code</label><input class="inp" id="newShiftCode" placeholder="e.g. N1" maxlength="6" style="text-transform:uppercase;font-family:'DM Mono',monospace;font-weight:700" oninput="this.value=this.value.toUpperCase()"></div>
+              <div><label class="lbl">Label / Name</label><input class="inp" id="newShiftLabel" placeholder="e.g. Night-1"></div>
+              <div><label class="lbl">Time</label><input class="inp" id="newShiftTime" placeholder="e.g. 23:00-08:00" style="font-family:'DM Mono',monospace"></div>
+              <div><label class="lbl">Hours</label>
+                <select class="inp" id="newShiftHours">
+                  <option value="0">0h</option><option value="4">4h</option><option value="8">8h</option><option value="9" selected>9h</option><option value="10">10h</option><option value="12">12h</option>
+                </select>
+              </div>
+              <div><button class="btn btn-gold" onclick="addNewShift()" style="white-space:nowrap">+ Add</button></div>
+            </div>
+            <div id="newShiftMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
+            <span id="shiftSaveMsg" style="font-size:11px;min-height:16px"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AUTO-ROSTER ── -->
+    <div class="dev-panel" id="devPanel-autoroster" style="display:none">
+      <div class="card">
+        <div class="ch"><div class="ct">📋 Auto-Roster Rules</div><span style="font-size:10px;color:var(--slate2)">Configure distribution rules & ON/OFF per department</span></div>
+        <div style="padding:18px">
+          <div style="background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.7">
+            🤖 Auto-Roster runs from the <strong>📅 Roster</strong> tab using the <strong>🤖 Auto Schedule</strong> button. Rules you configure there are persisted. Here you can globally enable/disable auto-rota per department.
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">Department Auto-Rota Status</div>
+          <div id="autoRosterDeptList" style="display:grid;gap:8px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FIREBASE ── -->
+    <div class="dev-panel" id="devPanel-firebase" style="display:none">
+      <div class="card settings-panel" data-panel="firebase">
+        <div class="ch"><div class="ct">🔥 Firebase Connection</div></div>
+        <div style="padding:18px">
+          <div id="fbStatusCard" style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px;padding:12px;background:var(--ice2);border-radius:10px;border:1.5px solid #dde3f0"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-ghost btn-sm dev-only-btn" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
+            <button class="btn btn-ghost btn-sm" onclick="if(db){db.ref('.info/connected').once('value').then(s=>{alert(s.val()?'✅ Firebase is connected and live!':'⚠️ Not connected. Check your config.')})}else{alert('❌ Firebase not initialized.')}">🔄 Test Connection</button>
+          </div>
+        </div>
+      </div>
+      <!-- Broadcast message -->
+      <div class="card dev-only-panel" style="margin-top:14px">
+        <div class="ch"><div class="ct">📢 Broadcast Message to All Users</div></div>
+        <div style="padding:18px">
+          <div style="margin-bottom:12px;font-size:12px;color:var(--slate);line-height:1.6;background:rgba(201,150,58,.08);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;padding:12px">
+            📣 This message appears as a banner for <strong>all users</strong> when they open the app.
+          </div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div><label class="lbl">Message</label>
+              <textarea class="inp" id="broadcastInput" rows="3" placeholder="e.g. Schedules for June are now live. Have a great shift! ⭐" style="resize:vertical;font-size:13px"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn btn-gold" onclick="sendBroadcast()">📤 Send to All Users</button>
+              <button class="btn btn-danger" onclick="clearBroadcast()">🗑 Clear Message</button>
+              <span id="broadcastMsg2" style="font-size:11px;color:var(--green);min-height:16px"></span>
+            </div>
+            <div id="broadcastCurrentWrap" style="display:none;background:var(--navy2);border-radius:8px;padding:10px;border:1px solid rgba(201,150,58,.3)">
+              <div style="font-size:10px;font-weight:700;color:var(--gold2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Current Active Message:</div>
+              <div id="broadcastCurrentText" style="font-size:12px;color:#fff;line-height:1.5"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── NOTIFICATIONS ── -->
+    <div class="dev-panel" id="devPanel-notifications" style="display:none">
+      <div class="card">
+        <div class="ch"><div class="ct">🔔 Notification Settings</div></div>
+        <div style="padding:18px">
+          <div style="display:grid;gap:10px" id="notifToggles">
+            <!-- rendered by JS -->
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--ice)">
+            <button class="btn btn-primary" onclick="saveNotifSettings()">💾 Save Notification Settings</button>
+            <span id="notifSaveMsg" style="font-size:11px;margin-left:10px;color:var(--green);min-height:16px"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACTIVITY LOGS ── -->
+    <div class="dev-panel" id="devPanel-logs" style="display:none">
+      <div class="card">
+        <div class="ch">
+          <div class="ct">📋 Activity Logs</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn btn-ghost btn-sm" onclick="renderDevLogs()">🔄 Refresh</button>
+            <button class="btn btn-danger btn-sm" onclick="clearDevLogs()">🗑 Clear Logs</button>
+          </div>
+        </div>
+        <div style="padding:14px 18px">
+          <div id="devLogsContainer" style="max-height:60vh;overflow-y:auto;font-family:'DM Mono',monospace;font-size:11px;line-height:1.7"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DANGER ZONE ── -->
+    <div class="dev-panel" id="devPanel-danger" style="display:none">
+      <div class="card" style="border:2px solid var(--red)">
+        <div class="ch" style="background:var(--red-l)"><div class="ct" style="color:var(--red)">⚠️ Danger Zone — Irreversible Actions</div></div>
+        <div style="padding:18px">
+          <div style="background:var(--red-l);border:1.5px solid var(--red);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--red);line-height:1.6">
+            🚨 All actions below are <strong>irreversible</strong>. Every action is logged. Requires Developer credentials to execute.
+          </div>
+          <div style="display:grid;gap:12px">
+            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">🗓 Reset All Schedules</div>
+                <div style="font-size:11px;color:var(--slate);margin-top:2px">Clear all shift assignments. Staff data is preserved.</div>
+              </div>
+              <button class="btn btn-ghost" onclick="resetSchedules()" style="background:var(--amber-l);color:var(--amber);border:1.5px solid var(--amber)">Reset Schedules</button>
+            </div>
+            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">⬇ Export All Data (CSV)</div>
+                <div style="font-size:11px;color:var(--slate);margin-top:2px">Download full roster as CSV backup before making changes.</div>
+              </div>
+              <button class="btn btn-ghost" onclick="exportCSV()" style="background:var(--green-l);color:var(--green);border:1.5px solid var(--green)">Export CSV</button>
+            </div>
+            <div style="background:#fff0f0;border:2px solid var(--red);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--red)">💣 Clear ALL Data</div>
+                <div style="font-size:11px;color:var(--slate);margin-top:2px">Permanently delete all staff, schedules, and configurations. Cannot be undone.</div>
+              </div>
+              <button class="btn btn-danger" onclick="clearAll()">⚠️ Clear ALL Data</button>
+            </div>
+            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+              <div>
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">🔄 Re-seed Staff Data</div>
+                <div style="font-size:11px;color:var(--slate);margin-top:2px">Re-load the default staff dataset (won't overwrite existing staff).</div>
+              </div>
+              <button class="btn btn-ghost" onclick="seedStaffIfEmpty();renderAll();devLog('⚙️','Re-seeded staff data');alert('✅ Seed complete.')">Re-seed Staff</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /devPanelContent -->
+</div><!-- /grid -->
+</div><!-- /page-settings -->
 
 <!-- Staff Modal -->
 <div class="mover" id="staffModal" style="display:none" onclick="if(event.target===this)closeModal('staffModal')">
@@ -6094,9 +6236,364 @@ function applyBlockDayStyling(){
   });
 }
 
+
 // ════════════════════════════════════════════════
-// ADDED: Clickable shift legend pill = filter availability
+// DEVELOPER CONTROL PANEL — Full Implementation
 // ════════════════════════════════════════════════
+
+// ── Dev Panel Navigation ──────────────────────
+function showDevPanel(name) {
+  document.querySelectorAll('.dev-panel').forEach(p => p.style.display = 'none');
+  const target = document.getElementById('devPanel-' + name);
+  if (target) target.style.display = 'block';
+  document.querySelectorAll('.dev-nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.panel === name);
+  });
+  // On-show actions
+  if (name === 'modules')      renderModuleToggles();
+  if (name === 'access')       { renderSettings(); }
+  if (name === 'hotels')       renderHotelMgmt();
+  if (name === 'departments')  { renderDeptMgmt(); if(isDeveloper()){ renderAccessGrants(); const g=document.getElementById('grantDeptSel'); if(g) g.innerHTML='<option value="">-- Select Department --</option>'+getAllDepts().map(d=>'<option value="'+d+'">'+d+'</option>').join(''); } }
+  if (name === 'shifts')       renderSettings();
+  if (name === 'autoroster')   renderAutoRosterDepts();
+  if (name === 'firebase')     renderSettings();
+  if (name === 'notifications') renderNotifToggles();
+  if (name === 'logs')         renderDevLogs();
+  if (name === 'danger')       {} // nothing extra needed
+  // Sync Firebase status badge
+  const dot = document.getElementById('devStatusDot');
+  const txt = document.getElementById('devStatusText');
+  if (dot && txt) { dot.className = 'status-dot ' + (db ? 'online' : 'offline'); txt.textContent = db ? '🟢 Firebase Live' : '🔴 Offline Mode'; }
+}
+
+// ── Activity Logging ──────────────────────────
+let _devLogs = [];
+try { _devLogs = JSON.parse(localStorage.getItem('devLogs_v1') || '[]'); } catch(e) { _devLogs = []; }
+
+function devLog(icon, message, level='info') {
+  const entry = { icon, message, level, time: new Date().toLocaleString(), ts: Date.now() };
+  _devLogs.unshift(entry);
+  if (_devLogs.length > 200) _devLogs = _devLogs.slice(0, 200);
+  try { localStorage.setItem('devLogs_v1', JSON.stringify(_devLogs)); } catch(e) {}
+  // Push to Firebase
+  if (db) { try { db.ref('devLogs/' + entry.ts).set(entry); } catch(e) {} }
+}
+
+function renderDevLogs() {
+  const el = document.getElementById('devLogsContainer');
+  if (!el) return;
+  if (!_devLogs.length) { el.innerHTML = '<div style="color:var(--slate2);padding:20px;text-align:center">No activity logged yet.</div>'; return; }
+  el.innerHTML = _devLogs.map(e => `
+    <div class="log-entry ${e.level||'info'}">
+      <div class="log-time">${e.time}</div>
+      <div style="flex:1;font-size:11px;color:var(--navy)">${e.icon||'•'} ${e.message}</div>
+    </div>`).join('');
+}
+
+function clearDevLogs() {
+  if (!isDeveloper()) return;
+  if (!confirm('Clear all activity logs?')) return;
+  _devLogs = [];
+  try { localStorage.removeItem('devLogs_v1'); } catch(e) {}
+  if (db) { try { db.ref('devLogs').remove(); } catch(e) {} }
+  renderDevLogs();
+}
+
+// Patch key functions to log actions
+const _origSaveStaff = typeof saveStaff === 'function' ? saveStaff : null;
+const _origDeleteOne = typeof deleteOne === 'function' ? deleteOne : null;
+(function patchLogging(){
+  setTimeout(()=>{
+    if(typeof saveStaff==='function'){
+      const orig=saveStaff;
+      window.saveStaff = function(addAnother){ const r=orig.apply(this,arguments); const n=document.getElementById('f-name')?.value||'?'; devLog('👤','Staff saved: '+n,'success'); return r; };
+    }
+    if(typeof deleteOne==='function'){
+      const orig=deleteOne;
+      window.deleteOne = function(id){ const n=staffData[id]?.name||id; const r=orig.apply(this,arguments); devLog('🗑','Staff deleted: '+n,'danger'); return r; };
+    }
+    if(typeof addNewDept==='function'){
+      const orig=addNewDept;
+      window.addNewDept = function(){ const n=document.getElementById('newDeptName')?.value||'?'; const r=orig.apply(this,arguments); devLog('🏢','Department added: '+n,'success'); return r; };
+    }
+  },1500);
+})();
+
+// ── Module Toggles ────────────────────────────
+let moduleSettings = {};
+try { moduleSettings = JSON.parse(localStorage.getItem('moduleSettings_v1') || '{}'); } catch(e) {}
+
+const MODULE_DEFS = [
+  { id:'roster',       label:'📅 Roster Tab',          desc:'Monthly/weekly schedule management',  tab:'roster' },
+  { id:'staff',        label:'👥 Staff Tab',            desc:'Add, edit, delete employees',         tab:'staff' },
+  { id:'coverage',     label:'⚠️ Coverage Tab',         desc:'Hotel staffing coverage overview',    tab:'coverage' },
+  { id:'requests',     label:'📋 Requests Tab',         desc:'Swap & leave request management',     tab:'requests' },
+  { id:'archives',     label:'🗄️ Archives Tab',         desc:'Monthly roster snapshots',            tab:'archives' },
+  { id:'handover',     label:'📝 Handover Tab',         desc:'Shift handover notes',                tab:'handover' },
+  { id:'sections',     label:'📍 Sections Tab',         desc:'Section rules and auto-roster config', tab:'sections' },
+  { id:'empPortal',    label:'👤 Employee Portal',      desc:'Employee self-service login',          tab:null },
+  { id:'autoSchedule', label:'🤖 Auto-Schedule Button', desc:'Auto roster generation',              tab:null },
+  { id:'bulkFill',     label:'⚡ Bulk Fill Button',     desc:'Fill multiple shifts at once',        tab:null },
+  { id:'csvImport',    label:'📥 CSV Import',           desc:'Import staff from CSV file',          tab:null },
+];
+
+function isModuleEnabled(id) {
+  return moduleSettings[id] !== false; // default ON
+}
+
+function setModule(id, enabled) {
+  if (!isDeveloper()) { alert('🔒 Only Developers can toggle modules.'); return; }
+  moduleSettings[id] = enabled;
+  try { localStorage.setItem('moduleSettings_v1', JSON.stringify(moduleSettings)); } catch(e) {}
+  if (db) { try { db.ref('settings/modules').set(moduleSettings); } catch(e) {} }
+  applyModuleSettings();
+  devLog(enabled ? '✅' : '🚫', 'Module ' + (enabled ? 'enabled' : 'disabled') + ': ' + id, enabled ? 'success' : 'warn');
+}
+
+function applyModuleSettings() {
+  MODULE_DEFS.forEach(m => {
+    const on = isModuleEnabled(m.id);
+    if (m.tab) {
+      const tab = document.querySelector(`.tab[data-p="${m.tab}"]`);
+      if (tab) tab.style.display = on ? '' : 'none';
+    }
+  });
+  // Special: Employee portal button on landing
+  const empBtn = document.querySelector('.btn-emp');
+  if (empBtn) empBtn.style.display = isModuleEnabled('empPortal') ? '' : 'none';
+}
+
+function renderModuleToggles() {
+  const el = document.getElementById('moduleToggles');
+  if (!el) return;
+  el.innerHTML = MODULE_DEFS.map(m => {
+    const on = isModuleEnabled(m.id);
+    return `<div class="module-toggle-row">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">${m.label}</div>
+        <div style="font-size:10px;color:var(--slate);margin-top:2px">${m.desc}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:10px;font-weight:700;color:${on ? 'var(--green)' : 'var(--red)'}">${on ? 'ON' : 'OFF'}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${on ? 'checked' : ''} onchange="setModule('${m.id}', this.checked); renderModuleToggles()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Hotel Management ──────────────────────────
+function renderHotelMgmt() {
+  const el = document.getElementById('hotelMgmtList');
+  if (!el) return;
+  el.innerHTML = HOTELS.map(h => {
+    const isAll = h.id === 'all';
+    return `<div class="hotel-row">
+      <div class="hotel-color-dot" style="background:${h.color}"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">${h.name}</div>
+        <div style="font-size:10px;color:var(--slate);font-family:'DM Mono',monospace">${h.id}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="color" value="${h.color}" title="Edit color" 
+          onchange="updateHotelColor('${h.id}', this.value)" 
+          style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:2px">
+        ${!isAll ? `<button class="btn btn-ghost btn-xs" onclick="renameHotel('${h.id}')">✏️ Rename</button>` : ''}
+        ${!isAll ? `<button class="btn btn-danger btn-xs" onclick="deleteHotel('${h.id}')">🗑</button>` : ''}
+        ${isAll ? `<span style="font-size:10px;color:var(--slate2)">System</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updateHotelColor(hotelId, color) {
+  if (!isDeveloper()) return;
+  const h = HOTELS.find(x => x.id === hotelId);
+  if (!h) return;
+  h.color = color;
+  // Update CSS vars / light color
+  h.light = color + '22';
+  renderHotelMgmt();
+  saveHotelConfig();
+  devLog('🎨', 'Hotel color updated: ' + hotelId + ' → ' + color, 'info');
+}
+
+function renameHotel(hotelId) {
+  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
+  const h = HOTELS.find(x => x.id === hotelId);
+  if (!h) return;
+  const newName = prompt('Rename hotel:', h.name);
+  if (!newName || !newName.trim()) return;
+  devLog('✏️', 'Hotel renamed: ' + h.name + ' → ' + newName.trim(), 'info');
+  h.name = newName.trim();
+  renderHotelMgmt();
+  saveHotelConfig();
+  fillAllSelects();
+}
+
+function deleteHotel(hotelId) {
+  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
+  const h = HOTELS.find(x => x.id === hotelId);
+  if (!h) return;
+  const staffCount = staffList().filter(e => e.hotel === hotelId).length;
+  if (!confirm(`Delete hotel "${h.name}"?${staffCount ? '\n\n⚠️ ' + staffCount + ' staff are assigned to this hotel.' : ''}`)) return;
+  const idx = HOTELS.indexOf(h);
+  if (idx > -1) HOTELS.splice(idx, 1);
+  renderHotelMgmt();
+  saveHotelConfig();
+  fillAllSelects();
+  devLog('🗑', 'Hotel deleted: ' + h.name, 'danger');
+}
+
+function openAddHotelModal() {
+  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
+  const name = prompt('New hotel name:');
+  if (!name || !name.trim()) return;
+  const id = name.trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
+  if (HOTELS.find(h => h.id === id)) { alert('Hotel ID "' + id + '" already exists.'); return; }
+  HOTELS.push({ id, name: name.trim(), color: '#0D47A1', light: '#E3F2FD' });
+  renderHotelMgmt();
+  saveHotelConfig();
+  fillAllSelects();
+  devLog('🏨', 'Hotel added: ' + name.trim(), 'success');
+}
+
+function saveHotelConfig() {
+  const config = HOTELS.map(h => ({ id: h.id, name: h.name, color: h.color, light: h.light }));
+  try { localStorage.setItem('hotelConfig_v1', JSON.stringify(config)); } catch(e) {}
+  if (db) { try { db.ref('settings/hotelConfig').set(config); } catch(e) {} }
+}
+
+(function loadHotelConfig(){
+  try {
+    const saved = localStorage.getItem('hotelConfig_v1');
+    if (saved) {
+      const config = JSON.parse(saved);
+      config.forEach(c => {
+        const h = HOTELS.find(x => x.id === c.id);
+        if (h) { h.name = c.name; h.color = c.color; h.light = c.light || c.color + '22'; }
+      });
+    }
+  } catch(e) {}
+})();
+
+// ── Auto-Roster Dept Management ───────────────
+function renderAutoRosterDepts() {
+  const el = document.getElementById('autoRosterDeptList');
+  if (!el) return;
+  const depts = getAllDepts();
+  if (!depts.length) { el.innerHTML = '<p style="font-size:12px;color:var(--slate2)">No departments yet.</p>'; return; }
+  el.innerHTML = depts.map(dept => {
+    const autoOff = (deptAutoDisabled || {})[dept] === true;
+    const dc = getDeptColor(dept);
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--ice2);border:1.5px solid ${dc.color}30;border-radius:10px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:11px">${dept}</span>
+        <span style="font-size:11px;color:${autoOff ? 'var(--red)' : 'var(--green)'}; font-weight:700">${autoOff ? '🚫 Auto-Rota OFF' : '✅ Auto-Rota ON'}</span>
+      </div>
+      <label class="toggle-switch">
+        <input type="checkbox" ${autoOff ? '' : 'checked'} onchange="toggleDeptAutoRota('${dept}');renderAutoRosterDepts()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>`;
+  }).join('');
+}
+
+// ── Notification Settings ─────────────────────
+let notifSettings = {};
+try { notifSettings = JSON.parse(localStorage.getItem('notifSettings_v1') || '{}'); } catch(e) {}
+
+const NOTIF_DEFS = [
+  { id:'swap_request',    label:'🔄 New Swap Request',       desc:'Alert admin when employee requests a shift swap' },
+  { id:'swap_approved',   label:'✅ Swap Approved',          desc:'Notify employee when their swap is approved' },
+  { id:'swap_rejected',   label:'❌ Swap Rejected',          desc:'Notify employee when their swap is rejected' },
+  { id:'leave_request',   label:'🏖 New Leave Request',      desc:'Alert admin when employee submits leave' },
+  { id:'leave_approved',  label:'✅ Leave Approved',         desc:'Notify employee when leave is approved' },
+  { id:'schedule_change', label:'📅 Schedule Changed',       desc:'Notify employee when their shift is changed' },
+  { id:'coverage_alert',  label:'🚨 Coverage Alert',         desc:'Alert admin when a hotel has no staff on a day' },
+  { id:'low_al_balance',  label:'⚠️ Low AL Balance',         desc:'Warn when employee AL balance falls below 3 days' },
+  { id:'handover_posted', label:'📝 New Handover Note',      desc:'Alert next shift when handover note is posted' },
+];
+
+function isNotifEnabled(id) { return notifSettings[id] !== false; }
+
+function renderNotifToggles() {
+  const el = document.getElementById('notifToggles');
+  if (!el) return;
+  el.innerHTML = NOTIF_DEFS.map(n => {
+    const on = isNotifEnabled(n.id);
+    return `<div class="module-toggle-row">
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">${n.label}</div>
+        <div style="font-size:10px;color:var(--slate);margin-top:2px">${n.desc}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:10px;font-weight:700;color:${on ? 'var(--green)' : 'var(--red)'}">${on ? 'ON' : 'OFF'}</span>
+        <label class="toggle-switch">
+          <input type="checkbox" ${on ? 'checked' : ''} onchange="notifSettings['${n.id}']=this.checked; renderNotifToggles()">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function saveNotifSettings() {
+  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
+  try { localStorage.setItem('notifSettings_v1', JSON.stringify(notifSettings)); } catch(e) {}
+  if (db) { try { db.ref('settings/notifSettings').set(notifSettings); } catch(e) {} }
+  const msg = document.getElementById('notifSaveMsg');
+  if (msg) { msg.textContent = '✅ Saved!'; setTimeout(() => msg.textContent = '', 2500); }
+  devLog('🔔', 'Notification settings saved', 'success');
+}
+
+// ── Override renderSettings to also sync dev panel status ─────
+(function(){
+  const _orig = typeof renderSettings === 'function' ? renderSettings : null;
+  if (!_orig) return;
+  window.renderSettings = function() {
+    _orig.apply(this, arguments);
+    // Update status dot
+    const dot = document.getElementById('devStatusDot');
+    const txt = document.getElementById('devStatusText');
+    if (dot && txt) { dot.className = 'status-dot ' + (db ? 'online' : 'offline'); txt.textContent = db ? '🟢 Firebase Live' : '🔴 Offline Mode'; }
+  };
+})();
+
+// Initialize dev panel when switching to settings page
+(function(){
+  const _origSwitch = typeof switchPage === 'function' ? switchPage : null;
+  if (!_origSwitch) return;
+  window.switchPage = function(name) {
+    _origSwitch.apply(this, arguments);
+    if (name === 'settings') {
+      // Show modules panel by default
+      setTimeout(() => {
+        const activePanel = document.querySelector('.dev-nav-btn.active');
+        if (!activePanel) showDevPanel('modules');
+        else showDevPanel(activePanel.dataset.panel);
+      }, 50);
+    }
+  };
+})();
+
+// Load module settings from Firebase
+(function(){
+  if (db) {
+    db.ref('settings/modules').on('value', snap => {
+      const val = snap.val();
+      if (val) { Object.assign(moduleSettings, val); applyModuleSettings(); }
+    });
+    db.ref('settings/notifSettings').on('value', snap => {
+      const val = snap.val();
+      if (val) Object.assign(notifSettings, val);
+    });
+  }
+})();
+
+
 let activeShiftFilter = null;
 function applyShiftLegendFilter(code){
   if (activeShiftFilter === code) { clearShiftLegendFilter(); return; }
@@ -6170,50 +6667,5 @@ function wireLegendPills(){
 })();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
-
-<!-- ═══ PWA Service Worker ═══ -->
-<script>
-(function(){
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js')
-        .then(function(reg) {
-          reg.addEventListener('updatefound', function() {
-            var nw = reg.installing;
-            nw.addEventListener('statechange', function() {
-              if (nw.state === 'installed' && navigator.serviceWorker.controller) { showUpdateBanner(); }
-            });
-          });
-        }).catch(function(e) { console.warn('[PWA] SW:', e); });
-    });
-  }
-  function showUpdateBanner() {
-    if (document.getElementById('pwaBanner')) return;
-    var b = document.createElement('div');
-    b.id = 'pwaBanner';
-    b.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:#1B2D4A;border:1px solid rgba(201,150,58,.4);border-radius:12px;padding:10px 16px;display:flex;align-items:center;gap:12px;color:#fff;font-size:13px;font-weight:600;z-index:9999;box-shadow:0 8px 32px rgba(0,0,0,.4);white-space:nowrap;font-family:sans-serif';
-    b.innerHTML = '<span>New version available</span><button id="pwaUpBtn" style="background:#C9963A;border:none;border-radius:8px;color:#fff;padding:6px 14px;cursor:pointer;font-weight:700;font-size:12px">Update</button><button id="pwaDismBtn" style="background:transparent;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:18px">&#x2715;</button>';
-    document.body.appendChild(b);
-    document.getElementById('pwaUpBtn').onclick = function() { navigator.serviceWorker.controller && navigator.serviceWorker.controller.postMessage({type:'SKIP_WAITING'}); location.reload(); };
-    document.getElementById('pwaDismBtn').onclick = function() { b.remove(); };
-  }
-  var deferredPrompt;
-  window.addEventListener('beforeinstallprompt', function(e) { e.preventDefault(); deferredPrompt = e; showInstallBtn(); });
-  function showInstallBtn() {
-    if (document.getElementById('pwaInstallBtn')) return;
-    var btn = document.createElement('button');
-    btn.id = 'pwaInstallBtn';
-    btn.textContent = 'Install App';
-    btn.style.cssText = 'position:fixed;bottom:70px;right:16px;background:linear-gradient(135deg,#C9963A,#E8B04A);border:none;border-radius:10px;color:#fff;padding:10px 16px;font-size:12px;font-weight:700;cursor:pointer;z-index:9999;box-shadow:0 4px 20px rgba(201,150,58,.45);font-family:sans-serif';
-    btn.onclick = function() {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      deferredPrompt.userChoice.then(function(r) { if (r.outcome === 'accepted') btn.remove(); deferredPrompt = null; });
-    };
-    document.body.appendChild(btn);
-  }
-  window.addEventListener('appinstalled', function() { var b = document.getElementById('pwaInstallBtn'); if (b) b.remove(); });
-})();
-</script>
 </body>
 </html>
