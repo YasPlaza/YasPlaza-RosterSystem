@@ -110,7 +110,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .exit-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.65);border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;transition:.2s}
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
-.page{display:none;flex:1;padding:20px 22px;animation:fadeIn .25s ease both}
+.page{display:none;flex:1;min-height:calc(100vh - 56px);padding:20px 22px;animation:fadeIn .25s ease both}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -189,33 +189,6 @@ tr:hover td.sc-col{background:rgba(201,150,58,.04)!important}
 .dev-only-btn[style*="display: none"]{display:none!important}
 .dev-only-btn{display:block}
 button.dev-only-btn{display:inline-flex}
-
-/* ════ DEV PANEL NAV ════ */
-.dev-nav-btn{display:flex;width:100%;padding:9px 11px;border:none;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:.18s;color:var(--navy);background:transparent;text-align:left;font-family:'DM Sans',sans-serif;margin-bottom:2px}
-.dev-nav-btn:hover{background:var(--ice);color:var(--navy)}
-.dev-nav-btn.active{background:rgba(201,150,58,.15);color:var(--amber);font-weight:700}
-.dev-nav-btn.danger{color:var(--red)}
-.dev-nav-btn.danger:hover{background:var(--red-l)}
-.dev-nav-btn.danger.active{background:var(--red-l);color:var(--red)}
-/* Module toggles */
-.module-toggle-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;transition:.2s}
-.module-toggle-row:hover{border-color:var(--gold);background:var(--gold-l)}
-.toggle-switch{position:relative;width:42px;height:22px;flex-shrink:0}
-.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
-.toggle-slider{position:absolute;cursor:pointer;inset:0;background:#ccc;border-radius:22px;transition:.25s}
-.toggle-slider:before{content:'';position:absolute;height:16px;width:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.25s}
-input:checked+.toggle-slider{background:var(--gold)}
-input:checked+.toggle-slider:before{transform:translateX(20px)}
-/* Log entries */
-.log-entry{display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:7px;margin-bottom:4px;border-left:3px solid transparent}
-.log-entry.info{background:rgba(15,118,110,.06);border-color:var(--teal)}
-.log-entry.warn{background:var(--amber-l);border-color:var(--amber)}
-.log-entry.danger{background:var(--red-l);border-color:var(--red)}
-.log-entry.success{background:var(--green-l);border-color:var(--green)}
-.log-time{font-size:9px;color:var(--slate2);white-space:nowrap;margin-top:1px;font-family:'DM Mono',monospace}
-/* Hotel mgmt */
-.hotel-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;margin-bottom:7px}
-.hotel-color-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;border:2px solid rgba(0,0,0,.1)}
 
 /* ════ SHIFT POPUP ════ */
 .spop{position:fixed;z-index:800;background:#fff;border-radius:12px;box-shadow:0 12px 48px rgba(0,0,0,.22);padding:8px;display:grid;grid-template-columns:1fr 1fr;gap:4px;min-width:190px;border:1.5px solid var(--ice);animation:popIn .12s ease both}
@@ -359,10 +332,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   #page-requests > .req-grid{grid-template-columns:1fr !important}
   #page-sections .card[style*="grid-column:1/-1"]{grid-column:1 !important}
   #page-sections > div{grid-template-columns:1fr !important}
-  #page-settings > div:nth-child(2){grid-template-columns:1fr !important}
-  #devSideNav{display:flex;flex-wrap:wrap;gap:4px;padding:6px}
-  .dev-nav-btn{width:auto;padding:6px 10px;flex-shrink:0}
-  #page-settings > div:nth-child(2) > div:first-child{position:static}
 }
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
@@ -1291,307 +1260,279 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 </div>
 
 <div class="page" id="page-settings">
+<style>
+#page-settings{padding:16px}
+.cp-wrap{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:start}
+.cp-sidebar{display:flex;flex-direction:column;gap:10px}
+.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden}
+.cp-nav-hdr{padding:11px 15px;background:rgba(201,150,58,.1);border-bottom:1px solid rgba(201,150,58,.2);font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px}
+.cp-nav-item{display:flex;align-items:center;gap:8px;padding:10px 15px;cursor:pointer;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;color:rgba(255,255,255,.6);user-select:none}
+.cp-nav-item:hover{background:rgba(201,150,58,.07);color:#fff}
+.cp-nav-item.cpa{background:linear-gradient(90deg,rgba(201,150,58,.18),transparent);color:#C9963A;border-left:3px solid #C9963A;padding-left:12px}
+.cp-content{display:flex;flex-direction:column;gap:12px}
+.cp-panel{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
+.cp-ph{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
+.cp-pt{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
+.cp-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(201,150,58,.15);color:#C9963A}
+.cp-body{padding:16px}
+.cp-stitle{font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.cp-stitle::after{content:"";flex:1;height:1px;background:rgba(201,150,58,.2)}
+.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px}
+.mc{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:13px;transition:.2s;position:relative;overflow:hidden}
+.mc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.mc.mon::before{background:#10B981}.mc.moff::before{background:#EF4444}
+.mc.moff{opacity:.8}
+.mc:hover{border-color:rgba(201,150,58,.22);transform:translateY(-1px)}
+.mc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.mc-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
+.mc-desc{font-size:10px;color:#64748B;line-height:1.4}
+.cp-tog{position:relative;width:38px;height:21px;cursor:pointer;flex-shrink:0}
+.cp-tog input{opacity:0;width:0;height:0}
+.cp-sl{position:absolute;inset:0;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.4);border-radius:100px;transition:.3s}
+.cp-sl::before{content:"";position:absolute;width:15px;height:15px;border-radius:50%;left:3px;top:2px;background:#EF4444;transition:.3s}
+.cp-tog input:checked+.cp-sl{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4)}
+.cp-tog input:checked+.cp-sl::before{transform:translateX(17px);background:#10B981}
+.cp-tl{font-size:9px;font-weight:700;font-family:"DM Mono",monospace}
+.cp-tl.on{color:#10B981}.cp-tl.off{color:#EF4444}
+.bx{font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:none;cursor:pointer;transition:.15s}
+.bx:hover{opacity:.85}
+.bxr{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.22)}
+.bxg{background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.22)}
+.bxn{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)}
+.bgold{background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-weight:800;border:none;padding:8px 16px;border-radius:9px;cursor:pointer;font-size:11px;transition:.2s}
+.bgold:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,150,58,.35)}
+.bdanger{font-size:11px;font-weight:600;padding:7px 13px;border-radius:8px;background:rgba(239,68,68,.1);color:#EF4444;border:1px solid rgba(239,68,68,.22);cursor:pointer;transition:.15s}
+.bdanger:hover{background:rgba(239,68,68,.2)}
+.cp-inp2{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;outline:none;transition:.15s;font-family:inherit}
+.cp-inp2:focus{border-color:#C9963A;background:rgba(201,150,58,.06)}
+.cp-lbl2{display:block;font-size:9px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.cp-g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.cp-infobox{background:rgba(201,150,58,.07);border:1px solid rgba(201,150,58,.2);border-radius:9px;padding:11px;font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:12px}
+.cp-dangerbox{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:13px;margin-bottom:10px}
+.cp-dt{font-size:11px;font-weight:700;color:#EF4444;margin-bottom:9px}
+.cp-hlth{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
+.cph{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:9px}
+.cph-lbl{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
+.cph-val{font-size:13px;font-weight:700;margin-top:2px;color:#fff}
+.cph-val.gv{color:#10B981}.cph-val.av{color:#F59E0B}.cph-val.rv{color:#EF4444}
+.cpdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-left:auto}
+.cpdot.gd{background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5)}
+.cpdot.ad{background:#F59E0B}.cpdot.rd{background:#EF4444}
+.cprow{display:flex;align-items:center;gap:9px;padding:9px 11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;margin-bottom:7px;transition:.15s}
+.cprow:hover{border-color:rgba(201,150,58,.18)}
+.cpav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#C9963A,#E8B84B);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#0D1B2E;flex-shrink:0}
+.cp-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.22);border-radius:100px;font-size:10px;color:#93C5FD;margin:3px}
+.cp-pill .xr{cursor:pointer;color:#EF4444;font-weight:700;margin-left:2px}
+.clog{display:flex;flex-direction:column;gap:5px}
+.clog-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.02);border-radius:7px;font-size:11px;border-left:2px solid var(--lc,rgba(255,255,255,.1))}
+.clog-item.ls{--lc:#10B981}.clog-item.lw{--lc:#F59E0B}.clog-item.le{--lc:#EF4444}.clog-item.li{--lc:#3B82F6}
+.clog-t{flex:1;color:rgba(255,255,255,.65)}
+.clog-d{font-family:"DM Mono",monospace;font-size:9px;color:#64748B}
+.hcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px;display:flex;align-items:center;gap:9px;margin-bottom:7px}
+.hsw{width:30px;height:30px;border-radius:7px;flex-shrink:0}
+.cpqs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.cpq{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:9px;text-align:center}
+.cpqv{font-size:18px;font-weight:800;color:#C9963A}
+.cpql{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+@media(max-width:860px){.cp-wrap{grid-template-columns:1fr}.cp-hlth{grid-template-columns:1fr 1fr}}
+</style>
 
-<!-- ════ DEV CONTROL PANEL HEADER ════ -->
-<div style="background:linear-gradient(135deg,var(--navy),var(--navy2));border-radius:var(--r);padding:18px 22px;margin-bottom:16px;display:flex;align-items:center;gap:16px;box-shadow:var(--sh-lg)">
-  <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--gold),var(--gold2));border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;box-shadow:0 4px 16px rgba(201,150,58,.4)">⚙️</div>
-  <div style="flex:1">
-    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:#fff">Developer Control Panel</div>
-    <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">Complete system administration — all changes logged automatically</div>
+<!-- TOP BAR -->
+<div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:12px 18px;margin-bottom:14px">
+  <div style="display:flex;align-items:center;gap:10px">
+    <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:9px;font-weight:700;padding:3px 9px;border-radius:5px;letter-spacing:1px">DEV MODE</div>
+    <div style="font-size:17px;font-weight:800;color:#fff">⚙️ Developer <span style="color:#C9963A">Control Panel</span></div>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap">
-    <div id="devPanelFirebaseStatus" style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:100px;padding:5px 12px;font-size:11px;font-weight:600;color:#fff">
-      <span class="status-dot" id="devStatusDot"></span><span id="devStatusText">—</span>
+  <div style="display:flex;align-items:center;gap:9px">
+    <div style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:5px 12px;font-size:11px;color:#10B981;font-weight:600">
+      <div style="width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5);animation:pulse 2s infinite"></div>All Systems OK
     </div>
+    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#C9963A;background:rgba(201,150,58,.1);border:1px solid rgba(201,150,58,.2);border-radius:7px;padding:5px 10px" id="cpClock">--:--:--</div>
   </div>
 </div>
 
-<!-- ════ SIDEBAR TABS + CONTENT ════ -->
-<div style="display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:start">
+<!-- HEALTH ROW -->
+<div class="cp-hlth">
+  <div class="cph"><div style="font-size:18px">🔥</div><div><div class="cph-lbl">Firebase</div><div class="cph-val gv" id="cpFbSt">Checking...</div></div><div class="cpdot gd"></div></div>
+  <div class="cph"><div style="font-size:18px">👥</div><div><div class="cph-lbl">Total Staff</div><div class="cph-val" id="cpSC">—</div></div></div>
+  <div class="cph"><div style="font-size:18px">🧩</div><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="cpMC">—</div></div></div>
+  <div class="cph"><div style="font-size:18px">🏨</div><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="cpHC">—</div></div></div>
+</div>
 
-  <!-- SIDEBAR NAV -->
-  <div style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;position:sticky;top:72px">
-    <div style="padding:10px 14px;background:var(--navy);font-family:'Syne',sans-serif;font-size:10px;font-weight:700;color:rgba(255,255,255,.5);letter-spacing:.8px;text-transform:uppercase">Navigation</div>
-    <div id="devSideNav" style="padding:8px">
-      <button class="dev-nav-btn active" onclick="showDevPanel('modules')" data-panel="modules">🧩 Modules</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('access')" data-panel="access">🔑 Access & Passwords</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('hotels')" data-panel="hotels">🏨 Hotels</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('departments')" data-panel="departments">🏢 Departments</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('shifts')" data-panel="shifts">⏰ Shifts</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('autoroster')" data-panel="autoroster">📋 Auto-Roster</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('firebase')" data-panel="firebase">🔥 Firebase</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('notifications')" data-panel="notifications">🔔 Notifications</button>
-      <button class="dev-nav-btn" onclick="showDevPanel('logs')" data-panel="logs">📋 Activity Logs</button>
-      <button class="dev-nav-btn danger" onclick="showDevPanel('danger')" data-panel="danger">⚠️ Danger Zone</button>
+<div class="cp-wrap">
+  <!-- SIDEBAR -->
+  <div class="cp-sidebar">
+    <div class="cp-nav">
+      <div class="cp-nav-hdr">⚙️ Navigation</div>
+      <div class="cp-nav-item cpa" onclick="cpTab('modules')">🧩 Feature Modules</div>
+      <div class="cp-nav-item" onclick="cpTab('hotels')">🏨 Hotels</div>
+      <div class="cp-nav-item" onclick="cpTab('departments')">🏢 Departments & Positions</div>
+      <div class="cp-nav-item" onclick="cpTab('shifts')">⏰ Shifts</div>
+      <div class="cp-nav-item" onclick="cpTab('access')">🔑 Access & Passwords</div>
+      <div class="cp-nav-item" onclick="cpTab('live')">🟢 Live Dashboard</div>
+      <div class="cp-nav-item" onclick="cpTab('notifications')">🔔 Notifications</div>
+      <div class="cp-nav-item" onclick="cpTab('firebase')">🔥 Firebase Config</div>
+      <div class="cp-nav-item" onclick="cpTab('logs')">📋 Activity Logs</div>
+      <div class="cp-nav-item" onclick="cpTab('danger')" style="color:rgba(239,68,68,.7)">⚠️ Danger Zone</div>
+    </div>
+    <div class="cp-panel">
+      <div style="padding:13px">
+        <div class="cp-stitle">Quick Stats</div>
+        <div class="cpqs">
+          <div class="cpq"><div class="cpqv" id="qs-on">—</div><div class="cpql">On</div></div>
+          <div class="cpq"><div class="cpqv" style="color:#EF4444" id="qs-off">—</div><div class="cpql">Off</div></div>
+          <div class="cpq"><div class="cpqv" style="color:#F59E0B" id="qs-hotels">—</div><div class="cpql">Hotels</div></div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- PANEL CONTENT -->
-  <div id="devPanelContent">
+  <!-- CONTENT -->
+  <div class="cp-content">
 
-    <!-- ── MODULES ── -->
-    <div class="dev-panel active" id="devPanel-modules">
-      <div class="card">
-        <div class="ch"><div class="ct">🧩 Module Control</div><span style="font-size:10px;color:var(--slate2)">Toggle system features ON / OFF</span></div>
-        <div style="padding:18px">
-          <div style="display:grid;gap:8px" id="moduleToggles">
-            <!-- Rendered by JS -->
+    <!-- MODULES -->
+    <div class="cp-panel" id="cpt-modules">
+      <div class="cp-ph">
+        <div class="cp-pt">🧩 Feature Modules <span class="cp-badge">ON/OFF Control</span></div>
+        <button class="bgold" onclick="cpSaveFlags()">💾 Save All</button>
+      </div>
+      <div class="cp-body"><div class="mg" id="cpModGrid"></div></div>
+    </div>
+
+    <!-- HOTELS -->
+    <div class="cp-panel" id="cpt-hotels" style="display:none">
+      <div class="cp-ph">
+        <div class="cp-pt">🏨 Hotels <span class="cp-badge">Add / Edit / Remove</span></div>
+        <button class="bgold" onclick="cpAddHotel()">+ Add Hotel</button>
+      </div>
+      <div class="cp-body">
+        <div class="cp-infobox">🏨 Changes update the hotel list across the entire app — roster, staff profiles, filters, and auto-scheduler.</div>
+        <div class="cp-stitle">Active Hotels</div>
+        <div id="cpHotelList"></div>
+      </div>
+    </div>
+
+    <!-- DEPARTMENTS -->
+    <div class="cp-panel" id="cpt-departments" style="display:none">
+      <div class="cp-ph">
+        <div class="cp-pt">🏢 Departments & Positions <span class="cp-badge">Full Control</span></div>
+        <div style="display:flex;gap:7px">
+          <button class="bgold" onclick="cpAddDept()">+ Dept</button>
+          <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3)" onclick="cpAddPos()">+ Position</button>
+        </div>
+      </div>
+      <div class="cp-body" id="cpDeptBody"></div>
+    </div>
+
+    <!-- SHIFTS -->
+    <div class="cp-panel" id="cpt-shifts" style="display:none">
+      <div class="cp-ph">
+        <div class="cp-pt">⏰ Shift Settings <span class="cp-badge">Times & Hours</span></div>
+        <button class="bgold" onclick="cpAddShift()">+ Add Shift</button>
+      </div>
+      <div class="cp-body">
+        <div class="cp-infobox">⏰ Edit shift times and hours. Changes apply immediately to the roster and employee portal.</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:9px" id="cpShiftGrid"></div>
+      </div>
+    </div>
+
+    <!-- ACCESS -->
+    <div class="cp-panel" id="cpt-access" style="display:none">
+      <div class="cp-ph"><div class="cp-pt">🔑 Access & Passwords <span class="cp-badge">Developer Only</span></div></div>
+      <div class="cp-body">
+        <div class="cp-stitle">Developer Password</div>
+        <div class="cp-g2" style="margin-bottom:12px">
+          <div><label class="cp-lbl2">Current Password</label><input class="cp-inp2" type="password" id="cpCurP" placeholder="Current password"></div>
+          <div><label class="cp-lbl2">New Password</label><input class="cp-inp2" type="password" id="cpNewP" placeholder="New (min 4 chars)"></div>
+        </div>
+        <button class="bgold" onclick="cpChangeDevPass()" style="margin-bottom:16px">Update Developer Password</button>
+        <div class="cp-stitle">Department Passwords</div>
+        <div id="cpDeptPassList" style="margin-bottom:12px"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px">
+          <div><label class="cp-lbl2">Department</label><select class="cp-inp2" id="cpDeptPassSel"></select></div>
+          <div><label class="cp-lbl2">Password</label><input class="cp-inp2" type="password" id="cpDeptPassInp" placeholder="Min 4 chars"></div>
+          <button class="bgold" onclick="cpSetDeptPass()">Set</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LIVE DASHBOARD -->
+    <div class="cp-panel" id="cpt-live" style="display:none">
+      <div class="cp-ph">
+        <div class="cp-pt">🟢 Live Dashboard <span class="cp-badge">Access & Positions</span></div>
+        <button class="bgold" onclick="cpAddLiveUser()">+ Add User</button>
+      </div>
+      <div class="cp-body">
+        <div class="cp-stitle">Access Users</div>
+        <div id="cpLiveUserList" style="margin-bottom:16px"></div>
+        <div class="cp-stitle">Monitored Positions</div>
+        <div class="cp-infobox">📍 Only staff with these positions appear in Live Dashboard. Add or remove as needed.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="cpMonPosList"></div>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:7px">
+          <div><label class="cp-lbl2">Add Position to Monitor</label><select class="cp-inp2" id="cpMonPosInput"></select></div>
+          <button class="bgold" style="margin-top:18px" onclick="cpAddMonPos()">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTIFICATIONS -->
+    <div class="cp-panel" id="cpt-notifications" style="display:none">
+      <div class="cp-ph"><div class="cp-pt">🔔 Push Notifications <span class="cp-badge">FCM Control</span></div></div>
+      <div class="cp-body" id="cpNotifBody"></div>
+    </div>
+
+    <!-- FIREBASE -->
+    <div class="cp-panel" id="cpt-firebase" style="display:none">
+      <div class="cp-ph"><div class="cp-pt">🔥 Firebase Config <span class="cp-badge">Connection</span></div></div>
+      <div class="cp-body">
+        <div id="fbStatusCard" style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:14px"></div>
+        <button class="bgold" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div class="cp-panel" id="cpt-logs" style="display:none">
+      <div class="cp-ph">
+        <div class="cp-pt">📋 Activity Logs <span class="cp-badge">System Audit</span></div>
+        <button class="bx bxn" onclick="ACCESS_LOG=[];localStorage.removeItem('accessLog_v1');cpRenderLogs()" style="font-size:11px;padding:6px 12px">Clear</button>
+      </div>
+      <div class="cp-body"><div class="clog" id="cpLogList"></div></div>
+    </div>
+
+    <!-- DANGER ZONE -->
+    <div class="cp-panel" id="cpt-danger" style="display:none">
+      <div class="cp-ph"><div class="cp-pt" style="color:#EF4444">⚠️ Danger Zone <span class="cp-badge" style="background:rgba(239,68,68,.15);color:#EF4444">Irreversible</span></div></div>
+      <div class="cp-body">
+        <div class="cp-dangerbox">
+          <div class="cp-dt">🗑️ Roster Management</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <button class="bdanger" onclick="cpDA('reset_month')">Clear Current Month Roster</button>
+            <button class="bdanger" onclick="cpDA('reset_all')">Clear All Rosters</button>
+            <button class="bdanger" onclick="cpDA('reset_rules')">Reset Auto-Roster Rules</button>
+          </div>
+        </div>
+        <div class="cp-dangerbox">
+          <div class="cp-dt">👥 Staff Data</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <button class="bdanger" onclick="cpDA('clear_leaves')">Delete All Leave Requests</button>
+            <button class="bdanger" onclick="cpDA('reset_al')">Reset AL Balances</button>
+            <button class="bdanger" onclick="cpDA('clear_carry')">Clear Carry-Over Records</button>
+          </div>
+        </div>
+        <div class="cp-dangerbox">
+          <div class="cp-dt">⚙️ System</div>
+          <div style="display:flex;flex-wrap:wrap;gap:7px">
+            <button class="bdanger" onclick="cpDA('clear_logs')">Clear All Logs</button>
+            <button class="bdanger" onclick="cpDA('reset_flags')">Reset Feature Flags</button>
+            <button class="bdanger" style="border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.14)" onclick="cpDA('factory')">🔴 Factory Reset</button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ── ACCESS & PASSWORDS ── -->
-    <div class="dev-panel" id="devPanel-access" style="display:none">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-        <!-- Developer password -->
-        <div class="card settings-panel" data-panel="passwords">
-          <div class="ch"><div class="ct">🔧 Developer Password</div></div>
-          <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-              <div><label class="lbl">Current Password</label><input class="inp" type="password" id="curP"></div>
-              <div><label class="lbl">New Password</label><input class="inp" type="password" id="newP"></div>
-            </div>
-            <div><label class="lbl">Confirm New Password</label><input class="inp" type="password" id="conP"></div>
-            <button class="btn btn-primary" onclick="changePassword()">🔑 Update Developer Password</button>
-            <div id="pMsg" style="font-size:11px;min-height:16px"></div>
-          </div>
-        </div>
-        <!-- Dept passwords -->
-        <div class="card settings-panel" data-panel="passwords">
-          <div class="ch"><div class="ct">🏢 Department Passwords</div></div>
-          <div style="padding:18px;display:flex;flex-direction:column;gap:10px">
-            <div id="deptPassList" style="margin-bottom:2px"></div>
-            <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <div style="flex:1;min-width:120px"><label class="lbl">Department</label><select class="inp" id="setDeptPassSelect"></select></div>
-              <div style="flex:1;min-width:120px"><label class="lbl">New Password</label><input class="inp" type="password" id="setDeptPassInp" placeholder="Min 4 chars"></div>
-              <button class="btn btn-gold" onclick="setDeptPassword()">Set</button>
-            </div>
-            <div id="deptPassMsg" style="font-size:11px;min-height:16px"></div>
-          </div>
-        </div>
-        <!-- Access grants -->
-        <div class="card" style="grid-column:1/-1">
-          <div class="ch"><div class="ct">🔑 Department Access Grants</div><span style="font-size:10px;color:var(--slate2)">Grant departments access to specific panels</span></div>
-          <div style="padding:18px">
-            <div style="margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.6;background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:12px">
-              🔐 By default, only the Developer can access Settings. Grant individual departments access to specific panels below.
-            </div>
-            <div id="accessGrantsList" style="margin-bottom:14px"></div>
-            <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:flex-end;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
-              <div>
-                <label class="lbl">Department</label>
-                <select class="inp" id="grantDeptSel"><option value="">-- Select Department --</option></select>
-              </div>
-              <div>
-                <label class="lbl">Access Panel</label>
-                <select class="inp" id="grantPanelSel">
-                  <option value="passwords">🔑 Password Management</option>
-                  <option value="firebase">🔥 Firebase Connection</option>
-                  <option value="data">🗄️ Data Management</option>
-                  <option value="departments">🏢 Department & Position Management</option>
-                  <option value="shifts">⏰ Shift Time Settings (view only)</option>
-                </select>
-              </div>
-              <button class="btn btn-gold" onclick="grantAccess()">+ Grant</button>
-            </div>
-            <div id="grantMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── HOTELS ── -->
-    <div class="dev-panel" id="devPanel-hotels" style="display:none">
-      <div class="card">
-        <div class="ch">
-          <div class="ct">🏨 Hotel Management</div>
-          <button class="btn btn-gold btn-sm" onclick="openAddHotelModal()">+ Add Hotel</button>
-        </div>
-        <div style="padding:18px">
-          <div id="hotelMgmtList" style="display:grid;gap:8px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── DEPARTMENTS ── -->
-    <div class="dev-panel" id="devPanel-departments" style="display:none">
-      <div class="card settings-panel" data-panel="departments">
-        <div class="ch">
-          <div class="ct">🏢 Department & Position Management</div>
-          <span style="font-size:10px;color:var(--slate2)">Full CRUD — add, edit, delete departments & positions</span>
-        </div>
-        <div style="padding:18px">
-          <div id="deptMgmtList" style="margin-bottom:16px"></div>
-          <div class="dev-only-btn" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px;background:var(--ice2);border-radius:10px;border:1.5px dashed var(--gold)">
-            <div style="flex:1;min-width:150px"><label class="lbl">New Department Name</label><input class="inp" id="newDeptName" placeholder="e.g. Engineering, F&amp;B…"></div>
-            <div style="flex:2;min-width:200px"><label class="lbl">Positions (comma separated)</label><input class="inp" id="newDeptPos" placeholder="e.g. F&amp;B Manager, Waiter, Chef…"></div>
-            <button class="btn btn-gold" onclick="addNewDept()">+ Add Department</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── SHIFTS ── -->
-    <div class="dev-panel" id="devPanel-shifts" style="display:none">
-      <div class="card settings-panel" data-panel="shifts">
-        <div class="ch">
-          <div class="ct">⏰ Shift Types & Hours</div>
-          <span style="font-size:11px;color:var(--slate2)">Edit times, hours — Developer only</span>
-        </div>
-        <div style="padding:18px">
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:10px;margin-bottom:16px" id="shiftSettingsGrid"></div>
-          <div class="dev-only-btn" style="margin-bottom:14px;padding:14px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
-            <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:10px">➕ Add New Shift Type</div>
-            <div style="display:grid;grid-template-columns:90px 1fr 1fr 80px auto;gap:8px;align-items:flex-end;flex-wrap:wrap">
-              <div><label class="lbl">Code</label><input class="inp" id="newShiftCode" placeholder="e.g. N1" maxlength="6" style="text-transform:uppercase;font-family:'DM Mono',monospace;font-weight:700" oninput="this.value=this.value.toUpperCase()"></div>
-              <div><label class="lbl">Label / Name</label><input class="inp" id="newShiftLabel" placeholder="e.g. Night-1"></div>
-              <div><label class="lbl">Time</label><input class="inp" id="newShiftTime" placeholder="e.g. 23:00-08:00" style="font-family:'DM Mono',monospace"></div>
-              <div><label class="lbl">Hours</label>
-                <select class="inp" id="newShiftHours">
-                  <option value="0">0h</option><option value="4">4h</option><option value="8">8h</option><option value="9" selected>9h</option><option value="10">10h</option><option value="12">12h</option>
-                </select>
-              </div>
-              <div><button class="btn btn-gold" onclick="addNewShift()" style="white-space:nowrap">+ Add</button></div>
-            </div>
-            <div id="newShiftMsg" style="font-size:11px;margin-top:8px;min-height:16px"></div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-            <button class="btn btn-primary dev-only-btn" onclick="saveShiftSettings()">💾 Save Shift Settings</button>
-            <span id="shiftSaveMsg" style="font-size:11px;min-height:16px"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── AUTO-ROSTER ── -->
-    <div class="dev-panel" id="devPanel-autoroster" style="display:none">
-      <div class="card">
-        <div class="ch"><div class="ct">📋 Auto-Roster Rules</div><span style="font-size:10px;color:var(--slate2)">Configure distribution rules & ON/OFF per department</span></div>
-        <div style="padding:18px">
-          <div style="background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px;padding:14px;margin-bottom:14px;font-size:12px;color:var(--slate);line-height:1.7">
-            🤖 Auto-Roster runs from the <strong>📅 Roster</strong> tab using the <strong>🤖 Auto Schedule</strong> button. Rules you configure there are persisted. Here you can globally enable/disable auto-rota per department.
-          </div>
-          <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--navy);margin-bottom:10px">Department Auto-Rota Status</div>
-          <div id="autoRosterDeptList" style="display:grid;gap:8px"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── FIREBASE ── -->
-    <div class="dev-panel" id="devPanel-firebase" style="display:none">
-      <div class="card settings-panel" data-panel="firebase">
-        <div class="ch"><div class="ct">🔥 Firebase Connection</div></div>
-        <div style="padding:18px">
-          <div id="fbStatusCard" style="font-size:12px;color:var(--slate);line-height:1.7;margin-bottom:14px;padding:12px;background:var(--ice2);border-radius:10px;border:1.5px solid #dde3f0"></div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-ghost btn-sm dev-only-btn" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
-            <button class="btn btn-ghost btn-sm" onclick="if(db){db.ref('.info/connected').once('value').then(s=>{alert(s.val()?'✅ Firebase is connected and live!':'⚠️ Not connected. Check your config.')})}else{alert('❌ Firebase not initialized.')}">🔄 Test Connection</button>
-          </div>
-        </div>
-      </div>
-      <!-- Broadcast message -->
-      <div class="card dev-only-panel" style="margin-top:14px">
-        <div class="ch"><div class="ct">📢 Broadcast Message to All Users</div></div>
-        <div style="padding:18px">
-          <div style="margin-bottom:12px;font-size:12px;color:var(--slate);line-height:1.6;background:rgba(201,150,58,.08);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;padding:12px">
-            📣 This message appears as a banner for <strong>all users</strong> when they open the app.
-          </div>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div><label class="lbl">Message</label>
-              <textarea class="inp" id="broadcastInput" rows="3" placeholder="e.g. Schedules for June are now live. Have a great shift! ⭐" style="resize:vertical;font-size:13px"></textarea>
-            </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn btn-gold" onclick="sendBroadcast()">📤 Send to All Users</button>
-              <button class="btn btn-danger" onclick="clearBroadcast()">🗑 Clear Message</button>
-              <span id="broadcastMsg2" style="font-size:11px;color:var(--green);min-height:16px"></span>
-            </div>
-            <div id="broadcastCurrentWrap" style="display:none;background:var(--navy2);border-radius:8px;padding:10px;border:1px solid rgba(201,150,58,.3)">
-              <div style="font-size:10px;font-weight:700;color:var(--gold2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px">Current Active Message:</div>
-              <div id="broadcastCurrentText" style="font-size:12px;color:#fff;line-height:1.5"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── NOTIFICATIONS ── -->
-    <div class="dev-panel" id="devPanel-notifications" style="display:none">
-      <div class="card">
-        <div class="ch"><div class="ct">🔔 Notification Settings</div></div>
-        <div style="padding:18px">
-          <div style="display:grid;gap:10px" id="notifToggles">
-            <!-- rendered by JS -->
-          </div>
-          <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--ice)">
-            <button class="btn btn-primary" onclick="saveNotifSettings()">💾 Save Notification Settings</button>
-            <span id="notifSaveMsg" style="font-size:11px;margin-left:10px;color:var(--green);min-height:16px"></span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── ACTIVITY LOGS ── -->
-    <div class="dev-panel" id="devPanel-logs" style="display:none">
-      <div class="card">
-        <div class="ch">
-          <div class="ct">📋 Activity Logs</div>
-          <div style="display:flex;gap:6px">
-            <button class="btn btn-ghost btn-sm" onclick="renderDevLogs()">🔄 Refresh</button>
-            <button class="btn btn-danger btn-sm" onclick="clearDevLogs()">🗑 Clear Logs</button>
-          </div>
-        </div>
-        <div style="padding:14px 18px">
-          <div id="devLogsContainer" style="max-height:60vh;overflow-y:auto;font-family:'DM Mono',monospace;font-size:11px;line-height:1.7"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── DANGER ZONE ── -->
-    <div class="dev-panel" id="devPanel-danger" style="display:none">
-      <div class="card" style="border:2px solid var(--red)">
-        <div class="ch" style="background:var(--red-l)"><div class="ct" style="color:var(--red)">⚠️ Danger Zone — Irreversible Actions</div></div>
-        <div style="padding:18px">
-          <div style="background:var(--red-l);border:1.5px solid var(--red);border-radius:10px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--red);line-height:1.6">
-            🚨 All actions below are <strong>irreversible</strong>. Every action is logged. Requires Developer credentials to execute.
-          </div>
-          <div style="display:grid;gap:12px">
-            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-              <div>
-                <div style="font-weight:700;font-size:12px;color:var(--navy)">🗓 Reset All Schedules</div>
-                <div style="font-size:11px;color:var(--slate);margin-top:2px">Clear all shift assignments. Staff data is preserved.</div>
-              </div>
-              <button class="btn btn-ghost" onclick="resetSchedules()" style="background:var(--amber-l);color:var(--amber);border:1.5px solid var(--amber)">Reset Schedules</button>
-            </div>
-            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-              <div>
-                <div style="font-weight:700;font-size:12px;color:var(--navy)">⬇ Export All Data (CSV)</div>
-                <div style="font-size:11px;color:var(--slate);margin-top:2px">Download full roster as CSV backup before making changes.</div>
-              </div>
-              <button class="btn btn-ghost" onclick="exportCSV()" style="background:var(--green-l);color:var(--green);border:1.5px solid var(--green)">Export CSV</button>
-            </div>
-            <div style="background:#fff0f0;border:2px solid var(--red);border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-              <div>
-                <div style="font-weight:700;font-size:12px;color:var(--red)">💣 Clear ALL Data</div>
-                <div style="font-size:11px;color:var(--slate);margin-top:2px">Permanently delete all staff, schedules, and configurations. Cannot be undone.</div>
-              </div>
-              <button class="btn btn-danger" onclick="clearAll()">⚠️ Clear ALL Data</button>
-            </div>
-            <div style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:14px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
-              <div>
-                <div style="font-weight:700;font-size:12px;color:var(--navy)">🔄 Re-seed Staff Data</div>
-                <div style="font-size:11px;color:var(--slate);margin-top:2px">Re-load the default staff dataset (won't overwrite existing staff).</div>
-              </div>
-              <button class="btn btn-ghost" onclick="seedStaffIfEmpty();renderAll();devLog('⚙️','Re-seeded staff data');alert('✅ Seed complete.')">Re-seed Staff</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /devPanelContent -->
-</div><!-- /grid -->
-</div><!-- /page-settings -->
+  </div><!-- /cp-content -->
+</div><!-- /cp-wrap -->
+</div>
 
 <!-- Staff Modal -->
 <div class="mover" id="staffModal" style="display:none" onclick="if(event.target===this)closeModal('staffModal')">
@@ -1728,6 +1669,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 const DAYS_S  = ["Sun","Mon","Tue","Wed","Thu","Fri","SAT"];
 
+// Init hotels data from static if not saved
 const HOTELS = [
   {id:"all",        name:"All Hotels",          color:"#1B2A4A",light:"#C5D1E8"},
   {id:"yph",        name:"YPH",color:"#7B5EA7",light:"#EDE7F6"},
@@ -1738,6 +1680,8 @@ const HOTELS = [
   {id:"crowne",     name:"Crowne Plaza",         color:"#BF360C",light:"#FBE9E7"},
   {id:"staybridge", name:"Staybridge",           color:"#4A148C",light:"#EDE7F6"},
 ];
+// HOTELS_DATA is initialized after its declaration below (see STATE section)
+
 
 // Dynamic departments — can be extended by user
 let DEPT_POS = {
@@ -1919,7 +1863,7 @@ const SEED_STAFF = [
 // ═══════════════════════════════════════════════════
 // STATE
 // ═══════════════════════════════════════════════════
-let db = null;          // Firebase DB reference
+var db = null;          // Firebase DB reference (var so it's globally accessible)
 let YEAR = new Date().getFullYear();
 let CURRENT_DEPT = "all";  // "all" or specific department for isolation
 let deptAutoDisabled = {}; // {dept: true} — departments excluded from Auto-Rota
@@ -1927,6 +1871,55 @@ try { const _d = localStorage.getItem('deptAutoDisabled'); if(_d) deptAutoDisabl
 let rosterViewMode = 'monthly'; // 'monthly' | 'weekly'
 let weeklyOffset = 0; // week offset within current month (0 = first 7 days)
 try { const _v = localStorage.getItem('rosterViewMode'); if(_v==='weekly'||_v==='monthly') rosterViewMode = _v; } catch(e) {}
+
+// ═══════════════════════════════════════════════════════════════════
+// FEATURE FLAGS — Developer Control Panel
+// ═══════════════════════════════════════════════════════════════════
+let FEATURE_FLAGS = JSON.parse(localStorage.getItem('featureFlags_v1') || JSON.stringify({
+  employeePortal:true, swapShift:true, handover:true, leaveRequests:true,
+  autoRoster:true, liveDashboard:true, overtimeTracker:true, analytics:true,
+  noticeBoard:true, publicHolidays:true, monthlyPDF:true, pushNotifications:true,
+  wellness:false, gamification:false, sickLeaveAutoReplace:false,
+}));
+function saveFeatureFlags(){
+  localStorage.setItem('featureFlags_v1',JSON.stringify(FEATURE_FLAGS));
+  if(typeof db!=='undefined'&&db) db.ref('settings/featureFlags').set(FEATURE_FLAGS).catch(()=>{});
+}
+function isFeatureOn(k){ return FEATURE_FLAGS[k]!==false; }
+
+// HOTELS managed by developer
+let HOTELS_DATA = JSON.parse(localStorage.getItem('hotelsData_v1')||'null');
+// Initialize from static HOTELS if not yet saved (moved here from above to avoid temporal dead zone)
+if (!HOTELS_DATA) { HOTELS_DATA = HOTELS.map(h=>({...h, active:true})); }
+function saveHotels(){
+  localStorage.setItem('hotelsData_v1',JSON.stringify(HOTELS_DATA));
+  if(typeof db!=='undefined'&&db) db.ref('settings/hotels').set(HOTELS_DATA).catch(()=>{});
+  if(typeof fillAllSelects==='function') fillAllSelects();
+}
+
+// Access log
+let ACCESS_LOG = JSON.parse(localStorage.getItem('accessLog_v1')||'[]');
+function logAccess(type,msg){
+  ACCESS_LOG.unshift({type,msg,time:new Date().toLocaleTimeString('en-GB'),date:new Date().toLocaleDateString('en-GB')});
+  if(ACCESS_LOG.length>200) ACCESS_LOG=ACCESS_LOG.slice(0,200);
+  localStorage.setItem('accessLog_v1',JSON.stringify(ACCESS_LOG));
+}
+
+// Live Dashboard access users
+let LIVE_USERS = JSON.parse(localStorage.getItem('liveUsers_v1')||'[]');
+function saveLiveUsers(){
+  localStorage.setItem('liveUsers_v1',JSON.stringify(LIVE_USERS));
+  if(typeof db!=='undefined'&&db) db.ref('settings/liveUsers').set(LIVE_USERS).catch(()=>{});
+}
+
+// Monitored positions for Live Dashboard
+let LIVE_MON_POSITIONS = JSON.parse(localStorage.getItem('liveMonPos_v1')||
+  JSON.stringify(['Duty Manager','FO Manager','Supervisor','Bell Captain','Concierge Supervisor']));
+function saveLiveMonPos(){
+  localStorage.setItem('liveMonPos_v1',JSON.stringify(LIVE_MON_POSITIONS));
+  if(typeof db!=='undefined'&&db) db.ref('settings/liveMonitoredPositions').set(LIVE_MON_POSITIONS).catch(()=>{});
+}
+
 let ADMIN_ROLE = "manager"; // "manager" or "developer"
 let MONTH = new Date().getMonth();
 let adminPass = "Admin@2025";      // Legacy fallback
@@ -3181,7 +3174,7 @@ function _switchPageOriginal(name) {
   if(name==="sections") { initSectionsPage(); initRosterRulesUI(); }
   if(name==="handover") initHandoverPage();
 }
-let switchPage = _switchPageOriginal;
+var switchPage = _switchPageOriginal;
 
 function applyRoleRestrictions() {
   const isDev = ADMIN_ROLE === "developer";
@@ -3586,16 +3579,22 @@ function getEmpSch(id,y,m) { return schedData[id]?.[schKey(y,m)] || {}; }
 function getDIM(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function getDaysInMonth(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function calcStats(emp, sch) {
-  let work=0,off=0,al=0,ex=0,unp=0,hrs=0;
+  let work=0,off=0,al=0,ex=0,unp=0,hrs=0,sick=0;
   Object.values(sch).forEach(c=>{
     if(!c)return;
     if(c==="OFF")off++;
     else if(c==="AL")al++;
     else if(c==="EX")ex++;
     else if(c==="UNP")unp++;
+    else if(c==="SLK")sick++;
     else { work++; hrs += (SHIFTS[c]?.hours ?? emp.shiftHours ?? 8); }
   });
-  return{work,off,al,ex,unp,hrs,alRem:emp.annualLeave-emp.alUsed};
+  // OFF consumed by AL: every 7 AL days = 1 OFF day lost
+  const allocOff    = emp.offDays || 4;
+  const offLostByAL = Math.floor(al / 7);
+  const offRemaining = Math.max(0, allocOff - offLostByAL - off);
+  return{work,off,al,ex,unp,hrs,sick,alRem:emp.annualLeave-emp.alUsed,
+         allocOff,offLostByAL,offRemaining};
 }
 function staffList() { 
   const all = Object.values(staffData);
@@ -6148,6 +6147,490 @@ function closeModal(id) { document.getElementById(id).style.display="none"; }
 // ═══════════════════════════════════════════════════
 // BOOT — load local data first, then try Firebase
 // ═══════════════════════════════════════════════════
+
+// ════════════════════════════════════════════════════════════════════
+// DEVELOPER CONTROL PANEL — Complete JS
+// ════════════════════════════════════════════════════════════════════
+function cpTab(id){
+  ['modules','hotels','departments','shifts','access','live','notifications','firebase','logs','danger'].forEach(t=>{
+    const el=document.getElementById('cpt-'+t);
+    if(el) el.style.display=(t===id)?'block':'none';
+  });
+  document.querySelectorAll('.cp-nav-item').forEach(el=>{
+    el.classList.toggle('cpa', el.getAttribute('onclick')===`cpTab('${id}')`);
+  });
+  const renders={modules:cpRenderModules,hotels:cpRenderHotels,departments:cpRenderDepts,
+    shifts:cpRenderShifts,access:cpRenderAccess,live:cpRenderLive,
+    notifications:cpRenderNotifications,logs:cpRenderLogs};
+  if(renders[id]) renders[id]();
+  cpUpdateHealth();
+}
+
+function cpUpdateHealth(){
+  const staff=Object.keys(staffData||{}).length;
+  const flags=Object.values(FEATURE_FLAGS||{});
+  const onC=flags.filter(Boolean).length, offC=flags.filter(v=>!v).length;
+  const hotels=(HOTELS_DATA||HOTELS||[]).filter(h=>h.id!=='all'&&h.active!==false).length;
+  const g=n=>{const e=document.getElementById(n);return e;};
+  if(g('cpSC')) g('cpSC').textContent=staff;
+  if(g('cpMC')) g('cpMC').textContent=onC+'/'+(flags.length||0);
+  if(g('cpHC')) g('cpHC').textContent=hotels;
+  if(g('cpFbSt')) g('cpFbSt').textContent=(typeof db!=='undefined'&&db)?'Connected':'Offline';
+  if(g('qs-on'))     g('qs-on').textContent=onC;
+  if(g('qs-off'))    g('qs-off').textContent=offC;
+  if(g('qs-hotels')) g('qs-hotels').textContent=hotels;
+}
+
+const CP_MODS=[
+  {key:'employeePortal', icon:'📱',name:'Employee Portal',    desc:'Staff self-service schedule view'},
+  {key:'swapShift',      icon:'🔄',name:'Swap Shift',         desc:'Employees request shift swaps'},
+  {key:'handover',       icon:'📝',name:'Handover Notes',     desc:'End-of-shift handover between staff'},
+  {key:'leaveRequests',  icon:'🏖',name:'Leave Requests',     desc:'Annual leave, sick leave & training'},
+  {key:'autoRoster',     icon:'🤖',name:'Auto Roster',        desc:'AI-powered automatic scheduling'},
+  {key:'liveDashboard',  icon:'🟢',name:'Live Dashboard',     desc:'Real-time on-shift view for managers'},
+  {key:'overtimeTracker',icon:'⏰',name:'Overtime Tracker',   desc:'Track extra hours for payroll'},
+  {key:'analytics',      icon:'📊',name:'Analytics',          desc:'Monthly stats & coverage trends'},
+  {key:'noticeBoard',    icon:'📌',name:'Notice Board',       desc:'Digital announcements with read receipts'},
+  {key:'publicHolidays', icon:'📅',name:'Public Holidays',    desc:'UAE holidays in roster'},
+  {key:'monthlyPDF',     icon:'📋',name:'Monthly PDF Report', desc:'One-click month report for HR'},
+  {key:'pushNotifications',icon:'🔔',name:'Push Notifications',desc:'FCM push alerts per department'},
+  {key:'wellness',       icon:'🌡️',name:'Wellness Check',     desc:'Weekly anonymous staff mood check'},
+  {key:'gamification',   icon:'🏆',name:'Gamification',       desc:'Points system & leaderboard'},
+  {key:'sickLeaveAutoReplace',icon:'🤒',name:'Auto-Replacement',desc:'Smart coverage for sick leave'},
+];
+
+function cpRenderModules(){
+  const grid=document.getElementById('cpModGrid'); if(!grid)return;
+  grid.innerHTML=CP_MODS.map(m=>{
+    const on=(FEATURE_FLAGS||{})[m.key]!==false;
+    return`<div class="mc ${on?'mon':'moff'}" id="mc-${m.key}">
+      <div class="mc-top">
+        <div><div class="mc-name">${m.icon} ${m.name}</div><div class="mc-desc">${m.desc}</div></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:3px">
+          <label class="cp-tog"><input type="checkbox" ${on?'checked':''} onchange="cpTogMod('${m.key}',this)"><span class="cp-sl"></span></label>
+          <div class="cp-tl ${on?'on':'off'}" id="lbl-${m.key}">${on?'ON':'OFF'}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;margin-top:8px">
+        <button class="bx ${on?'bxr':'bxg'}" onclick="cpTogMod2('${m.key}')">${on?'Turn OFF':'Turn ON'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function cpTogMod(key,cb){
+  if(!FEATURE_FLAGS) return;
+  FEATURE_FLAGS[key]=cb.checked;
+  const card=document.getElementById('mc-'+key);
+  const lbl=document.getElementById('lbl-'+key);
+  if(card) card.className='mc '+(cb.checked?'mon':'moff');
+  if(lbl){lbl.textContent=cb.checked?'ON':'OFF';lbl.className='cp-tl '+(cb.checked?'on':'off');}
+  const btn=card?.querySelector('.bx');
+  if(btn){btn.textContent=cb.checked?'Turn OFF':'Turn ON';btn.className='bx '+(cb.checked?'bxr':'bxg');}
+  cpToast((cb.checked?'✅ ':'🔴 ')+key+' '+(cb.checked?'enabled':'disabled'));
+}
+function cpTogMod2(key){
+  const cb=document.querySelector(`#mc-${key} input[type=checkbox]`);
+  if(cb){cb.checked=!cb.checked;cb.dispatchEvent(new Event('change'));}
+}
+function cpSaveFlags(){saveFeatureFlags();logAccess('s','Feature flags saved');cpToast('💾 All settings saved!');}
+
+function cpRenderHotels(){
+  const list=document.getElementById('cpHotelList'); if(!list)return;
+  const src=HOTELS_DATA||HOTELS||[];
+  const hotels=src.filter(h=>h.id!=='all');
+  list.innerHTML=hotels.map((h,i)=>`
+    <div class="hcard">
+      <div class="hsw" style="background:${h.color}"></div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700;color:#fff">${h.name}</div>
+        <div style="font-size:10px;color:#64748B;font-family:'DM Mono',monospace">${h.abbr||h.id.toUpperCase()} · ${h.active!==false?'Active':'Hidden'}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <label class="cp-tog"><input type="checkbox" ${h.active!==false?'checked':''} onchange="cpTogHotel(${i},this)"><span class="cp-sl"></span></label>
+        <button class="bx bxn" onclick="cpEditHotel(${i})">Edit</button>
+        <button class="bx bxr" onclick="cpDelHotel(${i})">Del</button>
+      </div>
+    </div>`).join('');
+}
+function cpTogHotel(idx,cb){
+  const src=HOTELS_DATA||HOTELS||[];
+  const real=src.findIndex((h,i)=>h.id!=='all'&&i===idx+1);
+  if(HOTELS_DATA&&HOTELS_DATA[real]) HOTELS_DATA[real].active=cb.checked;
+  saveHotels(); cpRenderHotels(); cpUpdateHealth();
+}
+function cpAddHotel(){
+  const name=prompt('Hotel Name:'); if(!name)return;
+  const abbr=prompt('Abbreviation (e.g. YPH):',name.substring(0,3).toUpperCase())||name.substring(0,3).toUpperCase();
+  const color=prompt('Color (hex):','#006064')||'#006064';
+  const id=name.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');
+  if(!HOTELS_DATA) HOTELS_DATA=[...HOTELS];
+  HOTELS_DATA.push({id,name,abbr,color,light:'#E0F7FA',active:true});
+  saveHotels(); cpRenderHotels(); cpUpdateHealth();
+  logAccess('s','Hotel added: '+name); cpToast('✅ Hotel "'+name+'" added!');
+}
+function cpEditHotel(idx){
+  const src=(HOTELS_DATA||HOTELS||[]).filter(h=>h.id!=='all');
+  const h=src[idx]; if(!h)return;
+  const name=prompt('Hotel Name:',h.name); if(!name)return;
+  const abbr=prompt('Abbreviation:',h.abbr||'');
+  const color=prompt('Color (hex):',h.color)||h.color;
+  if(!HOTELS_DATA) HOTELS_DATA=[...HOTELS];
+  const ri=HOTELS_DATA.findIndex(x=>x.id===h.id);
+  if(ri>=0) HOTELS_DATA[ri]={...HOTELS_DATA[ri],name,abbr,color};
+  saveHotels(); cpRenderHotels();
+  cpToast('✅ Hotel updated!');
+}
+function cpDelHotel(idx){
+  const src=(HOTELS_DATA||HOTELS||[]).filter(h=>h.id!=='all');
+  const h=src[idx]; if(!h)return;
+  if(!confirm('Delete hotel "'+h.name+'"?'))return;
+  if(!HOTELS_DATA) HOTELS_DATA=[...HOTELS];
+  const ri=HOTELS_DATA.findIndex(x=>x.id===h.id);
+  if(ri>=0) HOTELS_DATA.splice(ri,1);
+  saveHotels(); cpRenderHotels(); cpUpdateHealth();
+  logAccess('w','Hotel deleted: '+h.name); cpToast('🗑 Hotel deleted');
+}
+
+function cpRenderDepts(){
+  const body=document.getElementById('cpDeptBody'); if(!body)return;
+  body.innerHTML=`<div class="cp-stitle">Active Departments</div>`+
+    getAllDepts().map(dept=>{
+      const positions=DEPT_POS[dept]||[];
+      const c=getDeptColor(dept);
+      return`<div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:13px;margin-bottom:9px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:12px;height:12px;border-radius:3px;background:${c.color}"></div>
+            <div style="font-size:13px;font-weight:700;color:#fff">${dept}</div>
+            <div style="font-size:10px;color:#64748B">${positions.length} positions</div>
+          </div>
+          <div style="display:flex;gap:5px">
+            <button class="bx bxn" onclick="cpRenameDept('${dept}')">Rename</button>
+            <button class="bx bxr" onclick="cpDelDept('${dept}')">Delete</button>
+            <button class="bx bxg" onclick="cpAddPosToDept('${dept}')">+ Position</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${positions.map(p=>`<div style="display:inline-flex;align-items:center;gap:4px;padding:3px 8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:100px;font-size:10px;color:rgba(255,255,255,.6)">
+            ${p}<span onclick="cpDelPos('${dept}','${p.replace(/'/g,"\\'")}\')" style="cursor:pointer;color:#EF4444;margin-left:2px;font-weight:700">×</span>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+}
+function cpAddDept(){
+  const name=prompt('New Department Name:'); if(!name)return;
+  if(DEPT_POS[name]){cpToast('❌ Already exists!');return;}
+  DEPT_POS[name]=[];
+  if(typeof saveLocal==='function')saveLocal();
+  cpRenderDepts(); if(typeof fillAllSelects==='function')fillAllSelects();
+  logAccess('s','Department added: '+name); cpToast('✅ '+name+' added!');
+}
+function cpRenameDept(old){
+  const name=prompt('Rename to:',old); if(!name||name===old)return;
+  DEPT_POS[name]=DEPT_POS[old]; delete DEPT_POS[old];
+  if(DEPT_SECTIONS[old]){DEPT_SECTIONS[name]=DEPT_SECTIONS[old];delete DEPT_SECTIONS[old];}
+  if(typeof saveLocal==='function')saveLocal();
+  cpRenderDepts(); if(typeof fillAllSelects==='function')fillAllSelects();
+  cpToast('✅ Renamed to "'+name+'"');
+}
+function cpDelDept(dept){
+  if(!confirm('Delete "'+dept+'"? Staff will lose their department.'))return;
+  delete DEPT_POS[dept]; delete DEPT_SECTIONS[dept];
+  if(typeof saveLocal==='function')saveLocal();
+  cpRenderDepts(); if(typeof fillAllSelects==='function')fillAllSelects();
+  logAccess('w','Department deleted: '+dept); cpToast('🗑 Deleted');
+}
+function cpAddPos(){
+  const dept=prompt('Department:\n'+getAllDepts().join('\n')); if(!dept||!DEPT_POS[dept])return;
+  cpAddPosToDept(dept);
+}
+function cpAddPosToDept(dept){
+  const pos=prompt('New Position name for "'+dept+'":'); if(!pos)return;
+  if(!DEPT_POS[dept]) DEPT_POS[dept]=[];
+  if(DEPT_POS[dept].includes(pos)){cpToast('❌ Already exists!');return;}
+  DEPT_POS[dept].push(pos);
+  if(typeof saveLocal==='function')saveLocal();
+  cpRenderDepts(); if(typeof fillAllSelects==='function')fillAllSelects();
+  cpToast('✅ "'+pos+'" added to '+dept);
+}
+function cpDelPos(dept,pos){
+  if(!confirm('Remove "'+pos+'"?'))return;
+  DEPT_POS[dept]=(DEPT_POS[dept]||[]).filter(p=>p!==pos);
+  if(typeof saveLocal==='function')saveLocal();
+  cpRenderDepts(); cpToast('🗑 Removed');
+}
+
+function cpRenderShifts(){
+  const grid=document.getElementById('cpShiftGrid'); if(!grid)return;
+  grid.innerHTML=Object.entries(SHIFTS).map(([k,v])=>`
+    <div style="background:rgba(255,255,255,.03);border:1.5px solid ${v.border||'rgba(255,255,255,.1)'};border-radius:10px;padding:12px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+        <div style="display:flex;align-items:center;gap:7px">
+          <div style="background:${v.bg};color:${v.color};font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:3px 7px;border-radius:5px">${k}</div>
+          <div style="font-size:12px;font-weight:600;color:#fff">${v.label}</div>
+        </div>
+        ${v.custom?`<button class="bx bxr" onclick="cpDelShift('${k}')">Del</button>`:''}
+      </div>
+      <div class="cp-g2">
+        <div><label class="cp-lbl2">Time</label><input class="cp-inp2" value="${v.time||'—'}" id="cps-t-${k}" style="font-family:'DM Mono',monospace;font-size:11px"></div>
+        <div><label class="cp-lbl2">Hours</label>
+          <select class="cp-inp2" id="cps-h-${k}">${[0,4,6,8,9,10,12].map(h=>`<option value="${h}" ${v.hours==h?'selected':''}>${h}h</option>`).join('')}</select>
+        </div>
+      </div>
+      <button class="bx bxn" style="margin-top:7px;width:100%" onclick="cpSaveShift('${k}')">💾 Save</button>
+    </div>`).join('');
+}
+function cpSaveShift(k){
+  const t=document.getElementById('cps-t-'+k)?.value;
+  const h=parseInt(document.getElementById('cps-h-'+k)?.value||9);
+  if(SHIFTS[k]){SHIFTS[k].time=t;SHIFTS[k].hours=h;}
+  if(typeof saveShiftSettings==='function') saveShiftSettings();
+  cpToast('✅ Shift '+k+' saved!');
+}
+function cpAddShift(){
+  const code=prompt('Shift code (max 4 chars):')?.toUpperCase().trim(); if(!code)return;
+  if(SHIFTS[code]){cpToast('❌ Code exists!');return;}
+  const label=prompt('Label:'); if(!label)return;
+  const time=prompt('Time (e.g. 22:00-06:00):','—')||'—';
+  const hrs=parseInt(prompt('Hours:','9')||9);
+  SHIFTS[code]={label,time,hours:hrs,bg:'#E3F2FD',color:'#0D47A1',border:'#90CAF9',custom:true};
+  cpRenderShifts();
+  if(typeof saveShiftSettings==='function') saveShiftSettings();
+  cpToast('✅ Shift '+code+' added!');
+}
+function cpDelShift(k){
+  if(!confirm('Delete shift "'+k+'"?'))return;
+  delete SHIFTS[k];
+  cpRenderShifts();
+  if(typeof saveShiftSettings==='function') saveShiftSettings();
+  cpToast('🗑 Shift deleted');
+}
+
+function cpRenderAccess(){
+  const list=document.getElementById('cpDeptPassList'); if(!list)return;
+  const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
+  list.innerHTML=getAllDepts().map(d=>`
+    <div class="cprow">
+      <div class="cpav" style="font-size:10px">${d.substring(0,2).toUpperCase()}</div>
+      <div style="flex:1"><div style="font-size:12px;font-weight:600;color:#fff">${d}</div>
+        <div style="font-size:10px;color:#64748B">${saved[d]?'✅ Password set':'No password'}</div>
+      </div>
+      ${saved[d]?`<button class="bx bxr" onclick="cpRmDeptPass('${d}')">Remove</button>`:''}
+    </div>`).join('');
+  const sel=document.getElementById('cpDeptPassSel');
+  if(sel) sel.innerHTML=getAllDepts().map(d=>`<option value="${d}">${d}</option>`).join('');
+}
+function cpChangeDevPass(){
+  const cur=document.getElementById('cpCurP')?.value;
+  const nw=document.getElementById('cpNewP')?.value;
+  if(!cur||!nw){cpToast('❌ Fill all fields','e');return;}
+  if(nw.length<4){cpToast('❌ Min 4 chars','e');return;}
+  if(typeof changePassword==='function'){
+    const c=document.getElementById('curP'); if(c) c.value=cur;
+    const n=document.getElementById('newP'); if(n) n.value=nw;
+    const co=document.getElementById('conP'); if(co) co.value=nw;
+    changePassword();
+  }
+  logAccess('s','Dev password changed'); cpToast('✅ Password updated!');
+}
+function cpSetDeptPass(){
+  const dept=document.getElementById('cpDeptPassSel')?.value;
+  const pass=document.getElementById('cpDeptPassInp')?.value;
+  if(!dept||!pass||pass.length<4){cpToast('❌ Min 4 chars','e');return;}
+  if(typeof setDeptPassword==='function'){
+    const s=document.getElementById('setDeptPassSelect'); if(s) s.value=dept;
+    const i=document.getElementById('setDeptPassInp'); if(i) i.value=pass;
+    setDeptPassword();
+  } else {
+    const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
+    saved[dept]=pass; localStorage.setItem('deptPasswords',JSON.stringify(saved));
+  }
+  logAccess('s','Password set for: '+dept); cpToast('✅ Password set for '+dept);
+  cpRenderAccess();
+}
+function cpRmDeptPass(dept){
+  const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
+  delete saved[dept]; localStorage.setItem('deptPasswords',JSON.stringify(saved));
+  cpToast('🗑 Password removed for '+dept); cpRenderAccess();
+}
+
+function cpRenderLive(){
+  const ul=document.getElementById('cpLiveUserList'); if(!ul)return;
+  ul.innerHTML=LIVE_USERS.length?LIVE_USERS.map((u,i)=>`
+    <div class="cprow">
+      <div class="cpav">${u.name.substring(0,2).toUpperCase()}</div>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:600;color:#fff">${u.name}</div>
+        <div style="font-size:10px;color:#64748B">${u.type||'manager'} · Depts: ${(u.depts||[]).join(', ')||'All'}</div>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;background:rgba(201,150,58,.1);color:#C9963A;padding:3px 8px;border-radius:5px;margin:0 8px">PIN: ${u.pin}</div>
+      <button class="bx bxn" onclick="cpEditLU(${i})">Edit</button>
+      <button class="bx bxr" onclick="cpDelLU(${i})" style="margin-left:4px">Del</button>
+    </div>`).join('')
+    :'<div style="font-size:12px;color:#64748B;padding:8px">No live dashboard users. Add one above.</div>';
+
+  const mp=document.getElementById('cpMonPosList'); if(mp)
+    mp.innerHTML=LIVE_MON_POSITIONS.map((p,i)=>`
+      <span class="cp-pill">${p}<span class="xr" onclick="cpRmMonPos(${i})">×</span></span>`).join('');
+  const sel=document.getElementById('cpMonPosInput');
+  if(sel) sel.innerHTML=getAllPos().filter(p=>!LIVE_MON_POSITIONS.includes(p))
+    .map(p=>`<option value="${p}">${p}</option>`).join('');
+}
+function cpAddLiveUser(){
+  const name=prompt('Name (e.g. Director of Rooms):'); if(!name)return;
+  const pin=prompt('PIN (e.g. DOR-2026):'); if(!pin)return;
+  const type=({'1':'director','2':'manager','3':'supervisor'})[prompt('Type: 1=Director, 2=Manager, 3=Supervisor','1')]||'manager';
+  const depts=(prompt('Departments (comma separated, blank=all):','')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const positions=(prompt('Visible positions (comma separated, blank=all):','')||'').split(',').map(s=>s.trim()).filter(Boolean);
+  LIVE_USERS.push({name,pin,type,depts,positions,active:true});
+  saveLiveUsers(); cpRenderLive();
+  logAccess('s','Live user added: '+name); cpToast('✅ "'+name+'" added!');
+}
+function cpEditLU(i){
+  const u=LIVE_USERS[i]; if(!u)return;
+  const name=prompt('Name:',u.name)||u.name;
+  const pin=prompt('PIN:',u.pin)||u.pin;
+  const depts=(prompt('Departments:',u.depts.join(', '))||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const positions=(prompt('Positions:',u.positions.join(', '))||'').split(',').map(s=>s.trim()).filter(Boolean);
+  LIVE_USERS[i]={...u,name,pin,depts,positions};
+  saveLiveUsers(); cpRenderLive(); cpToast('✅ Updated!');
+}
+function cpDelLU(i){
+  if(!confirm('Delete "'+LIVE_USERS[i]?.name+'"?'))return;
+  logAccess('w','Live user deleted: '+LIVE_USERS[i]?.name);
+  LIVE_USERS.splice(i,1); saveLiveUsers(); cpRenderLive(); cpToast('🗑 Deleted');
+}
+function cpAddMonPos(){
+  const sel=document.getElementById('cpMonPosInput');
+  const val=sel?.value; if(!val)return;
+  if(!LIVE_MON_POSITIONS.includes(val)){
+    LIVE_MON_POSITIONS.push(val); saveLiveMonPos(); cpRenderLive();
+    cpToast('✅ "'+val+'" added to monitoring');
+  }
+}
+function cpRmMonPos(i){
+  const p=LIVE_MON_POSITIONS[i];
+  LIVE_MON_POSITIONS.splice(i,1); saveLiveMonPos(); cpRenderLive();
+  cpToast('🗑 "'+p+'" removed');
+}
+
+const CP_NOTIFS=[
+  {key:'n_shiftChange',label:'Shift Change Alert',desc:'Notify employee when shift modified'},
+  {key:'n_sickAlert',label:'Sick Leave Alert (Manager)',desc:'Notify dept manager on sick leave'},
+  {key:'n_leaveDecision',label:'Leave Decision',desc:'Notify employee when leave approved/rejected'},
+  {key:'n_coverage',label:'Coverage Request',desc:'Ask replacement to cover sick colleague'},
+  {key:'n_overtime',label:'Overtime Alert',desc:'Alert manager when staff exceeds hours'},
+  {key:'n_blockDay',label:'Block Day Alert',desc:'Notify all staff of special events'},
+  {key:'n_notice',label:'Notice Board Post',desc:'Notify targeted staff of new announcements'},
+  {key:'n_pendingOff',label:'Pending OFF Reminder',desc:'Month-end alert for unscheduled OFF'},
+];
+function cpRenderNotifications(){
+  const body=document.getElementById('cpNotifBody'); if(!body)return;
+  const saved=JSON.parse(localStorage.getItem('notifFlags_v1')||'{}');
+  body.innerHTML=`<div class="cp-stitle">Notification Types</div>`+
+  CP_NOTIFS.map(n=>{
+    const on=saved[n.key]!==false;
+    return`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div><div style="font-size:12px;font-weight:600;color:#fff">${n.label}</div>
+        <div style="font-size:10px;color:#64748B;margin-top:1px">${n.desc}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+        <label class="cp-tog"><input type="checkbox" ${on?'checked':''} onchange="cpTogNotif('${n.key}',this)"><span class="cp-sl"></span></label>
+        <div class="cp-tl ${on?'on':'off'}" id="nlbl-${n.key}">${on?'ON':'OFF'}</div>
+      </div>
+    </div>`;
+  }).join('')+`<button class="bgold" style="margin-top:12px" onclick="cpSaveNotifs()">💾 Save</button>`;
+}
+function cpTogNotif(key,cb){
+  const saved=JSON.parse(localStorage.getItem('notifFlags_v1')||'{}');
+  saved[key]=cb.checked; localStorage.setItem('notifFlags_v1',JSON.stringify(saved));
+  const lbl=document.getElementById('nlbl-'+key);
+  if(lbl){lbl.textContent=cb.checked?'ON':'OFF';lbl.className='cp-tl '+(cb.checked?'on':'off');}
+}
+function cpSaveNotifs(){cpToast('✅ Notification settings saved!');}
+
+function cpRenderLogs(){
+  const list=document.getElementById('cpLogList'); if(!list)return;
+  if(!ACCESS_LOG?.length){list.innerHTML='<div style="font-size:12px;color:#64748B;padding:8px">No activity logged yet.</div>';return;}
+  list.innerHTML=ACCESS_LOG.slice(0,60).map(l=>`
+    <div class="clog-item l${l.type||'i'}">
+      <div class="clog-t">${l.msg}</div>
+      <div class="clog-d">${l.date} ${l.time}</div>
+    </div>`).join('');
+}
+
+function cpDA(action){
+  const msgs={reset_month:'Clear current month roster for ALL staff?',reset_all:'Clear ALL rosters?',
+    reset_rules:'Reset all auto-roster rules to defaults?',clear_leaves:'Delete ALL leave requests?',
+    reset_al:'Reset all Annual Leave balances to 0?',clear_carry:'Clear carry-over records?',
+    clear_logs:'Clear all activity logs?',reset_flags:'Reset all feature flags?',
+    factory:'FACTORY RESET — Delete ALL data? This is completely irreversible!'};
+  if(!confirm('⚠️ '+(msgs[action]||action)))return;
+  if(action==='reset_month'){
+    const key=schKey();
+    Object.keys(staffData||{}).forEach(id=>{if(schedData[id]&&schedData[id][key])schedData[id][key]={};});
+    if(typeof saveLocal==='function')saveLocal();
+    if(typeof renderRoster==='function')renderRoster();
+    cpToast('✅ Month roster cleared');
+  } else if(action==='clear_logs'){
+    ACCESS_LOG=[];localStorage.removeItem('accessLog_v1');cpRenderLogs();cpToast('✅ Logs cleared');
+  } else if(action==='reset_flags'){
+    localStorage.removeItem('featureFlags_v1');location.reload();
+  } else if(action==='factory'){
+    ['featureFlags_v1','hotelsData_v1','liveUsers_v1','liveMonPos_v1','accessLog_v1','notifFlags_v1'].forEach(k=>localStorage.removeItem(k));
+    if(typeof saveLocal==='function'){schedData={};if(typeof renderRoster==='function')renderRoster();}
+    cpToast('🔴 Factory reset done — reload recommended');
+  } else { cpToast('⚠️ '+action+' executed'); }
+  logAccess('e','Danger zone: '+action);
+}
+
+function cpToast(msg,type=''){
+  let el=document.getElementById('cpToastEl');
+  if(!el){el=document.createElement('div');el.id='cpToastEl';
+    el.style.cssText='position:fixed;bottom:20px;right:20px;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid #10B981;border-radius:10px;padding:10px 16px;font-size:12px;font-weight:600;color:#10B981;z-index:9999;pointer-events:none;transform:translateY(80px);opacity:0;transition:.3s cubic-bezier(.34,1.56,.64,1)';
+    document.body.appendChild(el);}
+  el.textContent=msg;
+  el.style.borderColor=type==='e'?'#EF4444':'#10B981';
+  el.style.color=type==='e'?'#EF4444':'#10B981';
+  el.style.transform='translateY(0)';el.style.opacity='1';
+  setTimeout(()=>{el.style.transform='translateY(80px)';el.style.opacity='0';},2800);
+}
+
+function initControlPanel(){
+  cpRenderModules(); cpUpdateHealth();
+  // Live clock
+  setInterval(()=>{const e=document.getElementById('cpClock');if(e)e.textContent=new Date().toLocaleTimeString('en-GB');},1000);
+  // Firebase status
+  const fb=document.getElementById('cpFbSt');
+  if(fb) fb.textContent=(typeof db!=='undefined'&&db)?'Connected':'Offline';
+  logAccess('i','Developer opened Control Panel');
+}
+
+// Hook into existing switchPage
+(function(){
+  const _orig=typeof switchPage==='function'?switchPage:null;
+  if(!_orig)return;
+  const hooked=function(name){
+    _orig(name);
+    if(name==='settings'&&typeof isDeveloper==='function'&&isDeveloper()){
+      setTimeout(initControlPanel,80);
+    }
+  };
+  if(typeof switchPage!=='undefined') switchPage=hooked;
+  // Also override _switchPageOriginal
+  if(typeof _switchPageOriginal==='function'){
+    const _osp=_switchPageOriginal;
+    window._switchPageOriginal=function(name){
+      _osp(name);
+      if(name==='settings'&&typeof isDeveloper==='function'&&isDeveloper()){
+        setTimeout(initControlPanel,80);
+      }
+    };
+  }
+})();
+
+
+
 window.addEventListener("load", function() {
   try {
     reloadLocal();      // Load saved data immediately (works offline)
@@ -6236,364 +6719,9 @@ function applyBlockDayStyling(){
   });
 }
 
-
 // ════════════════════════════════════════════════
-// DEVELOPER CONTROL PANEL — Full Implementation
+// ADDED: Clickable shift legend pill = filter availability
 // ════════════════════════════════════════════════
-
-// ── Dev Panel Navigation ──────────────────────
-function showDevPanel(name) {
-  document.querySelectorAll('.dev-panel').forEach(p => p.style.display = 'none');
-  const target = document.getElementById('devPanel-' + name);
-  if (target) target.style.display = 'block';
-  document.querySelectorAll('.dev-nav-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.panel === name);
-  });
-  // On-show actions
-  if (name === 'modules')      renderModuleToggles();
-  if (name === 'access')       { renderSettings(); }
-  if (name === 'hotels')       renderHotelMgmt();
-  if (name === 'departments')  { renderDeptMgmt(); if(isDeveloper()){ renderAccessGrants(); const g=document.getElementById('grantDeptSel'); if(g) g.innerHTML='<option value="">-- Select Department --</option>'+getAllDepts().map(d=>'<option value="'+d+'">'+d+'</option>').join(''); } }
-  if (name === 'shifts')       renderSettings();
-  if (name === 'autoroster')   renderAutoRosterDepts();
-  if (name === 'firebase')     renderSettings();
-  if (name === 'notifications') renderNotifToggles();
-  if (name === 'logs')         renderDevLogs();
-  if (name === 'danger')       {} // nothing extra needed
-  // Sync Firebase status badge
-  const dot = document.getElementById('devStatusDot');
-  const txt = document.getElementById('devStatusText');
-  if (dot && txt) { dot.className = 'status-dot ' + (db ? 'online' : 'offline'); txt.textContent = db ? '🟢 Firebase Live' : '🔴 Offline Mode'; }
-}
-
-// ── Activity Logging ──────────────────────────
-let _devLogs = [];
-try { _devLogs = JSON.parse(localStorage.getItem('devLogs_v1') || '[]'); } catch(e) { _devLogs = []; }
-
-function devLog(icon, message, level='info') {
-  const entry = { icon, message, level, time: new Date().toLocaleString(), ts: Date.now() };
-  _devLogs.unshift(entry);
-  if (_devLogs.length > 200) _devLogs = _devLogs.slice(0, 200);
-  try { localStorage.setItem('devLogs_v1', JSON.stringify(_devLogs)); } catch(e) {}
-  // Push to Firebase
-  if (db) { try { db.ref('devLogs/' + entry.ts).set(entry); } catch(e) {} }
-}
-
-function renderDevLogs() {
-  const el = document.getElementById('devLogsContainer');
-  if (!el) return;
-  if (!_devLogs.length) { el.innerHTML = '<div style="color:var(--slate2);padding:20px;text-align:center">No activity logged yet.</div>'; return; }
-  el.innerHTML = _devLogs.map(e => `
-    <div class="log-entry ${e.level||'info'}">
-      <div class="log-time">${e.time}</div>
-      <div style="flex:1;font-size:11px;color:var(--navy)">${e.icon||'•'} ${e.message}</div>
-    </div>`).join('');
-}
-
-function clearDevLogs() {
-  if (!isDeveloper()) return;
-  if (!confirm('Clear all activity logs?')) return;
-  _devLogs = [];
-  try { localStorage.removeItem('devLogs_v1'); } catch(e) {}
-  if (db) { try { db.ref('devLogs').remove(); } catch(e) {} }
-  renderDevLogs();
-}
-
-// Patch key functions to log actions
-const _origSaveStaff = typeof saveStaff === 'function' ? saveStaff : null;
-const _origDeleteOne = typeof deleteOne === 'function' ? deleteOne : null;
-(function patchLogging(){
-  setTimeout(()=>{
-    if(typeof saveStaff==='function'){
-      const orig=saveStaff;
-      window.saveStaff = function(addAnother){ const r=orig.apply(this,arguments); const n=document.getElementById('f-name')?.value||'?'; devLog('👤','Staff saved: '+n,'success'); return r; };
-    }
-    if(typeof deleteOne==='function'){
-      const orig=deleteOne;
-      window.deleteOne = function(id){ const n=staffData[id]?.name||id; const r=orig.apply(this,arguments); devLog('🗑','Staff deleted: '+n,'danger'); return r; };
-    }
-    if(typeof addNewDept==='function'){
-      const orig=addNewDept;
-      window.addNewDept = function(){ const n=document.getElementById('newDeptName')?.value||'?'; const r=orig.apply(this,arguments); devLog('🏢','Department added: '+n,'success'); return r; };
-    }
-  },1500);
-})();
-
-// ── Module Toggles ────────────────────────────
-let moduleSettings = {};
-try { moduleSettings = JSON.parse(localStorage.getItem('moduleSettings_v1') || '{}'); } catch(e) {}
-
-const MODULE_DEFS = [
-  { id:'roster',       label:'📅 Roster Tab',          desc:'Monthly/weekly schedule management',  tab:'roster' },
-  { id:'staff',        label:'👥 Staff Tab',            desc:'Add, edit, delete employees',         tab:'staff' },
-  { id:'coverage',     label:'⚠️ Coverage Tab',         desc:'Hotel staffing coverage overview',    tab:'coverage' },
-  { id:'requests',     label:'📋 Requests Tab',         desc:'Swap & leave request management',     tab:'requests' },
-  { id:'archives',     label:'🗄️ Archives Tab',         desc:'Monthly roster snapshots',            tab:'archives' },
-  { id:'handover',     label:'📝 Handover Tab',         desc:'Shift handover notes',                tab:'handover' },
-  { id:'sections',     label:'📍 Sections Tab',         desc:'Section rules and auto-roster config', tab:'sections' },
-  { id:'empPortal',    label:'👤 Employee Portal',      desc:'Employee self-service login',          tab:null },
-  { id:'autoSchedule', label:'🤖 Auto-Schedule Button', desc:'Auto roster generation',              tab:null },
-  { id:'bulkFill',     label:'⚡ Bulk Fill Button',     desc:'Fill multiple shifts at once',        tab:null },
-  { id:'csvImport',    label:'📥 CSV Import',           desc:'Import staff from CSV file',          tab:null },
-];
-
-function isModuleEnabled(id) {
-  return moduleSettings[id] !== false; // default ON
-}
-
-function setModule(id, enabled) {
-  if (!isDeveloper()) { alert('🔒 Only Developers can toggle modules.'); return; }
-  moduleSettings[id] = enabled;
-  try { localStorage.setItem('moduleSettings_v1', JSON.stringify(moduleSettings)); } catch(e) {}
-  if (db) { try { db.ref('settings/modules').set(moduleSettings); } catch(e) {} }
-  applyModuleSettings();
-  devLog(enabled ? '✅' : '🚫', 'Module ' + (enabled ? 'enabled' : 'disabled') + ': ' + id, enabled ? 'success' : 'warn');
-}
-
-function applyModuleSettings() {
-  MODULE_DEFS.forEach(m => {
-    const on = isModuleEnabled(m.id);
-    if (m.tab) {
-      const tab = document.querySelector(`.tab[data-p="${m.tab}"]`);
-      if (tab) tab.style.display = on ? '' : 'none';
-    }
-  });
-  // Special: Employee portal button on landing
-  const empBtn = document.querySelector('.btn-emp');
-  if (empBtn) empBtn.style.display = isModuleEnabled('empPortal') ? '' : 'none';
-}
-
-function renderModuleToggles() {
-  const el = document.getElementById('moduleToggles');
-  if (!el) return;
-  el.innerHTML = MODULE_DEFS.map(m => {
-    const on = isModuleEnabled(m.id);
-    return `<div class="module-toggle-row">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--navy)">${m.label}</div>
-        <div style="font-size:10px;color:var(--slate);margin-top:2px">${m.desc}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:10px;font-weight:700;color:${on ? 'var(--green)' : 'var(--red)'}">${on ? 'ON' : 'OFF'}</span>
-        <label class="toggle-switch">
-          <input type="checkbox" ${on ? 'checked' : ''} onchange="setModule('${m.id}', this.checked); renderModuleToggles()">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-// ── Hotel Management ──────────────────────────
-function renderHotelMgmt() {
-  const el = document.getElementById('hotelMgmtList');
-  if (!el) return;
-  el.innerHTML = HOTELS.map(h => {
-    const isAll = h.id === 'all';
-    return `<div class="hotel-row">
-      <div class="hotel-color-dot" style="background:${h.color}"></div>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--navy)">${h.name}</div>
-        <div style="font-size:10px;color:var(--slate);font-family:'DM Mono',monospace">${h.id}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <input type="color" value="${h.color}" title="Edit color" 
-          onchange="updateHotelColor('${h.id}', this.value)" 
-          style="width:28px;height:28px;border:none;border-radius:6px;cursor:pointer;padding:2px">
-        ${!isAll ? `<button class="btn btn-ghost btn-xs" onclick="renameHotel('${h.id}')">✏️ Rename</button>` : ''}
-        ${!isAll ? `<button class="btn btn-danger btn-xs" onclick="deleteHotel('${h.id}')">🗑</button>` : ''}
-        ${isAll ? `<span style="font-size:10px;color:var(--slate2)">System</span>` : ''}
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function updateHotelColor(hotelId, color) {
-  if (!isDeveloper()) return;
-  const h = HOTELS.find(x => x.id === hotelId);
-  if (!h) return;
-  h.color = color;
-  // Update CSS vars / light color
-  h.light = color + '22';
-  renderHotelMgmt();
-  saveHotelConfig();
-  devLog('🎨', 'Hotel color updated: ' + hotelId + ' → ' + color, 'info');
-}
-
-function renameHotel(hotelId) {
-  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
-  const h = HOTELS.find(x => x.id === hotelId);
-  if (!h) return;
-  const newName = prompt('Rename hotel:', h.name);
-  if (!newName || !newName.trim()) return;
-  devLog('✏️', 'Hotel renamed: ' + h.name + ' → ' + newName.trim(), 'info');
-  h.name = newName.trim();
-  renderHotelMgmt();
-  saveHotelConfig();
-  fillAllSelects();
-}
-
-function deleteHotel(hotelId) {
-  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
-  const h = HOTELS.find(x => x.id === hotelId);
-  if (!h) return;
-  const staffCount = staffList().filter(e => e.hotel === hotelId).length;
-  if (!confirm(`Delete hotel "${h.name}"?${staffCount ? '\n\n⚠️ ' + staffCount + ' staff are assigned to this hotel.' : ''}`)) return;
-  const idx = HOTELS.indexOf(h);
-  if (idx > -1) HOTELS.splice(idx, 1);
-  renderHotelMgmt();
-  saveHotelConfig();
-  fillAllSelects();
-  devLog('🗑', 'Hotel deleted: ' + h.name, 'danger');
-}
-
-function openAddHotelModal() {
-  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
-  const name = prompt('New hotel name:');
-  if (!name || !name.trim()) return;
-  const id = name.trim().toLowerCase().replace(/[^a-z0-9]/g,'_');
-  if (HOTELS.find(h => h.id === id)) { alert('Hotel ID "' + id + '" already exists.'); return; }
-  HOTELS.push({ id, name: name.trim(), color: '#0D47A1', light: '#E3F2FD' });
-  renderHotelMgmt();
-  saveHotelConfig();
-  fillAllSelects();
-  devLog('🏨', 'Hotel added: ' + name.trim(), 'success');
-}
-
-function saveHotelConfig() {
-  const config = HOTELS.map(h => ({ id: h.id, name: h.name, color: h.color, light: h.light }));
-  try { localStorage.setItem('hotelConfig_v1', JSON.stringify(config)); } catch(e) {}
-  if (db) { try { db.ref('settings/hotelConfig').set(config); } catch(e) {} }
-}
-
-(function loadHotelConfig(){
-  try {
-    const saved = localStorage.getItem('hotelConfig_v1');
-    if (saved) {
-      const config = JSON.parse(saved);
-      config.forEach(c => {
-        const h = HOTELS.find(x => x.id === c.id);
-        if (h) { h.name = c.name; h.color = c.color; h.light = c.light || c.color + '22'; }
-      });
-    }
-  } catch(e) {}
-})();
-
-// ── Auto-Roster Dept Management ───────────────
-function renderAutoRosterDepts() {
-  const el = document.getElementById('autoRosterDeptList');
-  if (!el) return;
-  const depts = getAllDepts();
-  if (!depts.length) { el.innerHTML = '<p style="font-size:12px;color:var(--slate2)">No departments yet.</p>'; return; }
-  el.innerHTML = depts.map(dept => {
-    const autoOff = (deptAutoDisabled || {})[dept] === true;
-    const dc = getDeptColor(dept);
-    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;background:var(--ice2);border:1.5px solid ${dc.color}30;border-radius:10px">
-      <div style="display:flex;align-items:center;gap:10px">
-        <span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:11px">${dept}</span>
-        <span style="font-size:11px;color:${autoOff ? 'var(--red)' : 'var(--green)'}; font-weight:700">${autoOff ? '🚫 Auto-Rota OFF' : '✅ Auto-Rota ON'}</span>
-      </div>
-      <label class="toggle-switch">
-        <input type="checkbox" ${autoOff ? '' : 'checked'} onchange="toggleDeptAutoRota('${dept}');renderAutoRosterDepts()">
-        <span class="toggle-slider"></span>
-      </label>
-    </div>`;
-  }).join('');
-}
-
-// ── Notification Settings ─────────────────────
-let notifSettings = {};
-try { notifSettings = JSON.parse(localStorage.getItem('notifSettings_v1') || '{}'); } catch(e) {}
-
-const NOTIF_DEFS = [
-  { id:'swap_request',    label:'🔄 New Swap Request',       desc:'Alert admin when employee requests a shift swap' },
-  { id:'swap_approved',   label:'✅ Swap Approved',          desc:'Notify employee when their swap is approved' },
-  { id:'swap_rejected',   label:'❌ Swap Rejected',          desc:'Notify employee when their swap is rejected' },
-  { id:'leave_request',   label:'🏖 New Leave Request',      desc:'Alert admin when employee submits leave' },
-  { id:'leave_approved',  label:'✅ Leave Approved',         desc:'Notify employee when leave is approved' },
-  { id:'schedule_change', label:'📅 Schedule Changed',       desc:'Notify employee when their shift is changed' },
-  { id:'coverage_alert',  label:'🚨 Coverage Alert',         desc:'Alert admin when a hotel has no staff on a day' },
-  { id:'low_al_balance',  label:'⚠️ Low AL Balance',         desc:'Warn when employee AL balance falls below 3 days' },
-  { id:'handover_posted', label:'📝 New Handover Note',      desc:'Alert next shift when handover note is posted' },
-];
-
-function isNotifEnabled(id) { return notifSettings[id] !== false; }
-
-function renderNotifToggles() {
-  const el = document.getElementById('notifToggles');
-  if (!el) return;
-  el.innerHTML = NOTIF_DEFS.map(n => {
-    const on = isNotifEnabled(n.id);
-    return `<div class="module-toggle-row">
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--navy)">${n.label}</div>
-        <div style="font-size:10px;color:var(--slate);margin-top:2px">${n.desc}</div>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="font-size:10px;font-weight:700;color:${on ? 'var(--green)' : 'var(--red)'}">${on ? 'ON' : 'OFF'}</span>
-        <label class="toggle-switch">
-          <input type="checkbox" ${on ? 'checked' : ''} onchange="notifSettings['${n.id}']=this.checked; renderNotifToggles()">
-          <span class="toggle-slider"></span>
-        </label>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-function saveNotifSettings() {
-  if (!isDeveloper()) { alert('🔒 Developer only.'); return; }
-  try { localStorage.setItem('notifSettings_v1', JSON.stringify(notifSettings)); } catch(e) {}
-  if (db) { try { db.ref('settings/notifSettings').set(notifSettings); } catch(e) {} }
-  const msg = document.getElementById('notifSaveMsg');
-  if (msg) { msg.textContent = '✅ Saved!'; setTimeout(() => msg.textContent = '', 2500); }
-  devLog('🔔', 'Notification settings saved', 'success');
-}
-
-// ── Override renderSettings to also sync dev panel status ─────
-(function(){
-  const _orig = typeof renderSettings === 'function' ? renderSettings : null;
-  if (!_orig) return;
-  window.renderSettings = function() {
-    _orig.apply(this, arguments);
-    // Update status dot
-    const dot = document.getElementById('devStatusDot');
-    const txt = document.getElementById('devStatusText');
-    if (dot && txt) { dot.className = 'status-dot ' + (db ? 'online' : 'offline'); txt.textContent = db ? '🟢 Firebase Live' : '🔴 Offline Mode'; }
-  };
-})();
-
-// Initialize dev panel when switching to settings page
-(function(){
-  const _origSwitch = typeof switchPage === 'function' ? switchPage : null;
-  if (!_origSwitch) return;
-  window.switchPage = function(name) {
-    _origSwitch.apply(this, arguments);
-    if (name === 'settings') {
-      // Show modules panel by default
-      setTimeout(() => {
-        const activePanel = document.querySelector('.dev-nav-btn.active');
-        if (!activePanel) showDevPanel('modules');
-        else showDevPanel(activePanel.dataset.panel);
-      }, 50);
-    }
-  };
-})();
-
-// Load module settings from Firebase
-(function(){
-  if (db) {
-    db.ref('settings/modules').on('value', snap => {
-      const val = snap.val();
-      if (val) { Object.assign(moduleSettings, val); applyModuleSettings(); }
-    });
-    db.ref('settings/notifSettings').on('value', snap => {
-      const val = snap.val();
-      if (val) Object.assign(notifSettings, val);
-    });
-  }
-})();
-
-
 let activeShiftFilter = null;
 function applyShiftLegendFilter(code){
   if (activeShiftFilter === code) { clearShiftLegendFilter(); return; }
