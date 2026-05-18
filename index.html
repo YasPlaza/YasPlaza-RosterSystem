@@ -749,6 +749,35 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   </div>
 </div>
 
+<!-- ══ AUTHORIZED STAFF PORTAL SELECTOR ══ -->
+<div id="authStaffSelector" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#040A14,#0B1525 60%,#071220);z-index:950;flex-direction:column;align-items:center;justify-content:center">
+  <div style="text-align:center;margin-bottom:36px">
+    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:22px;color:#fff;margin-bottom:6px">Welcome, <span id="authStaffName" style="color:var(--gold2)"></span></div>
+    <div id="authStaffDept" style="font-size:12px;color:rgba(255,255,255,.45)">Choose what you'd like to open</div>
+  </div>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;padding:0 20px">
+    <!-- Live Dashboard tile -->
+    <div onclick="openLiveDashFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#1a4a2e,#0d6b35);border:1.5px solid rgba(74,222,128,.3);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(74,222,128,.12)"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(74,222,128,.25)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(74,222,128,.12)'">
+      <div style="width:56px;height:56px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
+        <div style="width:16px;height:16px;border-radius:50%;background:#4ADE80;box-shadow:0 0 12px #4ADE80;animation:blink 1.5s infinite"></div>
+      </div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">Live Dashboard</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Who's on duty now</div>
+    </div>
+    <!-- My Roster tile -->
+    <div onclick="openRosterFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#4a3000,#8a5a00);border:1.5px solid rgba(201,150,58,.4);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(201,150,58,.12)"
+      onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(201,150,58,.3)'"
+      onmouseout="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(201,150,58,.12)'">
+      <div style="width:56px;height:56px;background:rgba(201,150,58,.15);border:1.5px solid rgba(201,150,58,.4);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:26px">🗓️</div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">Roster</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">My schedule & shifts</div>
+    </div>
+  </div>
+  <button onclick="exitAuthSelector()" style="margin-top:36px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);border-radius:10px;padding:8px 22px;font-size:12px;cursor:pointer;transition:.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">← Back</button>
+</div>
+
 <!-- ══ LIVE DASHBOARD WINDOW (for authorized staff) ══ -->
 <div id="liveDashWindow" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#040A14,#0B1525 60%,#071220);z-index:900;flex-direction:column;overflow:hidden">
   <div style="background:linear-gradient(90deg,#0B1A2E,#0F2240);border-bottom:1px solid rgba(201,150,58,.2);padding:12px 20px;display:flex;align-items:center;gap:14px">
@@ -6506,13 +6535,13 @@ function logoutEmp() {
   document.getElementById("empLoginForm").style.display="block";
   document.getElementById("empIdInp").value="";
   document.getElementById("empErr").textContent="";
-  // If they were authorized, go back to live dash; otherwise go to landing
+  // If they were authorized, go back to the two-window selector; otherwise go to landing
   if (loggedId && typeof isLiveAuthorized === 'function' && isLiveAuthorized(loggedId)) {
     const portal = document.getElementById('empPortal');
     if (portal) { portal.classList.remove('show'); portal.style.display = ''; }
     const emp = staffData[loggedId];
-    if (emp) {
-      openLiveDashForEmployee(loggedId, emp);
+    if (emp && typeof openAuthSelector === 'function') {
+      openAuthSelector(loggedId, emp);
       return;
     }
   }
@@ -7432,6 +7461,24 @@ function landLogin() {
   if (!id) { if(errEl) errEl.textContent = 'Please enter your Employee ID.'; return; }
   if (errEl) errEl.textContent = '';
 
+  // If Firebase available, do a live lookup so it works even before staffData is fully loaded
+  if (typeof db !== 'undefined' && db) {
+    if (errEl) errEl.textContent = '';
+    db.ref('staff/' + id).once('value').then(snap => {
+      const emp = snap.val();
+      if (!emp) { if(errEl) errEl.textContent = '❌ Employee ID not found. Please check and try again.'; return; }
+      staffData[id] = emp;
+      _currentLandEmpId = id;
+      if (isLiveAuthorized(id)) { openAuthSelector(id, emp); } else { openEmpPortalWithId(id); }
+    }).catch(() => {
+      const emp = staffData[id];
+      if (!emp) { if(errEl) errEl.textContent = '❌ Employee ID not found.'; return; }
+      _currentLandEmpId = id;
+      if (isLiveAuthorized(id)) { openAuthSelector(id, emp); } else { openEmpPortalWithId(id); }
+    });
+    return;
+  }
+
   const emp = staffData[id];
   if (!emp) {
     if(errEl) errEl.textContent = '❌ Employee ID not found. Please check and try again.';
@@ -7442,12 +7489,49 @@ function landLogin() {
   const authorized = isLiveAuthorized(id);
 
   if (authorized) {
-    // Show Live Dashboard window — open My Roster is available inside
-    openLiveDashForEmployee(id, emp);
+    // Show the two-window selector (Live Dashboard OR Roster)
+    openAuthSelector(id, emp);
   } else {
     // Non-authorized: go straight to roster view
     openEmpPortalWithId(id);
   }
+}
+
+function openAuthSelector(id, emp) {
+  _currentLandEmpId = id;
+  const landing = document.getElementById('landing');
+  if (landing) landing.style.display = 'none';
+  const sel = document.getElementById('authStaffSelector');
+  if (sel) sel.style.display = 'flex';
+  const nameEl = document.getElementById('authStaffName');
+  if (nameEl) nameEl.textContent = emp.name || id;
+  const deptEl = document.getElementById('authStaffDept');
+  if (deptEl) deptEl.textContent = (emp.department || '') + (emp.section ? ' · ' + emp.section : '') + '  —  Choose what you\'d like to open';
+}
+
+function openLiveDashFromSelector() {
+  const sel = document.getElementById('authStaffSelector');
+  if (sel) sel.style.display = 'none';
+  const id = _currentLandEmpId;
+  if (!id) return;
+  const emp = staffData[id];
+  if (emp) openLiveDashForEmployee(id, emp);
+}
+
+function openRosterFromSelector() {
+  const sel = document.getElementById('authStaffSelector');
+  if (sel) sel.style.display = 'none';
+  openEmpPortalWithId(_currentLandEmpId);
+}
+
+function exitAuthSelector() {
+  const sel = document.getElementById('authStaffSelector');
+  if (sel) sel.style.display = 'none';
+  const landing = document.getElementById('landing');
+  if (landing) landing.style.display = 'flex';
+  const inp = document.getElementById('landEmpId');
+  if (inp) inp.value = '';
+  _currentLandEmpId = null;
 }
 
 function openEmpPortalWithId(id) {
@@ -7487,12 +7571,18 @@ function openLiveDashForEmployee(id, emp) {
 function exitLiveDash() {
   const win = document.getElementById('liveDashWindow');
   if (win) win.style.display = 'none';
+  stopLiveDashClock();
+  // If authorized, return to the two-window selector; otherwise go to landing
+  const savedId = _currentLandEmpId;
+  if (savedId && typeof isLiveAuthorized === 'function' && isLiveAuthorized(savedId)) {
+    const emp = staffData[savedId];
+    if (emp) { openAuthSelector(savedId, emp); return; }
+  }
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
   if (inp) inp.value = '';
   _currentLandEmpId = null;
-  stopLiveDashClock();
 }
 
 function openMyRosterFromLive() {
@@ -7686,6 +7776,82 @@ function cpRemoveLiveAuthId(i) {
   saveLiveAuthorizedIds();
   cpRenderLiveAuthIds();
   cpToast('🗑 ' + id + ' removed from Live access');
+}
+
+// ════════════════════════════════════════════════
+// LIVE ACCESS TAB — Simple Add/Remove Employee IDs
+// ════════════════════════════════════════════════
+function laRender() {
+  const list = document.getElementById('laList');
+  if (!list) return;
+  const ids = LIVE_AUTHORIZED_IDS;
+  if (!ids.length) {
+    list.innerHTML = '<div style="font-size:12px;color:#64748B;padding:12px 0">No authorized staff yet. Add employee IDs above.</div>';
+    return;
+  }
+  list.innerHTML = ids.map((id, i) => {
+    const emp = staffData[id];
+    const name = emp ? emp.name : '<span style="color:#64748B;font-style:italic">Unknown — not in staff list</span>';
+    const dept = emp ? emp.department : '';
+    const section = emp ? (emp.section || '') : '';
+    return `<div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.18);border-radius:10px;padding:10px 14px">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#4ADE80;flex-shrink:0">${id.slice(0,3)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:#fff">${name}</div>
+        <div style="font-size:10px;color:#64748B;margin-top:2px">${dept}${section ? ' · ' + section : ''} &nbsp;·&nbsp; <span style="color:#4ADE80;font-family:'DM Mono',monospace">${id}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:6px;padding:2px 10px;font-size:9px;font-weight:700;color:#4ADE80">LIVE ACCESS</div>
+        <button class="bx bxr" onclick="laRemoveId(${i})" style="font-size:10px;padding:4px 10px">Remove</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function laAddId() {
+  const inp = document.getElementById('laEmpIdInp');
+  const msg = document.getElementById('laMsg');
+  const id = (inp ? inp.value : '').trim().toUpperCase();
+  if (!id) { if(msg) { msg.style.color='#F87171'; msg.textContent='❌ Please enter an Employee ID.'; } return; }
+
+  // Check if already authorized
+  if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) {
+    if(msg) { msg.style.color='#FBBF24'; msg.textContent='⚠️ ' + id + ' already has Live Dashboard access.'; }
+    return;
+  }
+
+  // Check employee exists
+  const emp = staffData[id];
+
+  LIVE_AUTHORIZED_IDS.push(id);
+  saveLiveAuthorizedIds();
+  if (inp) inp.value = '';
+
+  const empInfo = emp ? (emp.name + ' · ' + emp.department) : '(will auto-resolve on next login)';
+  if(msg) { msg.style.color='#4ADE80'; msg.textContent='✅ ' + id + ' added — ' + empInfo; }
+  laRender();
+  cpRenderLiveAuthIds(); // keep old section in sync too
+  if(typeof logAccess==='function') logAccess('s','Live access added: '+id);
+
+  // Also try Firebase lookup if emp not in local cache
+  if (!emp && typeof db !== 'undefined' && db) {
+    db.ref('staff/' + id).once('value').then(snap => {
+      const e = snap.val();
+      if (e) { staffData[id] = e; laRender(); }
+    }).catch(()=>{});
+  }
+}
+
+function laRemoveId(i) {
+  const id = LIVE_AUTHORIZED_IDS[i];
+  if (!id) return;
+  LIVE_AUTHORIZED_IDS.splice(i, 1);
+  saveLiveAuthorizedIds();
+  laRender();
+  cpRenderLiveAuthIds();
+  const msg = document.getElementById('laMsg');
+  if(msg) { msg.style.color='#F87171'; msg.textContent='🗑 ' + id + ' removed from Live Dashboard access.'; }
+  if(typeof logAccess==='function') logAccess('s','Live access removed: '+id);
 }
 
 // Patch cpRenderLive to also render the auth IDs section
@@ -8166,64 +8332,7 @@ function devExportScheduleJSON() {
     logs: typeof cpRenderLogs==='function'?cpRenderLogs:null,
     holidays: typeof cpRenderHolidays==='function'?cpRenderHolidays:null,
     themes: typeof cpRenderThemes==='function'?cpRenderThemes:null,
-    liveauth: function(){ if(typeof cpRenderLiveAuthIds2==='function') cpRenderLiveAuthIds2(); },
-  };
-
-  // ---------- Authorized Live IDs (dedicated tab API) ----------
-  window.cpRenderLiveAuthIds2 = function(){
-    const el = document.getElementById('cpLiveAuthIds2');
-    if (!el) return;
-    const ids = (typeof LIVE_AUTHORIZED_IDS!=='undefined') ? LIVE_AUTHORIZED_IDS : [];
-    el.innerHTML = ids.length
-      ? ids.map((id, i) => {
-          const emp = (typeof staffData!=='undefined' && staffData[id]) || null;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:10px;margin-bottom:6px">
-            <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#4ADE80;min-width:70px">${id}</div>
-            <div style="flex:1;font-size:12px;color:#fff">${emp?emp.name:'<span style="color:#F87171">⚠ Unknown ID</span>'}</div>
-            <div style="font-size:10px;color:#94A3B8;min-width:120px">${emp?('🏢 '+emp.department):''}</div>
-            <button class="bx bxn" onclick="cpEditLiveAuthId2(${i})">Edit</button>
-            <button class="bx bxr" onclick="cpRemoveLiveAuthId2(${i})">Remove</button>
-          </div>`;
-        }).join('')
-      : '<div style="font-size:11px;color:#64748B;padding:14px;text-align:center;background:rgba(255,255,255,.02);border-radius:10px">No authorized staff yet. Add an Employee ID above.</div>';
-  };
-  window.cpAddLiveAuthId2 = function(){
-    const inp = document.getElementById('cpLiveAuthIdInp2');
-    const id = (inp?.value || '').trim().toUpperCase();
-    if (!id) { if(typeof cpToast==='function') cpToast('❌ Enter an Employee ID','e'); return; }
-    if (LIVE_AUTHORIZED_IDS.includes(id)) { cpToast('Already authorized!'); return; }
-    if (typeof staffData!=='undefined' && !staffData[id]) {
-      if (!confirm(id+' is not in the staff list. Add anyway?')) return;
-    }
-    LIVE_AUTHORIZED_IDS.push(id);
-    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
-    if (inp) inp.value = '';
-    cpRenderLiveAuthIds2();
-    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-    if (typeof cpToast==='function') cpToast('✅ '+id+' can now access Live Dashboard');
-    if (typeof logAccess==='function') logAccess('s','Live auth ID added: '+id);
-  };
-  window.cpEditLiveAuthId2 = function(i){
-    const cur = LIVE_AUTHORIZED_IDS[i];
-    const next = prompt('Update Employee ID:', cur);
-    if (next === null) return;
-    const v = next.trim().toUpperCase();
-    if (!v) return;
-    if (v !== cur && LIVE_AUTHORIZED_IDS.includes(v)) { cpToast('Already authorized!'); return; }
-    LIVE_AUTHORIZED_IDS[i] = v;
-    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
-    cpRenderLiveAuthIds2();
-    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-    if (typeof cpToast==='function') cpToast('✅ Updated');
-  };
-  window.cpRemoveLiveAuthId2 = function(i){
-    const id = LIVE_AUTHORIZED_IDS[i];
-    if (!confirm('Remove '+id+' from Live Dashboard access?')) return;
-    LIVE_AUTHORIZED_IDS.splice(i,1);
-    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
-    cpRenderLiveAuthIds2();
-    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-    if (typeof cpToast==='function') cpToast('🗑 '+id+' removed');
+    liveaccess: typeof laRender==='function'?laRender:null,
   };
   window.cpTab = function(id){
     document.querySelectorAll('.cp-content .cp-panel[id^="cpt-"]').forEach(el=>{
@@ -8320,19 +8429,28 @@ function devExportScheduleJSON() {
         </div>`, function(){ if (typeof cpRenderThemes==='function') cpRenderThemes(); });
     }
 
-    // Authorized Live Dashboard IDs (dedicated DEV tab)
-    if (!document.getElementById('cpt-liveauth')) {
-      mountTab('🔑 Live Access', 'cpt-liveauth', `
-        <div class="cp-ph"><div class="cp-pt">🔑 Authorized Live Dashboard IDs <span class="cp-badge">Per-Employee Access</span></div></div>
+    // Live Access (Authorized Staff)
+    if (!document.getElementById('cpt-liveaccess')) {
+      mountTab('\u{1F7E2} Live Access', 'cpt-liveaccess', `
+        <div class="cp-ph"><div class="cp-pt">&#128994; Live Dashboard Access <span class="cp-badge">Authorized Staff</span></div></div>
         <div class="cp-body">
-          <div class="cp-stitle">🔑 Authorized Staff (Live Dashboard)</div>
-          <div class="cp-infobox">Add staff IDs that should see the Live Dashboard on login. Authorized staff are <strong>locked to their own department</strong> in the Live view — they cannot see other departments. Everyone else only sees their personal roster.</div>
-          <div style="display:flex;gap:8px;align-items:center;margin:10px 0 14px">
-            <input id="cpLiveAuthIdInp2" class="cp-inp2" placeholder="Employee ID (e.g. E001)" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')cpAddLiveAuthId2()">
-            <button class="bgold" onclick="cpAddLiveAuthId2()">+ Add Staff ID</button>
+          <div class="cp-stitle">&#128994; Live Dashboard Access</div>
+          <div class="cp-infobox" style="margin-bottom:14px">
+            Add employee IDs here to give them access to the <strong style="color:#4ADE80">Live Dashboard</strong>.
+            When they log in on the main screen they will see two tiles: <strong style="color:#4ADE80">Live Dashboard</strong> (locked to their own department &amp; they can filter by section) and <strong style="color:#E8B04A">My Roster</strong>.
+            Staff NOT on this list only see their personal roster.
           </div>
-          <div id="cpLiveAuthIds2" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>
-        </div>`, function(){ if (typeof cpRenderLiveAuthIds2==='function') cpRenderLiveAuthIds2(); });
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
+            <input id="laEmpIdInp" class="cp-inp2" placeholder="Employee ID  e.g. E001" maxlength="10"
+              style="flex:1;text-transform:uppercase;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')laAddId()">
+            <button class="bgold" style="padding:9px 22px;font-size:13px;white-space:nowrap" onclick="laAddId()">+ Add</button>
+          </div>
+          <div id="laMsg" style="font-size:11px;min-height:16px;margin-bottom:10px;color:#4ADE80"></div>
+          <div id="laList" style="display:flex;flex-direction:column;gap:7px"></div>
+        </div>
+      `, function(){ if(typeof laRender==='function') laRender(); });
     }
 
     // Export / Import
