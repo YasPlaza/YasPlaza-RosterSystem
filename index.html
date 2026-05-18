@@ -808,6 +808,9 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
       <option value="all">🏨 All Hotels</option>
     </select>
+    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(15,118,110,.4);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none;min-width:140px">
+      <option value="all">📍 All Sections</option>
+    </select>
     <select id="liveShiftFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
       <option value="auto">⏰ Current Shift</option>
       <option value="MOR">🌅 Morning</option>
@@ -3070,6 +3073,16 @@ function setupRealtimeListeners() {
       refreshEmpDash(currentEmpId);
     }
   });
+
+  // Live authorized IDs listener — developer manages, all devices sync
+  db.ref("settings/liveAuthorizedIds").on("value", snap => {
+    const val = snap.val();
+    if (Array.isArray(val)) {
+      LIVE_AUTHORIZED_IDS = val;
+      try { localStorage.setItem('liveAuthorizedIds_v1', JSON.stringify(LIVE_AUTHORIZED_IDS)); } catch(e) {}
+      if (typeof laRender === 'function') laRender();
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════
@@ -3927,14 +3940,22 @@ function fillAllSelects() {
   const fd=document.getElementById("f-dept");
   if(fd) fd.innerHTML = visibleDepts.map(d=>`<option>${d}</option>`).join("");
 
-  // Position filters
-  const allPos = getAllPos();
-  ["rPosF","sPosF"].forEach(id=>{
-    const el=document.getElementById(id); if(!el) return;
-    el.innerHTML='<option value="all">All Positions</option>'+allPos.map(p=>`<option>${p}</option>`).join("");
-  });
+  // Position filters — when dept user, only show positions for their dept
+  if (isDeptUser && CURRENT_DEPT !== "all") {
+    const deptPositions = DEPT_POS[CURRENT_DEPT] || [];
+    ["rPosF","sPosF"].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      el.innerHTML='<option value="all">All Positions</option>'+deptPositions.map(p=>`<option>${p}</option>`).join("");
+    });
+  } else {
+    const allPos = getAllPos();
+    ["rPosF","sPosF"].forEach(id=>{
+      const el=document.getElementById(id); if(!el) return;
+      el.innerHTML='<option value="all">All Positions</option>'+allPos.map(p=>`<option>${p}</option>`).join("");
+    });
+  }
 
-  // Section filter (roster) — limited to visible depts
+  // Section filter (roster) — limited to visible depts only
   const secEl = document.getElementById("rSecF");
   if (secEl) {
     const secSet = new Set();
@@ -7632,6 +7653,15 @@ function openLiveDashForEmployee(id, emp) {
     deptSel.disabled = true;
     deptSel.style.display = 'none';
   }
+  // Populate section filter from employee's department
+  const secSel = document.getElementById('liveSectionFilter');
+  if (secSel && emp.department) {
+    const secs = (typeof DEPT_SECTIONS !== 'undefined' && DEPT_SECTIONS[emp.department]) ? DEPT_SECTIONS[emp.department] : [];
+    secSel.innerHTML = '<option value="all">📍 All Sections</option>' +
+      [...new Set(secs)].sort().map(s => `<option value="${s}">${s}</option>`).join('');
+    // Pre-select employee's own section if set
+    if (emp.section) secSel.value = emp.section;
+  }
   const hotelSel = document.getElementById('liveHotelFilter');
   if (hotelSel && typeof HOTELS !== 'undefined') {
     hotelSel.innerHTML = '<option value="all">🏨 All Hotels</option>' +
@@ -7710,10 +7740,11 @@ function renderLiveDash() {
 
   const deptF = document.getElementById('liveDeptFilter')?.value || 'all';
   const hotelF = document.getElementById('liveHotelFilter')?.value || 'all';
+  const sectionF = document.getElementById('liveSectionFilter')?.value || 'all';
   const srch = (document.getElementById('liveSearchInp')?.value || '').toLowerCase();
   // Position & section filters set by authorized staff selector
   const posF = window._authLivePosFilter || '';
-  const secF = window._authLiveSecFilter || '';
+  const secF = (sectionF !== 'all' ? sectionF : '') || window._authLiveSecFilter || '';
 
   let staff = Object.values(staffData || {});
   if (deptF !== 'all') staff = staff.filter(e => e.department === deptF);
