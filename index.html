@@ -3663,13 +3663,16 @@ function applyRoleRestrictions() {
     settingsTab.style.pointerEvents = isDev ? "" : "none";
     if (!isDev) settingsTab.setAttribute('disabled','disabled'); else settingsTab.removeAttribute('disabled');
   }
-  // Hide the Dev Panel page itself so it can't be revealed via DOM/keyboard
+  // Dev Panel page: only hard-hide for non-dev. NEVER inline-hide for dev
+  // (that would block the panel from showing when dev navigates to it).
   const settingsPage = document.getElementById('page-settings');
-  if (settingsPage && !isDev) {
-    settingsPage.classList.remove('active');
-    settingsPage.style.display = 'none';
-  } else if (settingsPage && isDev) {
-    settingsPage.style.display = '';
+  if (settingsPage) {
+    if (!isDev) {
+      settingsPage.classList.remove('active');
+      settingsPage.style.display = 'none';
+    } else {
+      settingsPage.style.removeProperty('display');
+    }
   }
 
   // Show/hide developer-only buttons in topbar
