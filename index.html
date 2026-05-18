@@ -8166,6 +8166,64 @@ function devExportScheduleJSON() {
     logs: typeof cpRenderLogs==='function'?cpRenderLogs:null,
     holidays: typeof cpRenderHolidays==='function'?cpRenderHolidays:null,
     themes: typeof cpRenderThemes==='function'?cpRenderThemes:null,
+    liveauth: function(){ if(typeof cpRenderLiveAuthIds2==='function') cpRenderLiveAuthIds2(); },
+  };
+
+  // ---------- Authorized Live IDs (dedicated tab API) ----------
+  window.cpRenderLiveAuthIds2 = function(){
+    const el = document.getElementById('cpLiveAuthIds2');
+    if (!el) return;
+    const ids = (typeof LIVE_AUTHORIZED_IDS!=='undefined') ? LIVE_AUTHORIZED_IDS : [];
+    el.innerHTML = ids.length
+      ? ids.map((id, i) => {
+          const emp = (typeof staffData!=='undefined' && staffData[id]) || null;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(74,222,128,.06);border:1px solid rgba(74,222,128,.2);border-radius:10px;margin-bottom:6px">
+            <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#4ADE80;min-width:70px">${id}</div>
+            <div style="flex:1;font-size:12px;color:#fff">${emp?emp.name:'<span style="color:#F87171">⚠ Unknown ID</span>'}</div>
+            <div style="font-size:10px;color:#94A3B8;min-width:120px">${emp?('🏢 '+emp.department):''}</div>
+            <button class="bx bxn" onclick="cpEditLiveAuthId2(${i})">Edit</button>
+            <button class="bx bxr" onclick="cpRemoveLiveAuthId2(${i})">Remove</button>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:11px;color:#64748B;padding:14px;text-align:center;background:rgba(255,255,255,.02);border-radius:10px">No authorized staff yet. Add an Employee ID above.</div>';
+  };
+  window.cpAddLiveAuthId2 = function(){
+    const inp = document.getElementById('cpLiveAuthIdInp2');
+    const id = (inp?.value || '').trim().toUpperCase();
+    if (!id) { if(typeof cpToast==='function') cpToast('❌ Enter an Employee ID','e'); return; }
+    if (LIVE_AUTHORIZED_IDS.includes(id)) { cpToast('Already authorized!'); return; }
+    if (typeof staffData!=='undefined' && !staffData[id]) {
+      if (!confirm(id+' is not in the staff list. Add anyway?')) return;
+    }
+    LIVE_AUTHORIZED_IDS.push(id);
+    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
+    if (inp) inp.value = '';
+    cpRenderLiveAuthIds2();
+    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
+    if (typeof cpToast==='function') cpToast('✅ '+id+' can now access Live Dashboard');
+    if (typeof logAccess==='function') logAccess('s','Live auth ID added: '+id);
+  };
+  window.cpEditLiveAuthId2 = function(i){
+    const cur = LIVE_AUTHORIZED_IDS[i];
+    const next = prompt('Update Employee ID:', cur);
+    if (next === null) return;
+    const v = next.trim().toUpperCase();
+    if (!v) return;
+    if (v !== cur && LIVE_AUTHORIZED_IDS.includes(v)) { cpToast('Already authorized!'); return; }
+    LIVE_AUTHORIZED_IDS[i] = v;
+    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
+    cpRenderLiveAuthIds2();
+    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
+    if (typeof cpToast==='function') cpToast('✅ Updated');
+  };
+  window.cpRemoveLiveAuthId2 = function(i){
+    const id = LIVE_AUTHORIZED_IDS[i];
+    if (!confirm('Remove '+id+' from Live Dashboard access?')) return;
+    LIVE_AUTHORIZED_IDS.splice(i,1);
+    if (typeof saveLiveAuthorizedIds==='function') saveLiveAuthorizedIds();
+    cpRenderLiveAuthIds2();
+    if (typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
+    if (typeof cpToast==='function') cpToast('🗑 '+id+' removed');
   };
   window.cpTab = function(id){
     document.querySelectorAll('.cp-content .cp-panel[id^="cpt-"]').forEach(el=>{
@@ -8260,6 +8318,21 @@ function devExportScheduleJSON() {
             <button class="bgold" style="margin-top:10px;width:100%" onclick="applyCustomTheme()">Apply Custom Theme</button>
           </div>
         </div>`, function(){ if (typeof cpRenderThemes==='function') cpRenderThemes(); });
+    }
+
+    // Authorized Live Dashboard IDs (dedicated DEV tab)
+    if (!document.getElementById('cpt-liveauth')) {
+      mountTab('🔑 Live Access', 'cpt-liveauth', `
+        <div class="cp-ph"><div class="cp-pt">🔑 Authorized Live Dashboard IDs <span class="cp-badge">Per-Employee Access</span></div></div>
+        <div class="cp-body">
+          <div class="cp-stitle">🔑 Authorized Staff (Live Dashboard)</div>
+          <div class="cp-infobox">Add staff IDs that should see the Live Dashboard on login. Authorized staff are <strong>locked to their own department</strong> in the Live view — they cannot see other departments. Everyone else only sees their personal roster.</div>
+          <div style="display:flex;gap:8px;align-items:center;margin:10px 0 14px">
+            <input id="cpLiveAuthIdInp2" class="cp-inp2" placeholder="Employee ID (e.g. E001)" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')cpAddLiveAuthId2()">
+            <button class="bgold" onclick="cpAddLiveAuthId2()">+ Add Staff ID</button>
+          </div>
+          <div id="cpLiveAuthIds2" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>
+        </div>`, function(){ if (typeof cpRenderLiveAuthIds2==='function') cpRenderLiveAuthIds2(); });
     }
 
     // Export / Import
