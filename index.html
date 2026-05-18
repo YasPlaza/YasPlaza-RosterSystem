@@ -3655,11 +3655,9 @@ function applyRoleRestrictions() {
     }
   }
 
-  // Settings tab — visible to dev OR dept users with any granted access
+  // Dev Panel tab — DEVELOPER ONLY, always hidden for dept/manager users
   const settingsTab = document.querySelector('[data-p="settings"]');
-  const myGrants = (isDept && CURRENT_DEPT) ? (deptAccessGrants[CURRENT_DEPT] || []) : [];
-  const hasAnyGrant = isDev || myGrants.length > 0;
-  if (settingsTab) settingsTab.style.display = hasAnyGrant ? "" : "none";
+  if (settingsTab) settingsTab.style.display = isDev ? "" : "none";
 
   // Show/hide developer-only buttons in topbar
   const exportBtn = document.querySelector('button[onclick="exportCSV()"]');
@@ -3686,13 +3684,7 @@ function applyRoleRestrictions() {
   if (!isDev) {
     switchPage = function(name) {
       if (name === "settings") {
-        const grants = (CURRENT_DEPT && deptAccessGrants[CURRENT_DEPT]) || [];
-        if (grants.length === 0) {
-          alert("🔒 Settings access is restricted to Developer only.");
-          return;
-        }
-        // They have some grants — allow but we'll hide panels in renderSettings
-        _switchPageOriginal(name);
+        alert("🔒 Developer Control Panel is restricted to Developer access only.");
         return;
       }
       // For roster/staff, force dept filter
@@ -7615,21 +7607,14 @@ function openLiveDashForEmployee(id, emp) {
   if (win) win.style.display = 'flex';
   const nameEl = document.getElementById('liveDashUserName');
   if (nameEl) nameEl.textContent = emp.name + ' · ' + emp.department;
-  // Fill filter dropdowns — dept is locked/hidden for authorized staff
+  // Dept filter — always hidden for staff, locked to their department
   const deptSel = document.getElementById('liveDeptFilter');
   if (deptSel) {
-    const emp = staffData[id];
-    if (emp && emp.department) {
-      // Lock to employee's department and hide the dropdown
-      deptSel.innerHTML = `<option value="${emp.department}">${emp.department}</option>`;
-      deptSel.value = emp.department;
-      deptSel.disabled = true;
-      deptSel.style.display = 'none';
-    } else {
-      deptSel.innerHTML = '<option value="all">🏢 All Departments</option>' +
-        (typeof getAllDepts === 'function' ? getAllDepts() : []).map(d => `<option value="${d}">${d}</option>`).join('');
-      deptSel.style.display = '';
-    }
+    const deptVal = emp.department || 'all';
+    deptSel.innerHTML = `<option value="${deptVal}">${deptVal}</option>`;
+    deptSel.value = deptVal;
+    deptSel.disabled = true;
+    deptSel.style.display = 'none';
   }
   const hotelSel = document.getElementById('liveHotelFilter');
   if (hotelSel && typeof HOTELS !== 'undefined') {
