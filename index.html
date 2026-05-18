@@ -778,27 +778,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     </div>
   </div>
 
-  <!-- Live Dashboard filters — Position & Section only (no Department) -->
-  <div id="authLiveOpts" style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:16px 20px;width:100%;max-width:480px;margin-bottom:20px">
-    <div style="font-size:9px;font-weight:700;color:#4ADE80;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px;display:flex;align-items:center;gap:6px">
-      <div style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite"></div>
-      Live Dashboard Options
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div>
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px">Position</div>
-        <select id="authLivePosFilter" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;outline:none">
-          <option value="">All Positions</option>
-        </select>
-      </div>
-      <div>
-        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-bottom:5px">Section</div>
-        <select id="authLiveSecFilter" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:8px 10px;font-size:12px;color:#fff;outline:none">
-          <option value="">All Sections</option>
-        </select>
-      </div>
-    </div>
-  </div>
 
   <button onclick="exitAuthSelector()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.45);border-radius:10px;padding:8px 22px;font-size:12px;cursor:pointer;transition:.2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,.45)'">← Cancel</button>
 </div>
@@ -823,8 +802,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   </div>
   <!-- Filters row -->
   <div style="background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <select id="liveDeptFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="all">🏢 All Departments</option>
+    <select id="liveDeptFilter" style="display:none">
+      <option value="all">All Departments</option>
     </select>
     <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
       <option value="all">🏨 All Hotels</option>
