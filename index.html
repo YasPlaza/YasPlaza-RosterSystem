@@ -8142,6 +8142,202 @@ function devExportScheduleJSON() {
     }, 3000);
   });
 })();
+
+/* ════════════════════════════════════════════════
+   FIX PACK v1 — 2026-05-18
+   1) Generic cpTab so dynamically-added tabs work
+   2) Re-mount Holidays / Themes / Export-Import tabs into .cp-content
+      (the originals were appended into .cp-body and the Holidays
+      injector kept re-running because its existence-check used the
+      wrong element ID).
+   3) Lock the Live Dashboard department filter to the authorized
+      staff member's own department (non-developers).
+   ════════════════════════════════════════════════ */
+(function fixPackV1(){
+  // ---------- 1. Generic cpTab ----------
+  const KNOWN_RENDERERS = {
+    modules: typeof cpRenderModules==='function'?cpRenderModules:null,
+    hotels: typeof cpRenderHotels==='function'?cpRenderHotels:null,
+    departments: typeof cpRenderDepts==='function'?cpRenderDepts:null,
+    shifts: typeof cpRenderShifts==='function'?cpRenderShifts:null,
+    access: typeof cpRenderAccess==='function'?cpRenderAccess:null,
+    live: typeof cpRenderLive==='function'?cpRenderLive:null,
+    notifications: typeof cpRenderNotifications==='function'?cpRenderNotifications:null,
+    logs: typeof cpRenderLogs==='function'?cpRenderLogs:null,
+    holidays: typeof cpRenderHolidays==='function'?cpRenderHolidays:null,
+    themes: typeof cpRenderThemes==='function'?cpRenderThemes:null,
+  };
+  window.cpTab = function(id){
+    document.querySelectorAll('.cp-content .cp-panel[id^="cpt-"]').forEach(el=>{
+      el.style.display = (el.id === 'cpt-'+id) ? 'block' : 'none';
+    });
+    document.querySelectorAll('.cp-nav .cp-nav-item').forEach(el=>{
+      const oc = el.getAttribute('onclick')||'';
+      el.classList.toggle('cpa', oc === "cpTab('"+id+"')");
+    });
+    const r = KNOWN_RENDERERS[id];
+    if (typeof r === 'function') { try { r(); } catch(e){ console.error(e); } }
+    if (typeof cpUpdateHealth === 'function') cpUpdateHealth();
+  };
+
+  // ---------- 2. Re-mount injected tabs ----------
+  function mountTab(navLabel, tabId, innerHTML, onShow){
+    const cpNav = document.querySelector('.cp-sidebar .cp-nav');
+    const cpContent = document.querySelector('.cp-content');
+    if (!cpNav || !cpContent) return false;
+
+    // Remove any duplicate / mis-placed prior copies
+    document.querySelectorAll('#'+tabId).forEach(el=>el.remove());
+    // Remove duplicate nav items pointing to this tab
+    cpNav.querySelectorAll('.cp-nav-item').forEach(el=>{
+      const oc = el.getAttribute('onclick')||'';
+      if (oc.includes("cpTab('"+tabId.replace(/^cpt-/,'')+"')")) el.remove();
+    });
+
+    const navItem = document.createElement('div');
+    navItem.className = 'cp-nav-item';
+    navItem.textContent = navLabel;
+    navItem.setAttribute('onclick', "cpTab('"+tabId.replace(/^cpt-/,'')+"')");
+    cpNav.appendChild(navItem);
+
+    const panel = document.createElement('div');
+    panel.className = 'cp-panel';
+    panel.id = tabId;
+    panel.style.display = 'none';
+    panel.innerHTML = innerHTML;
+    cpContent.appendChild(panel);
+
+    if (onShow) {
+      // Run renderer the first time the tab is shown
+      const origCpTab = window.cpTab;
+      window.cpTab = function(id){
+        origCpTab(id);
+        if (id === tabId.replace(/^cpt-/,'')) { try { onShow(); } catch(e){} }
+      };
+    }
+    return true;
+  }
+
+  function mountAll(){
+    if (!document.querySelector('.cp-content')) return false;
+
+    // Holidays
+    if (!document.getElementById('cpt-holidays')) {
+      mountTab('🇦🇪 Holidays', 'cpt-holidays', `
+        <div class="cp-ph"><div class="cp-pt">🇦🇪 UAE Public Holidays <span class="cp-badge">Manage Calendar</span></div></div>
+        <div class="cp-body">
+          <div class="cp-stitle">🇦🇪 UAE Public Holidays Management</div>
+          <div class="cp-infobox">Manage UAE public holidays. Use "Mark in Roster" to automatically block them in the current month's roster view.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
+            <div><label class="cp-lbl2">Date</label><input class="cp-inp2" type="date" id="cpHolDate"></div>
+            <div><label class="cp-lbl2">Holiday Name</label><input class="cp-inp2" id="cpHolName" placeholder="e.g. Eid Al Fitr"></div>
+            <button class="bgold" onclick="cpAddHoliday()" style="white-space:nowrap">+ Add Holiday</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="bx bxg" onclick="cpAutoLoadUAEHolidays()">🇦🇪 Mark Holidays in Current Month Roster</button>
+            <button class="bx bxn" onclick="cpRenderHolidays()">🔄 Refresh</button>
+          </div>
+          <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>
+        </div>`, function(){ if (typeof cpRenderHolidays==='function') cpRenderHolidays(); });
+    }
+
+    // Themes
+    if (!document.getElementById('cpt-themes')) {
+      mountTab('🎨 Themes', 'cpt-themes', `
+        <div class="cp-ph"><div class="cp-pt">🎨 Theme System <span class="cp-badge">Special Events</span></div></div>
+        <div class="cp-body">
+          <div class="cp-stitle">🎨 Theme System — Special Events</div>
+          <div class="cp-infobox">Apply event themes to change the system's color scheme for holidays and special occasions. Themes persist until you change them back.</div>
+          <div id="cpThemeList"></div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)">
+            <div class="cp-stitle">🖌 Custom Theme</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+              <div><label class="cp-lbl2">Primary (Navy)</label><input type="color" id="ctNavy" value="#0F1E35" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
+              <div><label class="cp-lbl2">Secondary</label><input type="color" id="ctNavy2" value="#1B2D4A" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
+              <div><label class="cp-lbl2">Gold / Accent</label><input type="color" id="ctGold" value="#C9963A" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
+              <div><label class="cp-lbl2">Background</label><input type="color" id="ctBg" value="#0B1525" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
+            </div>
+            <button class="bgold" style="margin-top:10px;width:100%" onclick="applyCustomTheme()">Apply Custom Theme</button>
+          </div>
+        </div>`, function(){ if (typeof cpRenderThemes==='function') cpRenderThemes(); });
+    }
+
+    // Export / Import
+    if (!document.getElementById('cpt-exportimport')) {
+      mountTab('💾 Export/Import', 'cpt-exportimport', `
+        <div class="cp-ph"><div class="cp-pt">💾 Export / Import <span class="cp-badge">Backup & Restore</span></div></div>
+        <div class="cp-body">
+          <div class="cp-stitle">💾 Export / Import System</div>
+          <div class="cp-infobox">Back up and restore all system data. Use Full Backup to preserve everything including staff, schedules, holidays, and authorized IDs.</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px">
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px">
+              <div class="cp-stitle" style="margin-bottom:10px">📤 Export</div>
+              <div style="display:flex;flex-direction:column;gap:7px">
+                <button class="bgold" style="width:100%;text-align:left;padding:10px 14px" onclick="devExportAll()">
+                  💾 Full System Backup (.json)<div style="font-size:9px;opacity:.7;margin-top:2px">Staff + Schedules + Config + Holidays</div>
+                </button>
+                <button class="bx bxn" style="width:100%;text-align:left;padding:8px 12px" onclick="devExportRosterCSV()">
+                  📊 Roster CSV (current month)<div style="font-size:9px;opacity:.7;margin-top:2px">For Excel / HR reporting</div>
+                </button>
+                <button class="bx bxn" style="width:100%;text-align:left;padding:8px 12px" onclick="devExportStaffJSON()">👥 Staff Data Only (.json)</button>
+                <button class="bx bxn" style="width:100%;text-align:left;padding:8px 12px" onclick="devExportScheduleJSON()">📅 Schedules Only (.json)</button>
+              </div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px">
+              <div class="cp-stitle" style="margin-bottom:10px">📥 Import</div>
+              <div style="margin-bottom:10px;padding:9px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:10px;color:#F87171">
+                ⚠️ Importing will overwrite existing data. Always export a backup first.
+              </div>
+              <label style="display:block;cursor:pointer">
+                <div class="bgold" style="width:100%;text-align:center;padding:12px 14px;border-radius:8px;font-size:12px;font-weight:700;color:#fff;background:linear-gradient(135deg,#0F766E,#0D5F58)">
+                  📥 Import Full Backup (.json)
+                </div>
+                <input type="file" accept=".json" style="display:none" onchange="devImportBackup(this)">
+              </label>
+            </div>
+          </div>
+          <div style="margin-top:16px;padding:12px;background:rgba(201,150,58,.05);border:1px solid rgba(201,150,58,.15);border-radius:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--gold2);margin-bottom:6px">💡 Backup Strategy</div>
+            <div style="font-size:10px;color:#94A3B8;line-height:1.6">
+              • Export a <strong style="color:#fff">Full System Backup</strong> before major changes<br>
+              • Keep monthly backups for HR records<br>
+              • CSV export is useful for Excel reports and payroll<br>
+              • Firebase sync also backs up your data in the cloud
+            </div>
+          </div>
+        </div>`);
+    }
+    return true;
+  }
+
+  // Mount once the control panel exists. Retry until cp-content appears, then stop.
+  let tries = 0;
+  const iv = setInterval(()=>{
+    tries++;
+    if (mountAll() || tries > 40) clearInterval(iv);
+  }, 500);
+  document.addEventListener('click', function(){ mountAll(); }, true);
+
+  // ---------- 3. Lock Live Dashboard dept filter to user's department ----------
+  const _origOpenLive = typeof openLiveDashForEmployee === 'function' ? openLiveDashForEmployee : null;
+  if (_origOpenLive) {
+    window.openLiveDashForEmployee = function(id, emp){
+      _origOpenLive(id, emp);
+      try {
+        const deptSel = document.getElementById('liveDeptFilter');
+        if (deptSel && emp && emp.department) {
+          // Replace options with only the user's own department
+          deptSel.innerHTML = `<option value="${emp.department}">🏢 ${emp.department}</option>`;
+          deptSel.value = emp.department;
+          deptSel.disabled = true;
+          deptSel.style.opacity = '0.65';
+          deptSel.title = 'Locked to your department';
+          if (typeof renderLiveDash === 'function') renderLiveDash();
+        }
+      } catch(e) { console.error(e); }
+    };
+  }
+})();
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
