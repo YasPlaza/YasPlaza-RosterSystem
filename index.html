@@ -1262,9 +1262,13 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
 <div class="page" id="page-settings">
 <style>
-#page-settings{padding:16px}
-.cp-wrap{display:grid;grid-template-columns:250px 1fr;gap:14px;align-items:start}
-.cp-sidebar{display:flex;flex-direction:column;gap:10px;position:sticky;top:14px;align-self:start}
+#page-settings{padding:0;height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden}
+#cp-outer{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 14px 0}
+#cp-topbar-area{flex-shrink:0}
+.cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;overflow:hidden;min-height:0;padding-bottom:14px}
+.cp-sidebar{display:flex;flex-direction:column;gap:10px;overflow-y:auto;height:100%}
+.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden;flex-shrink:0}
+.cp-content{overflow-y:auto;height:100%;padding-right:4px}
 .cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden}
 .cp-nav-hdr{padding:11px 15px;background:rgba(201,150,58,.1);border-bottom:1px solid rgba(201,150,58,.2);font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px}
 .cp-nav-item{display:flex;align-items:center;gap:8px;padding:10px 15px;cursor:pointer;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;color:rgba(255,255,255,.6);user-select:none}
@@ -1338,6 +1342,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 @media(max-width:860px){.cp-wrap{grid-template-columns:1fr}.cp-hlth{grid-template-columns:1fr 1fr}}
 </style>
 
+<div id="cp-outer">
+<div id="cp-topbar-area">
 <!-- TOP BAR -->
 <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:12px 18px;margin-bottom:14px">
   <div style="display:flex;align-items:center;gap:10px">
@@ -1359,6 +1365,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   <div class="cph"><div style="font-size:18px">🧩</div><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="cpMC">—</div></div></div>
   <div class="cph"><div style="font-size:18px">🏨</div><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="cpHC">—</div></div></div>
 </div>
+</div><!-- /cp-topbar-area -->
 
 <div class="cp-wrap">
   <!-- SIDEBAR -->
@@ -1510,6 +1517,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           <div><label class="cp-lbl2">Add Position to Monitor</label><select class="cp-inp2" id="cpMonPosInput"></select></div>
           <button class="bgold" style="margin-top:18px" onclick="cpAddMonPos()">+ Add</button>
         </div>
+        <!-- Live preview panel injected by JS -->
+        <div id="cpLivePreview"></div>
       </div>
     </div>
 
@@ -1570,6 +1579,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
   </div><!-- /cp-content -->
 </div><!-- /cp-wrap -->
+</div><!-- /cp-outer -->
 </div>
 
 <!-- Staff Modal -->
@@ -2537,6 +2547,54 @@ function renderLeaveList() {
   }).join("");
 }
 
+// ─── SICK LEAVE COVERAGE SUGGESTION ENGINE ───
+function getSickCoverageSuggestions(sickEmp, fromDay, toDay, monthKey) {
+  if (!sickEmp) return [];
+  const key = monthKey || schKey();
+  const suggestions = [];
+
+  Object.values(staffData).forEach(emp => {
+    if (emp.id === sickEmp.id) return; // skip the sick person
+
+    let matchScore = 0;
+    const reasons = [];
+
+    // Score: same position = 2 pts (best match)
+    if (emp.position === sickEmp.position) { matchScore += 2; reasons.push('same position'); }
+    // Same section = 1 pt
+    if (emp.section && sickEmp.section && emp.section === sickEmp.section) { matchScore += 1; reasons.push('same section'); }
+    // Same department = 1 pt
+    if (emp.department === sickEmp.department) { matchScore += 1; reasons.push('same dept'); }
+    // Same hotel = 0.5 pt
+    if (emp.hotel === sickEmp.hotel) matchScore += 0.5;
+
+    // Must have at least same department
+    if (!reasons.includes('same dept') && !reasons.includes('same position')) return;
+
+    // Check what they're doing on the sick days
+    const empSch = (schedData[emp.id] && schedData[emp.id][key]) || {};
+    const dayShift = empSch[fromDay] || '—';
+    const isOffOrFree = !dayShift || dayShift === 'OFF' || dayShift === 'AL' || dayShift === 'EX' || dayShift === '—';
+
+    // Bonus if they're off that day (easier to cover)
+    if (isOffOrFree) matchScore += 1.5;
+
+    suggestions.push({
+      id: emp.id,
+      name: emp.name,
+      position: emp.position,
+      department: emp.department,
+      section: emp.section || '',
+      dayShift: dayShift === '—' ? 'Free' : dayShift,
+      matchScore,
+      isOff: isOffOrFree
+    });
+  });
+
+  // Sort: highest score first, then off-day staff first
+  return suggestions.sort((a, b) => b.matchScore - a.matchScore || (b.isOff ? 1 : -1) - (a.isOff ? 1 : -1));
+}
+
 // ─── ADMIN REQUEST MANAGEMENT ───
 function renderAdminRequests() {
   // Swap requests
@@ -2570,7 +2628,11 @@ function renderAdminRequests() {
 
   // Leave requests
   const leaveEl = document.getElementById("adminLeaveList");
-  const pendingLeaves = Object.values(leaveRequests).filter(r => r.status === "pending").sort((a,b) => b.created - a.created);
+  const pendingLeaves = Object.values(leaveRequests).filter(r => r.status === "pending").sort((a,b) => {
+    if (a.type === 'SICK' && b.type !== 'SICK') return -1;
+    if (b.type === 'SICK' && a.type !== 'SICK') return 1;
+    return b.created - a.created;
+  });
   document.getElementById("leaveCount").textContent = pendingLeaves.length + " pending";
 
   if (!leaveEl) return;
@@ -2581,18 +2643,43 @@ function renderAdminRequests() {
       const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training", SICK: "🤒 Sick Leave", ABS: "⛔ Absent"};
       const days = r.toDay - r.fromDay + 1;
       const alLeft = (emp?.annualLeave || 0) - (emp?.alUsed || 0);
-      return `<div style="background:var(--ice2);border:1.5px solid #4ADE80;border-radius:10px;padding:12px;margin-bottom:8px">
+      const isSick = r.type === 'SICK';
+      const borderColor = isSick ? '#FB7185' : '#4ADE80';
+      const bgColor = isSick ? 'rgba(251,113,133,.06)' : 'var(--ice2)';
+      let coverageHTML = '';
+      if (isSick && emp) {
+        const suggestions = getSickCoverageSuggestions(emp, r.fromDay, r.toDay, r.monthKey);
+        if (suggestions.length) {
+          coverageHTML = `<div style="margin-top:10px;background:rgba(201,150,58,.07);border:1px solid rgba(201,150,58,.25);border-radius:8px;padding:10px">
+            <div style="font-size:10px;font-weight:700;color:#C9963A;margin-bottom:7px">💡 COVERAGE SUGGESTIONS — who can cover</div>
+            ${suggestions.slice(0,4).map((s,i) => `<div style="display:flex;align-items:center;gap:8px;padding:5px 7px;background:rgba(255,255,255,.7);border-radius:6px;margin-bottom:4px">
+              <div style="width:22px;height:22px;border-radius:50%;background:${s.matchScore>=2?'#10B981':'#F59E0B'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</div>
+              <div style="flex:1"><div style="font-size:11px;font-weight:700;color:#0F1E35">${s.name}</div>
+              <div style="font-size:9px;color:#64748B">${s.position} · ${s.section||s.department} · Day ${r.fromDay}: <b style="color:${s.dayShift==='OFF'?'#10B981':'#E65C00'}">${s.dayShift||'—'}</b></div></div>
+              <span style="font-size:9px;background:${s.matchScore>=2?'#D4EDDA':'#FFF3E0'};color:${s.matchScore>=2?'#1B6B3A':'#E65C00'};padding:2px 7px;border-radius:10px;font-weight:700">${s.matchScore>=2?'Best':'Good'}</span>
+            </div>`).join('')}
+            <div style="font-size:9px;color:#64748B;margin-top:5px">Best = same position & section · Good = same dept or has off day</div>
+          </div>`;
+        } else {
+          coverageHTML = `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,.06);border-radius:6px;font-size:10px;color:#B91C1C">⚠️ No available staff found to cover this shift.</div>`;
+        }
+      }
+      return `<div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:12px;margin-bottom:8px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-weight:700;font-size:12px">${typeLabels[r.type]} — ${emp?.name}</div>
-            <div style="font-size:11px;color:var(--slate);margin-top:4px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
+              ${isSick ? '<span style="background:#FFE4E6;color:#9F1239;font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;border:1px solid #FB7185">🚨 URGENT</span>' : ''}
+              <div style="font-weight:700;font-size:12px">${typeLabels[r.type]} — ${emp?.name||r.empId}</div>
+            </div>
+            <div style="font-size:11px;color:var(--slate);margin-top:2px">
               Day ${r.fromDay}${r.fromDay!==r.toDay?" – "+r.toDay:""} · ${days} day(s)<br>
-              ${emp?.department} · ${emp?.position}<br>
+              ${emp?.department||''} · ${emp?.position||''}${emp?.section?' · 📍'+emp.section:''}<br>
               ${r.type==="AL"?'<span style="color:'+(days>alLeft?'var(--red)':'var(--green)')+'">AL Balance: '+alLeft+' days left</span>' : ""}
               ${r.reason ? '<br>Reason: '+r.reason : ""}
             </div>
+            ${coverageHTML}
           </div>
-          <div style="display:flex;gap:4px;flex-shrink:0">
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:10px">
             <button class="btn btn-gold btn-sm" onclick="adminApproveLeave('${r.id}')">✓ Approve</button>
             <button class="btn btn-danger btn-sm" onclick="adminRejectLeave('${r.id}')">✕ Reject</button>
           </div>
@@ -3208,33 +3295,75 @@ function showDeptModeChooser(dept){
     m.id = 'deptModeModal';
     m.className = 'mover';
     m.style.cssText = 'display:flex;position:fixed;inset:0;background:rgba(11,21,37,.85);align-items:center;justify-content:center;z-index:9000';
-    m.innerHTML = `
-      <div style="background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.3);border-radius:16px;padding:24px;max-width:420px;width:92%;box-shadow:0 16px 56px rgba(0,0,0,.5)">
-        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">Welcome, <span id="dmcDept" style="color:#C9963A"></span></div>
-        <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:18px">What would you like to open?</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-          <button id="dmcLive" style="background:linear-gradient(135deg,#1B6B3A,#22c55e);color:#fff;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
-            <div style="font-size:28px;margin-bottom:6px">🟢</div>
-            <div style="font-weight:700;font-size:13px">Live Dashboard</div>
-            <div style="font-size:10px;opacity:.85;margin-top:3px">Staff on duty right now</div>
-          </button>
-          <button id="dmcRoster" style="background:linear-gradient(135deg,#C9963A,#E8B04A);color:#0D1B2E;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
-            <div style="font-size:28px;margin-bottom:6px">📅</div>
-            <div style="font-weight:700;font-size:13px">Roster</div>
-            <div style="font-size:10px;opacity:.85;margin-top:3px">Full monthly schedule</div>
-          </button>
-        </div>
-        <div style="text-align:center;margin-top:14px"><button onclick="document.getElementById('deptModeModal').remove();location.reload()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:11px;cursor:pointer">← Cancel</button></div>
-      </div>`;
     document.body.appendChild(m);
   }
+  const depts = getAllDepts();
+  const deptOpts = depts.map(d=>`<option value="${d}" ${d===dept?'selected':''}>${d}</option>`).join('');
+  m.innerHTML = `
+    <div style="background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.3);border-radius:16px;padding:24px;max-width:460px;width:92%;box-shadow:0 16px 56px rgba(0,0,0,.5)">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff;margin-bottom:6px">Welcome, <span id="dmcDept" style="color:#C9963A">${dept}</span></div>
+      <div style="font-size:12px;color:rgba(255,255,255,.6);margin-bottom:18px">What would you like to open?</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <button id="dmcLive" style="background:linear-gradient(135deg,#1B6B3A,#22c55e);color:#fff;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
+          <div style="font-size:28px;margin-bottom:6px">🟢</div>
+          <div style="font-weight:700;font-size:13px">Live Dashboard</div>
+          <div style="font-size:10px;opacity:.85;margin-top:3px">Staff on duty right now</div>
+        </button>
+        <button id="dmcRoster" style="background:linear-gradient(135deg,#C9963A,#E8B04A);color:#0D1B2E;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
+          <div style="font-size:28px;margin-bottom:6px">📅</div>
+          <div style="font-weight:700;font-size:13px">Roster</div>
+          <div style="font-size:10px;opacity:.85;margin-top:3px">Full monthly schedule</div>
+        </button>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🟢 Live Dashboard Options</div>
+        <div style="margin-bottom:8px"><label style="font-size:10px;color:rgba(255,255,255,.4);display:block;margin-bottom:3px">Department</label>
+          <select id="dmcDeptSel" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;padding:6px 8px;font-size:11px">
+            <option value="__ALL__" ${dept==='all'?'selected':''}>🌐 All Departments</option>
+            ${deptOpts}
+          </select>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div><label style="font-size:10px;color:rgba(255,255,255,.4);display:block;margin-bottom:3px">Position</label>
+            <select id="dmcPosSel" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;padding:6px 8px;font-size:11px">
+              <option value="">All Positions</option>
+            </select>
+          </div>
+          <div><label style="font-size:10px;color:rgba(255,255,255,.4);display:block;margin-bottom:3px">Section</label>
+            <select id="dmcSecSel" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;padding:6px 8px;font-size:11px">
+              <option value="">All Sections</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div style="text-align:center"><button onclick="document.getElementById('deptModeModal').remove();location.reload()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:11px;cursor:pointer">← Cancel</button></div>
+    </div>`;
+  
+  // Populate dropdowns based on dept
+  function refreshDmcDropdowns(){
+    const selDept = document.getElementById('dmcDeptSel')?.value;
+    const posSel = document.getElementById('dmcPosSel');
+    const secSel = document.getElementById('dmcSecSel');
+    const isAll = !selDept || selDept === '__ALL__';
+    const positions = isAll ? getAllPos() : (DEPT_POS[selDept]||[]);
+    const sections = isAll ? Object.values(DEPT_SECTIONS).flat() : (DEPT_SECTIONS[selDept]||[]);
+    if(posSel) posSel.innerHTML = '<option value="">All Positions</option>' + positions.map(p=>`<option>${p}</option>`).join('');
+    if(secSel) secSel.innerHTML = '<option value="">All Sections</option>' + [...new Set(sections)].map(s=>`<option>${s}</option>`).join('');
+  }
+  refreshDmcDropdowns();
+  document.getElementById('dmcDeptSel').onchange = refreshDmcDropdowns;
   document.getElementById('dmcDept').textContent = dept;
-  document.getElementById('dmcLive').onclick = ()=>{ m.remove(); enterAdmin(); setTimeout(()=>openManagerLiveDashboard(dept), 400); };
+  document.getElementById('dmcLive').onclick = ()=>{
+    const d = document.getElementById('dmcDeptSel')?.value || dept;
+    const pos = document.getElementById('dmcPosSel')?.value || '';
+    const sec = document.getElementById('dmcSecSel')?.value || '';
+    m.remove(); enterAdmin(); setTimeout(()=>openManagerLiveDashboard(d, pos, sec), 400);
+  };
   document.getElementById('dmcRoster').onclick = ()=>{ m.remove(); enterAdmin(); };
 }
 
 // ── Manager Live Dashboard (on-duty view) ──
-function openManagerLiveDashboard(dept){
+function openManagerLiveDashboard(dept, filterPos, filterSec){
   let m = document.getElementById('mgrLiveModal');
   if(!m){
     m = document.createElement('div');
@@ -3252,59 +3381,113 @@ function openManagerLiveDashboard(dept){
   else if (hr >= 14 && hr < 22) currentShifts = ['AFT','M12','SPL','FLEX'];
   else currentShifts = ['EVE','FLEX'];
 
-  const wantAll = (dept === 'all' || !dept);
+  const wantAll = (dept === 'all' || dept === '__ALL__' || !dept);
   const onDuty = [];
   const offToday = [];
   const sickToday = [];
+  const absentToday = [];
   Object.values(staffData).forEach(emp=>{
     if(!wantAll && emp.department !== dept) return;
+    if(filterPos && emp.position !== filterPos) return;
+    if(filterSec && (emp.section||'') !== filterSec) return;
     const sch = (schedData[emp.id] && schedData[emp.id][key]) || {};
     const code = sch[day];
     if(!code) return;
     if(currentShifts.includes(code)) onDuty.push({emp, code});
     else if(code === 'SICK') sickToday.push({emp, code});
-    else if(code === 'OFF' || code === 'AL' || code === 'EX' || code === 'UNP' || code === 'ABS') offToday.push({emp, code});
+    else if(code === 'ABS') absentToday.push({emp, code});
+    else if(code === 'OFF' || code === 'AL' || code === 'EX' || code === 'UNP') offToday.push({emp, code});
   });
 
-  const card = (e) => {
+  const sectionGroups = {};
+  onDuty.forEach(e=>{
+    const sec = e.emp.section || '—';
+    if(!sectionGroups[sec]) sectionGroups[sec] = [];
+    sectionGroups[sec].push(e);
+  });
+
+  const card = (e, mini=false) => {
     const s = SHIFTS[e.code] || {label:e.code, time:'', color:'#666', bg:'#eee', border:'#999'};
-    return `<div style="background:#fff;border-left:4px solid ${s.border};border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+    const dc = getDeptColor(e.emp.department);
+    return `<div style="background:#fff;border-left:4px solid ${s.border};border-radius:8px;padding:${mini?'7px 10px':'10px 12px'};margin-bottom:6px;display:flex;align-items:center;gap:10px">
       <div style="background:${s.bg};color:${s.color};font-weight:800;padding:5px 9px;border-radius:6px;font-size:11px;min-width:48px;text-align:center">${e.code}</div>
       <div style="flex:1">
-        <div style="font-weight:700;color:#0F1E35;font-size:13px">${e.emp.name}</div>
-        <div style="font-size:10px;color:#64748B">${e.emp.position||''} · ${e.emp.department||''} · ${s.time||''}</div>
+        <div style="font-weight:700;color:#0F1E35;font-size:${mini?'11px':'13px'}">${e.emp.name}</div>
+        <div style="font-size:10px;color:#64748B">
+          <span style="background:${dc.bg};color:${dc.color};border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700">${e.emp.department}</span>
+          ${e.emp.position?` · ${e.emp.position}`:''}
+          ${e.emp.section?` · 📍${e.emp.section}`:''}
+          ${s.time?` · ${s.time}`:''}
+        </div>
       </div>
     </div>`;
   };
 
+  // Group by section HTML
+  const sectionHTML = Object.keys(sectionGroups).sort().map(sec=>`
+    <div style="margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:#0F766E;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid #CCFBF1;padding-bottom:4px;margin-bottom:6px">📍 ${sec} (${sectionGroups[sec].length})</div>
+      ${sectionGroups[sec].map(e=>card(e, true)).join('')}
+    </div>`).join('');
+
+  const filterLabel = [wantAll?'All Departments':dept, filterPos||'', filterSec||''].filter(Boolean).join(' · ');
+
   m.innerHTML = `
-    <div style="max-width:680px;margin:0 auto;background:#F7FAFF;border-radius:16px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.4)">
+    <div style="max-width:720px;margin:0 auto;background:#F7FAFF;border-radius:16px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.4)">
       <div style="background:linear-gradient(135deg,#0F1E35,#1B2D4A);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
         <div>
           <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800">🟢 Live Dashboard</div>
-          <div style="font-size:11px;opacity:.7;margin-top:2px">${wantAll?'All Departments':dept} · ${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})} · ${today.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">${filterLabel} · ${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})} · ${today.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
         </div>
-        <button onclick="document.getElementById('mgrLiveModal').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700">✕ Close</button>
+        <div style="display:flex;gap:8px">
+          <button onclick="openManagerLiveDashboard('${dept}','${filterPos||''}','${filterSec||''}')" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700">🔄 Refresh</button>
+          <button onclick="document.getElementById('mgrLiveModal').remove()" style="background:rgba(255,255,255,.1);border:none;color:#fff;padding:8px 14px;border-radius:8px;cursor:pointer;font-weight:700">✕ Close</button>
+        </div>
       </div>
       <div style="padding:16px 20px">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">
           <div style="background:#D4EDDA;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#1B6B3A">${onDuty.length}</div><div style="font-size:10px;color:#1B6B3A;font-weight:700">ON DUTY</div></div>
           <div style="background:#FFE4E6;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#9F1239">${sickToday.length}</div><div style="font-size:10px;color:#9F1239;font-weight:700">SICK</div></div>
+          <div style="background:#1F2937;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#fff">${absentToday.length}</div><div style="font-size:10px;color:#aaa;font-weight:700">ABSENT</div></div>
           <div style="background:#FFCDD2;border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:800;color:#B71C1C">${offToday.length}</div><div style="font-size:10px;color:#B71C1C;font-weight:700">OFF / LEAVE</div></div>
         </div>
 
+        <!-- Filter bar -->
+        <div style="background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;border:1px solid #e0e7ef">
+          <span style="font-size:10px;font-weight:700;color:#64748B">FILTER:</span>
+          <select id="liveFilterDept" style="flex:1;min-width:120px;border:1px solid #dde3f0;border-radius:6px;padding:4px 8px;font-size:11px" onchange="refreshLiveDashboard()">
+            <option value="__ALL__" ${wantAll?'selected':''}>All Departments</option>
+            ${getAllDepts().map(d=>`<option value="${d}" ${d===dept?'selected':''}>${d}</option>`).join('')}
+          </select>
+          <select id="liveFilterPos" style="flex:1;min-width:120px;border:1px solid #dde3f0;border-radius:6px;padding:4px 8px;font-size:11px" onchange="refreshLiveDashboard()">
+            <option value="" ${!filterPos?'selected':''}>All Positions</option>
+            ${getAllPos().map(p=>`<option value="${p}" ${p===filterPos?'selected':''}>${p}</option>`).join('')}
+          </select>
+          <select id="liveFilterSec" style="flex:1;min-width:120px;border:1px solid #dde3f0;border-radius:6px;padding:4px 8px;font-size:11px" onchange="refreshLiveDashboard()">
+            <option value="" ${!filterSec?'selected':''}>All Sections</option>
+            ${[...new Set(Object.values(DEPT_SECTIONS).flat())].sort().map(s=>`<option value="${s}" ${s===filterSec?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+
         <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0F1E35;margin:6px 0 8px">🟢 Currently On Shift (${onDuty.length})</div>
-        ${onDuty.length ? onDuty.map(card).join('') : '<div style="padding:14px;text-align:center;color:#64748B;background:#fff;border-radius:8px">No staff currently on duty.</div>'}
+        ${onDuty.length ? (Object.keys(sectionGroups).length > 1 ? sectionHTML : onDuty.map(e=>card(e)).join('')) : '<div style="padding:14px;text-align:center;color:#64748B;background:#fff;border-radius:8px">No staff currently on duty.</div>'}
 
-        ${sickToday.length ? `<div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#9F1239;margin:18px 0 8px">🤒 Sick Today</div>${sickToday.map(card).join('')}` : ''}
-
-        ${offToday.length ? `<div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#B71C1C;margin:18px 0 8px">⛔ Off / On Leave</div>${offToday.map(card).join('')}` : ''}
+        ${sickToday.length ? `<div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#9F1239;margin:18px 0 8px">🤒 Sick Today (${sickToday.length})</div>${sickToday.map(e=>card(e)).join('')}` : ''}
+        ${absentToday.length ? `<div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#374151;margin:18px 0 8px">⛔ Absent Today (${absentToday.length})</div>${absentToday.map(e=>card(e)).join('')}` : ''}
+        ${offToday.length ? `<div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#B71C1C;margin:18px 0 8px">🏖 Off / On Leave (${offToday.length})</div>${offToday.map(e=>card(e)).join('')}` : ''}
 
         <div style="margin-top:18px;text-align:center">
           <button onclick="document.getElementById('mgrLiveModal').remove()" style="background:#0F1E35;color:#fff;border:none;padding:10px 18px;border-radius:10px;font-weight:700;cursor:pointer">📅 Open Full Roster Instead</button>
         </div>
       </div>
     </div>`;
+}
+
+function refreshLiveDashboard(){
+  const d = document.getElementById('liveFilterDept')?.value || '__ALL__';
+  const p = document.getElementById('liveFilterPos')?.value || '';
+  const s = document.getElementById('liveFilterSec')?.value || '';
+  openManagerLiveDashboard(d, p, s);
 }
 
 function enterAdmin() {
@@ -3739,6 +3922,26 @@ function schKey(y,m) { return `${y||YEAR}-${m!==undefined?m:MONTH}`; }
 function getEmpSch(id,y,m) { return schedData[id]?.[schKey(y,m)] || {}; }
 function getDIM(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function getDaysInMonth(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
+// Roster cycle: starts on 15th of current month, ends on 14th of next month
+const ROSTER_START_DAY = 15;
+function getRosterDays(y, m) {
+  // Days from 15 to end of current month
+  const curY = y||YEAR, curM = m!==undefined?m:MONTH;
+  const daysInCurMonth = new Date(curY, curM+1, 0).getDate();
+  const curDays = [];
+  for (let d = ROSTER_START_DAY; d <= daysInCurMonth; d++) curDays.push({y:curY, m:curM, d});
+  // Days 1-14 of next month
+  let nextM = curM + 1, nextY = curY;
+  if (nextM > 11) { nextM = 0; nextY++; }
+  for (let d = 1; d <= 14; d++) curDays.push({y:nextY, m:nextM, d});
+  return curDays;
+}
+function getRosterLabel(y, m) {
+  const curM = m!==undefined?m:MONTH, curY = y||YEAR;
+  let nextM = curM + 1, nextY = curY;
+  if (nextM > 11) { nextM = 0; nextY++; }
+  return `${MONTHS[curM]} 15 – ${MONTHS[nextM]} 14, ${nextY}`;
+}
 function calcStats(emp, sch) {
   let work=0,off=0,al=0,ex=0,unp=0,hrs=0,sick=0;
   Object.values(sch).forEach(c=>{
@@ -4827,7 +5030,9 @@ renderRoster = function() {
   document.getElementById("rosterWrap").style.display = 'block';
   document.getElementById("rosterMobileWrap").style.display = 'none';
 
-  const numDays = getDIM();
+  // Use 15-14 roster cycle
+  const rosterDays = getRosterDays();
+  const numDays = rosterDays.length;
   const hf = document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
   const pf = document.getElementById("rPosF")?.value || "all";
   const df = document.getElementById("rDeptF")?.value || "all";
@@ -4863,22 +5068,25 @@ renderRoster = function() {
     if (sr) parts.push("🔍 '" + sr + "'");
     infoEl.textContent = parts.length
       ? "Filtering: " + parts.join(" · ") + " — showing " + filt.length + " of " + staffList().length + " employees"
-      : "Showing all " + filt.length + " employees  ·  Use filters above to narrow down before printing PDF";
+      : "📅 Roster: " + getRosterLabel() + " · " + filt.length + " employees";
   }
 
-  // Apply weekly slice if needed
-  let days = Array.from({length: numDays}, (_, i) => i + 1);
+  // Apply weekly slice if needed — use rosterDays indices
+  let days = rosterDays;
   if (rosterViewMode === 'weekly') {
-    const start = Math.max(0, Math.min(weeklyOffset * 7, numDays - 1));
+    const start = Math.max(0, Math.min(weeklyOffset * 7, days.length - 1));
     days = days.slice(start, start + 7);
     updateWeekLabel();
   }
-  const dths = days.map(d => {
-    const dow = new Date(YEAR, MONTH, d).getDay();
+  const dths = days.map(dayObj => {
+    const {y:dy, m:dm, d} = dayObj;
+    const dow = new Date(dy, dm, d).getDay();
     const isSat = dow === 6;
+    const monthLabel = dm !== MONTH ? `<div style="font-size:6px;opacity:.5">${MONTHS[dm].slice(0,3)}</div>` : '';
     return `<th class="${isSat ? "sat-th" : ""}" style="text-align:center;min-width:34px;padding:6px 1px">
       <div style="font-size:9px;font-weight:800">${d}</div>
       <div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div>
+      ${monthLabel}
     </th>`;
   }).join("");
 
@@ -4890,7 +5098,8 @@ renderRoster = function() {
 
     // Detect conflicts for this employee
     const empConflicts = [];
-    days.forEach(d => {
+    days.forEach(dayObj => {
+      const {d} = dayObj;
       const code = sch[d] || '';
       if (code) {
         const c = detectConflicts(emp.id, d, code);
@@ -4899,14 +5108,17 @@ renderRoster = function() {
     });
     const hasErrors = empConflicts.some(c => c.severity === 'error');
 
-    const cells = days.map(d => {
-      const code = sch[d] || "";
+    const cells = days.map(dayObj => {
+      const {y:dy, m:dm, d} = dayObj;
+      const empSchForDay = dm !== MONTH ? (schedData[emp.id]?.[schKey(dy,dm)] || {}) : sch;
+      const code = empSchForDay[d] || "";
       const sh = SHIFTS[code];
-      const dow = new Date(YEAR, MONTH, d).getDay();
+      const dow = new Date(dy, dm, d).getDay();
       const isSat = dow === 6;
-      const daySec = (sectionOverrides[emp.id]?.[schKey()]?.[d]) || '';
+      const daySec = (sectionOverrides[emp.id]?.[schKey(dy,dm)]?.[d]) || '';
       const secPill = daySec ? `<div class="day-sec-pill" title="Section for this day">${daySec}</div>` : '';
-      return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center">
+      const isCrossMonth = dm !== MONTH;
+      return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center${isCrossMonth?';background:rgba(15,30,53,.04)':''}">
         <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
         ${renderHotelPill(emp.id, d)}
         ${secPill}
@@ -6623,7 +6835,7 @@ function cpRenderLive(){
       <div class="cpav">${u.name.substring(0,2).toUpperCase()}</div>
       <div style="flex:1">
         <div style="font-size:12px;font-weight:600;color:#fff">${u.name}</div>
-        <div style="font-size:10px;color:#64748B">${u.type||'manager'} · Depts: ${(u.depts||[]).join(', ')||'All'}</div>
+        <div style="font-size:10px;color:#64748B">${u.type||'manager'} · Dept: ${u.dept||'All'} · Sections: ${(u.positions||[]).join(', ')||'All'}</div>
       </div>
       <div style="font-family:'DM Mono',monospace;font-size:10px;background:rgba(201,150,58,.1);color:#C9963A;padding:3px 8px;border-radius:5px;margin:0 8px">PIN: ${u.pin}</div>
       <button class="bx bxn" onclick="cpEditLU(${i})">Edit</button>
@@ -6631,12 +6843,101 @@ function cpRenderLive(){
     </div>`).join('')
     :'<div style="font-size:12px;color:#64748B;padding:8px">No live dashboard users. Add one above.</div>';
 
+  // Live Dashboard preview panel
+  const previewWrap = document.getElementById('cpLivePreview');
+  if(previewWrap){
+    const allDepts = getAllDepts();
+    previewWrap.innerHTML = `
+      <div class="cp-stitle" style="margin-top:14px">🟢 Live Dashboard Preview</div>
+      <div class="cp-infobox">Select a department and position to preview who's currently on duty.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><label class="cp-lbl2">Department</label>
+          <select class="cp-inp2" id="livePrevDept" onchange="cpUpdateLivePreview()">
+            <option value="__ALL__">All Departments</option>
+            ${allDepts.map(d=>`<option value="${d}">${d}</option>`).join('')}
+          </select>
+        </div>
+        <div><label class="cp-lbl2">Position</label>
+          <select class="cp-inp2" id="livePrevPos" onchange="cpUpdateLivePreview()">
+            <option value="">All Positions</option>
+          </select>
+        </div>
+        <div><label class="cp-lbl2">Section</label>
+          <select class="cp-inp2" id="livePrevSec" onchange="cpUpdateLivePreview()">
+            <option value="">All Sections</option>
+          </select>
+        </div>
+      </div>
+      <div id="livePrevResults" style="min-height:40px"></div>`;
+    setTimeout(cpUpdateLivePreview, 100);
+  }
+
   const mp=document.getElementById('cpMonPosList'); if(mp)
     mp.innerHTML=LIVE_MON_POSITIONS.map((p,i)=>`
       <span class="cp-pill">${p}<span class="xr" onclick="cpRmMonPos(${i})">×</span></span>`).join('');
   const sel=document.getElementById('cpMonPosInput');
   if(sel) sel.innerHTML=getAllPos().filter(p=>!LIVE_MON_POSITIONS.includes(p))
     .map(p=>`<option value="${p}">${p}</option>`).join('');
+}
+
+function cpUpdateLivePreview(){
+  const dept = document.getElementById('livePrevDept')?.value || '__ALL__';
+  const posSel = document.getElementById('livePrevPos');
+  const secSel = document.getElementById('livePrevSec');
+  // Refresh position/section dropdowns
+  const isAll = dept === '__ALL__';
+  const positions = isAll ? getAllPos() : (DEPT_POS[dept]||[]);
+  const sections = isAll ? [...new Set(Object.values(DEPT_SECTIONS).flat())] : (DEPT_SECTIONS[dept]||[]);
+  if(posSel) { const cur=posSel.value; posSel.innerHTML = '<option value="">All Positions</option>' + positions.map(p=>`<option value="${p}">${p}</option>`).join(''); posSel.value=cur; }
+  if(secSel) { const cur=secSel.value; secSel.innerHTML = '<option value="">All Sections</option>' + [...new Set(sections)].map(s=>`<option value="${s}">${s}</option>`).join(''); secSel.value=cur; }
+  const filterPos = posSel?.value||'';
+  const filterSec = secSel?.value||'';
+
+  const today = new Date();
+  const day = today.getDate();
+  const key = today.getFullYear() + "-" + today.getMonth();
+  const hr = today.getHours();
+  let currentShifts;
+  if (hr >= 6 && hr < 14) currentShifts = ['MOR','M11','M12','SPL','FLEX'];
+  else if (hr >= 14 && hr < 22) currentShifts = ['AFT','M12','SPL','FLEX'];
+  else currentShifts = ['EVE','FLEX'];
+
+  const onDuty=[], sick=[], absent=[], off=[];
+  Object.values(staffData).forEach(emp=>{
+    if(dept!=='__ALL__' && emp.department!==dept) return;
+    if(filterPos && emp.position!==filterPos) return;
+    if(filterSec && (emp.section||'')!==filterSec) return;
+    const sch=(schedData[emp.id]&&schedData[emp.id][key])||{};
+    const code=sch[day];
+    if(!code) return;
+    if(currentShifts.includes(code)) onDuty.push({emp,code});
+    else if(code==='SICK') sick.push({emp,code});
+    else if(code==='ABS') absent.push({emp,code});
+    else off.push({emp,code});
+  });
+
+  const el = document.getElementById('livePrevResults');
+  if(!el) return;
+  const miniCard = (e,c) => {
+    const s=SHIFTS[e.code]||{bg:'#eee',color:'#666',border:'#ccc'};
+    return `<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;background:rgba(255,255,255,.04);border-radius:6px;margin-bottom:4px">
+      <span style="background:${s.bg};color:${s.color};font-size:9px;font-weight:800;padding:2px 5px;border-radius:4px">${e.code}</span>
+      <span style="font-size:11px;color:#fff;font-weight:600">${e.emp.name}</span>
+      <span style="font-size:9px;color:#64748B">${e.emp.position||''}</span>
+      ${e.emp.section?`<span style="font-size:9px;color:#5EEAD4">📍${e.emp.section}</span>`:''}
+    </div>`;
+  };
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:8px">
+      <div style="text-align:center;background:rgba(16,185,129,.1);border-radius:7px;padding:7px"><div style="font-size:16px;font-weight:800;color:#10B981">${onDuty.length}</div><div style="font-size:9px;color:#64748B">ON DUTY</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.08);border-radius:7px;padding:7px"><div style="font-size:16px;font-weight:800;color:#EF4444">${sick.length}</div><div style="font-size:9px;color:#64748B">SICK</div></div>
+      <div style="text-align:center;background:rgba(55,65,81,.2);border-radius:7px;padding:7px"><div style="font-size:16px;font-weight:800;color:#fff">${absent.length}</div><div style="font-size:9px;color:#64748B">ABSENT</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.05);border-radius:7px;padding:7px"><div style="font-size:16px;font-weight:800;color:#F87171">${off.length}</div><div style="font-size:9px;color:#64748B">OFF/LEAVE</div></div>
+    </div>
+    ${onDuty.length?`<div style="font-size:10px;font-weight:700;color:#10B981;margin-bottom:5px">🟢 ON DUTY</div>${onDuty.map(e=>miniCard(e)).join('')}`:''}
+    ${sick.length?`<div style="font-size:10px;font-weight:700;color:#EF4444;margin:6px 0 5px">🤒 SICK</div>${sick.map(e=>miniCard(e)).join('')}`:''}
+    ${absent.length?`<div style="font-size:10px;font-weight:700;color:#9CA3AF;margin:6px 0 5px">⛔ ABSENT</div>${absent.map(e=>miniCard(e)).join('')}`:''}
+  `;
 }
 // ── Live Dashboard user form (inline, no prompts) ──
 let _cpLUEditIdx = -1;
