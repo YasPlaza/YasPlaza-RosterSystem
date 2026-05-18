@@ -3389,8 +3389,9 @@ function checkPass() {
   if (input === deptPasswords[dept]) {
     CURRENT_DEPT = dept;
     document.getElementById("passModal").classList.remove("show");
-    // Manager picks between Live Dashboard and full Roster
-    showDeptModeChooser(dept);
+    // Department users go straight to the Roster admin view.
+    // Live Dashboard access is reserved for specific staff IDs the Developer authorizes.
+    enterAdmin();
   } else {
     document.getElementById("passErr").textContent = "❌ Incorrect password for " + dept + ".";
     document.getElementById("passInp").value="";
@@ -3657,7 +3658,19 @@ function applyRoleRestrictions() {
 
   // Dev Panel tab — DEVELOPER ONLY, always hidden for dept/manager users
   const settingsTab = document.querySelector('[data-p="settings"]');
-  if (settingsTab) settingsTab.style.display = isDev ? "" : "none";
+  if (settingsTab) {
+    settingsTab.style.display = isDev ? "" : "none";
+    settingsTab.style.pointerEvents = isDev ? "" : "none";
+    if (!isDev) settingsTab.setAttribute('disabled','disabled'); else settingsTab.removeAttribute('disabled');
+  }
+  // Hide the Dev Panel page itself so it can't be revealed via DOM/keyboard
+  const settingsPage = document.getElementById('page-settings');
+  if (settingsPage && !isDev) {
+    settingsPage.classList.remove('active');
+    settingsPage.style.display = 'none';
+  } else if (settingsPage && isDev) {
+    settingsPage.style.display = '';
+  }
 
   // Show/hide developer-only buttons in topbar
   const exportBtn = document.querySelector('button[onclick="exportCSV()"]');
