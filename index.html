@@ -112,6 +112,11 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
 .page{display:none;flex:1;height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both}
+#page-forecast{display:none}
+#page-forecast.active{display:flex;flex-direction:column;gap:16px;overflow-y:auto}
+#fcGlobalKpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:8px}
+#fcHotelSections{display:grid;gap:14px}
+.forecast-section{background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);overflow:hidden}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -8929,7 +8934,7 @@ function devExportScheduleJSON() {
       }).join('')}
     </tbody></table>`;
 
-    return `<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid ${h.color}">
+    return `<div class="forecast-section card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid ${h.color}">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,${h.color}15,transparent)">
         <div style="font-family:'Syne';font-weight:800;font-size:15px;color:${h.color}">🏨 ${h.name}</div>
         <div style="display:flex;gap:14px;font-size:11px;color:var(--slate)">
@@ -8942,7 +8947,7 @@ function devExportScheduleJSON() {
       <div style="padding:12px 16px">
         <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">📅 Next 10 Days</div>
         <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">${strip}</div>
-        <div style="overflow:auto">${table}</div>
+        <div style="max-height:280px;overflow-y:auto;border:1px solid #eee;border-radius:6px">${table}</div>
       </div>
     </div>`;
   }
@@ -8952,26 +8957,42 @@ function devExportScheduleJSON() {
     const allData = loadFC();
     const hotels  = activeHotels();
 
-    // Global totals (across visible hotels)
-    let gArr=0, gDep=0, occSum=0, occCount=0, peak={occ:0,_date:new Date(),hotel:''};
+    // Per-hotel KPIs (each hotel shown separately)
     const allRowsByHotel = hotels.map(h => {
       const rs = getNext10(h.id, allData);
+      let arr=0, dep=0, occSum=0, occCount=0, peak={occ:0,_date:new Date()};
       rs.forEach(r => {
-        gArr += (+r.arr||0); gDep += (+r.dep||0);
+        arr += (+r.arr||0); dep += (+r.dep||0);
         occSum += (+r.occ||0); occCount++;
-        if ((+r.occ||0) > (+peak.occ||0)) peak = Object.assign({}, r, {hotel:h.id});
+        if ((+r.occ||0) > (+peak.occ||0)) peak = Object.assign({}, r);
       });
-      return {h, rs};
+      const avgOcc = occCount ? occSum/occCount : 0;
+      return {h, rs, arr, dep, avgOcc, peak};
     });
-    const avgOcc = occCount ? occSum/occCount : 0;
-    const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
 
-    root.innerHTML =
-      kpiCard('Avg Occupancy', avgOcc.toFixed(1)+'%', `${hotels.length} hotel(s) · 10 days`, occColor) +
-      kpiCard('Total Arrivals', gArr,                 'Across visible hotels', '#4527A0') +
-      kpiCard('Total Departures', gDep,               'Across visible hotels', '#E65C00') +
-      kpiCard('Peak Day', peak.hotel ? (fmtDate(peak._date)+' · '+peak.occ+'%') : '—',
-              peak.hotel ? hotelName(peak.hotel) : 'No data', '#C9963A');
+    // Display KPI cards per hotel (NOT aggregated)
+    root.innerHTML = allRowsByHotel.map(({h, arr, dep, avgOcc, peak}) => {
+      const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
+      return `
+        <div style="background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);border-left:4px solid ${occColor}">
+          <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px">${hotelName(h.id)}</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+            <div style="padding:10px;background:#f8f8f8;border-radius:8px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:${occColor}">${avgOcc.toFixed(1)}%</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:4px">Occupancy</div>
+            </div>
+            <div style="padding:10px;background:#f8f8f8;border-radius:8px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:#4527A0">${arr}</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:4px">Arrivals</div>
+            </div>
+            <div style="padding:10px;background:#f8f8f8;border-radius:8px;text-align:center">
+              <div style="font-size:20px;font-weight:800;color:#E65C00">${dep}</div>
+              <div style="font-size:10px;color:var(--slate);margin-top:4px">Departures</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('') || '<div style="background:#fff;border-radius:var(--r);padding:30px;text-align:center;color:var(--slate);box-shadow:var(--sh)">No hotels configured. Add hotels in Dev Panel.</div>';
 
     // Per-hotel sections
     const sectionsEl = document.getElementById('fcHotelSections');
