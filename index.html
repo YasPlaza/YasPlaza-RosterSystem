@@ -8850,7 +8850,9 @@ function devExportScheduleJSON() {
 
   window.fcClearData = function(){
     if (!confirm('Clear ALL forecast data (every hotel)?')) return;
-    saveFC([]); renderForecast();
+    saveFC([]);
+    renderForecast();
+    try { if (typeof renderLiveDashboard==='function') renderLiveDashboard(); } catch(e){}
   };
 
   // ─── Manual Edit (per hotel, based on active filter) ───
