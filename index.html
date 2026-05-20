@@ -9346,6 +9346,198 @@ function devExportScheduleJSON() {
   window.addEventListener('load', ()=> setTimeout(render, 400));
 })();
 </script>
+<script>
+// ════════════════════════════════════════════════
+// DEV-PANEL ACCORDION — inline expandable settings
+// Restructures the Developer / Control Panel from
+// sidebar+content into a single-column accordion so
+// each option's settings panel opens directly under
+// the clicked option (no wasted whitespace).
+// ════════════════════════════════════════════════
+(function(){
+  // Inject styles
+  const css = document.createElement('style');
+  css.textContent = `
+    .cp-wrap.cp-acc-mode { display:block !important; padding-bottom:18px; overflow-y:auto; }
+    .cp-wrap.cp-acc-mode .cp-sidebar,
+    .cp-wrap.cp-acc-mode .cp-content { display:none !important; }
+    .cp-acc { display:flex; flex-direction:column; gap:10px; }
+    .cp-acc-item {
+      background:linear-gradient(135deg,#0D1B2E,#162540);
+      border:1px solid rgba(255,255,255,.07);
+      border-radius:14px; overflow:hidden;
+      transition:border-color .2s, box-shadow .2s;
+    }
+    .cp-acc-item.open {
+      border-color:rgba(201,150,58,.4);
+      box-shadow:0 6px 24px rgba(0,0,0,.35);
+    }
+    .cp-acc-head {
+      display:flex; align-items:center; gap:10px;
+      padding:14px 18px; cursor:pointer; user-select:none;
+      color:rgba(255,255,255,.78); font-size:13px; font-weight:600;
+      transition:background .15s, color .15s;
+    }
+    .cp-acc-head:hover { background:rgba(201,150,58,.07); color:#fff; }
+    .cp-acc-item.open .cp-acc-head {
+      background:linear-gradient(90deg,rgba(201,150,58,.22),transparent);
+      color:#C9963A;
+      border-bottom:1px solid rgba(201,150,58,.22);
+    }
+    .cp-acc-caret { margin-left:auto; opacity:.5; transition:transform .25s, opacity .15s, color .15s; font-size:12px; }
+    .cp-acc-item.open .cp-acc-caret { transform:rotate(180deg); opacity:1; color:#C9963A; }
+    .cp-acc-body { display:none; padding:0; }
+    .cp-acc-item.open .cp-acc-body { display:block; animation:cpAccFade .2s ease; }
+    @keyframes cpAccFade { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
+    /* Strip duplicated chrome from moved panels */
+    .cp-acc-body .cp-panel { background:transparent !important; border:0 !important; border-radius:0 !important; }
+    .cp-acc-body .cp-panel > .cp-ph { display:none !important; }
+    /* Compact quick-stats panel kept above accordion */
+    .cp-acc-stats { background:linear-gradient(135deg,#0D1B2E,#162540); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:14px 18px; margin-bottom:6px; }
+  `;
+  document.head.appendChild(css);
+
+  function findPanel(navItem){
+    const m = (navItem.getAttribute('onclick')||'').match(/cpTab\(['"]([^'"]+)['"]\)/);
+    if (!m) return null;
+    return { id:m[1], panel:document.getElementById('cpt-'+m[1]) };
+  }
+
+  function buildAccItem(navItem){
+    const info = findPanel(navItem); if (!info) return null;
+    if (navItem.dataset.accMoved === '1') return null;
+    const item = document.createElement('div');
+    item.className = 'cp-acc-item';
+    item.dataset.tab = info.id;
+
+    const head = document.createElement('div');
+    head.className = 'cp-acc-head';
+    head.innerHTML = navItem.innerHTML + '<span class="cp-acc-caret">▼</span>';
+    // Preserve any inline color (e.g. Danger Zone red)
+    if (navItem.style.color) head.style.color = navItem.style.color;
+    head.onclick = () => toggle(info.id);
+    item.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'cp-acc-body';
+    if (info.panel) {
+      info.panel.style.display = '';  // strip any inline display:none
+      body.appendChild(info.panel);
+    }
+    item.appendChild(body);
+
+    navItem.dataset.accMoved = '1';
+    return item;
+  }
+
+  function ensureMounted(){
+    const wrap = document.querySelector('.cp-wrap');
+    const navContainer = document.querySelector('.cp-sidebar .cp-nav');
+    if (!wrap || !navContainer) return null;
+
+    let acc = wrap.querySelector('.cp-acc');
+    if (!acc) {
+      wrap.classList.add('cp-acc-mode');
+      acc = document.createElement('div');
+      acc.className = 'cp-acc';
+      // Keep Quick Stats visible above
+      const qs = document.querySelector('.cp-sidebar > .cp-panel');
+      if (qs) {
+        const wrapStats = document.createElement('div');
+        wrapStats.className = 'cp-acc-stats';
+        qs.style.background = 'transparent';
+        qs.style.border = '0';
+        qs.style.borderRadius = '0';
+        wrapStats.appendChild(qs);
+        acc.appendChild(wrapStats);
+      }
+      wrap.appendChild(acc);
+    }
+
+    // Add any nav items not yet moved
+    navContainer.querySelectorAll('.cp-nav-item').forEach(n => {
+      const it = buildAccItem(n);
+      if (it) acc.appendChild(it);
+    });
+    return acc;
+  }
+
+  function toggle(id){
+    const acc = ensureMounted(); if (!acc) return;
+    const items = acc.querySelectorAll('.cp-acc-item');
+    let opening = true;
+    items.forEach(it => {
+      if (it.dataset.tab === id) {
+        const wasOpen = it.classList.contains('open');
+        it.classList.toggle('open', !wasOpen);
+        opening = !wasOpen;
+        if (!wasOpen) {
+          // Scroll into view after expand animation
+          setTimeout(()=> it.scrollIntoView({behavior:'smooth', block:'start'}), 60);
+        }
+      } else {
+        it.classList.remove('open');
+      }
+    });
+    // Fire original cpTab side-effects (renderers, health update)
+    if (opening && typeof window.cpTab === 'function' && !window._cpTabInToggle) {
+      window._cpTabInToggle = true;
+      try { window.cpTab(id); } catch(e){}
+      window._cpTabInToggle = false;
+    }
+  }
+
+  // Wrap cpTab so external callers still work and accordion follows
+  function wrapCpTab(){
+    const orig = window.cpTab;
+    if (!orig || orig.__accWrapped) return;
+    const wrapped = function(id){
+      try { orig.apply(this, arguments); } catch(e){}
+      if (window._cpTabInToggle) return;
+      const acc = ensureMounted(); if (!acc) return;
+      acc.querySelectorAll('.cp-acc-item').forEach(it => {
+        it.classList.toggle('open', it.dataset.tab === id);
+      });
+    };
+    wrapped.__accWrapped = true;
+    window.cpTab = wrapped;
+  }
+
+  // Run once DOM ready, then keep watching for late-injected tabs
+  function boot(){
+    const acc = ensureMounted();
+    if (!acc) return;
+    wrapCpTab();
+    // Open the first item by default if none open
+    if (!acc.querySelector('.cp-acc-item.open')) {
+      const first = acc.querySelector('.cp-acc-item');
+      if (first) first.classList.add('open');
+    }
+    // Observe nav for dynamically added items
+    const navContainer = document.querySelector('.cp-sidebar .cp-nav');
+    if (navContainer && !navContainer.dataset.accObserved) {
+      navContainer.dataset.accObserved = '1';
+      new MutationObserver(()=>{ ensureMounted(); wrapCpTab(); })
+        .observe(navContainer, {childList:true});
+    }
+    // Observe .cp-content in case a new panel appears before its nav item
+    const content = document.querySelector('.cp-content');
+    if (content && !content.dataset.accObserved) {
+      content.dataset.accObserved = '1';
+      new MutationObserver(()=>{ setTimeout(ensureMounted, 30); })
+        .observe(content, {childList:true});
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ()=> setTimeout(boot, 300));
+  } else {
+    setTimeout(boot, 300);
+  }
+  // Safety: re-run a couple of times to catch late injections
+  window.addEventListener('load', ()=> { setTimeout(boot, 600); setTimeout(boot, 1500); });
+})();
+</script>
 </body>
 </html>
 
