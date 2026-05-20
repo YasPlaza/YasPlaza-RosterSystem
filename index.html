@@ -1010,97 +1010,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   </div>
 
   <div class="page active" id="page-dashboard">
-    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:20px">
-      <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-top:3px solid var(--gold)">
-        <div style="font-size:11px; font-weight:600; color:var(--slate); text-transform:uppercase; margin-bottom:8px">OCCUPANCY</div>
-        <div style="font-size:28px; font-weight:800; color:var(--navy)">86.4%</div>
-        <div style="font-size:12px; color:var(--slate); margin-bottom:10px">312 / 361 Rooms</div>
-        <span style="display:inline-block; font-size:11px; font-weight:600; padding:4px 8px; border-radius:6px; background:#D4EDDA; color:#1B6B3A">↑ 8.2%</span>
-      </div>
-      <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-top:3px solid var(--gold)">
-        <div style="font-size:11px; font-weight:600; color:var(--slate); text-transform:uppercase; margin-bottom:8px">ARRIVALS</div>
-        <div style="font-size:28px; font-weight:800; color:var(--navy)">45</div>
-        <div style="font-size:12px; color:var(--slate); margin-bottom:10px">Today</div>
-        <span style="display:inline-block; font-size:11px; font-weight:600; padding:4px 8px; border-radius:6px; background:#D4EDDA; color:#1B6B3A">↑ 15%</span>
-      </div>
-      <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-top:3px solid var(--gold)">
-        <div style="font-size:11px; font-weight:600; color:var(--slate); text-transform:uppercase; margin-bottom:8px">DEPARTURES</div>
-        <div style="font-size:28px; font-weight:800; color:var(--navy)">28</div>
-        <div style="font-size:12px; color:var(--slate); margin-bottom:10px">Today</div>
-        <span style="display:inline-block; font-size:11px; font-weight:600; padding:4px 8px; border-radius:6px; background:#FDECEA; color:#B71C1C">↓ 5%</span>
-      </div>
-      <div style="background:#fff; border-radius:12px; padding:20px; box-shadow:0 2px 8px rgba(0,0,0,0.08); border-top:3px solid var(--gold)">
-        <div style="font-size:11px; font-weight:600; color:var(--slate); text-transform:uppercase; margin-bottom:8px">REVENUE</div>
-        <div style="font-size:28px; font-weight:800; color:var(--navy)">$48,750</div>
-        <div style="font-size:12px; color:var(--slate); margin-bottom:10px">vs Yesterday</div>
-        <span style="display:inline-block; font-size:11px; font-weight:600; padding:4px 8px; border-radius:6px; background:#D4EDDA; color:#1B6B3A">↑ 12.5%</span>
-      </div>
-    </div>
-
-    <div style="display:grid; grid-template-columns:1.2fr 1fr; gap:20px; margin-bottom:20px">
-      <div style="background:linear-gradient(135deg, #B71C1C 0%, #7F1010 100%); border-radius:12px; padding:20px; color:#fff; box-shadow:0 4px 20px rgba(183,28,28,0.3)">
-        <div style="font-size:24px; margin-bottom:12px">⚠️</div>
-        <div style="font-size:16px; font-weight:800; margin-bottom:8px">STAFFING ALERT</div>
-        <div style="font-size:14px; margin-bottom:12px; font-weight:600">High Occupancy Expected!</div>
-        <div style="font-size:12px; margin-bottom:12px; line-height:1.6">Occupancy will reach 95% tomorrow</div>
-        <div style="font-size:12px; margin-bottom:12px">• Increase staff<br>• Cancel leaves<br>• Approve pending requests</div>
-        <button style="background:#FF6B6B; border:none; color:#fff; padding:10px 20px; border-radius:8px; font-weight:600; font-size:12px; cursor:pointer">VIEW RECOMMENDATIONS</button>
-      </div>
-
-      <div style="background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-        <div style="font-size:12px; font-weight:800; color:var(--navy); margin-bottom:12px; text-transform:uppercase">PENDING LEAVES</div>
-        <div style="font-size:12px">
-          <div style="display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid #f0f0f0">
-            <div style="width:36px; height:36px; border-radius:50%; background:var(--gold); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center">MS</div>
-            <div style="flex:1"><div style="font-weight:600; color:var(--navy)">Maria Santos</div><div style="font-size:10px; color:var(--slate)">Housekeeping 27-29 May</div></div>
-            <button style="background:#FDECEA; color:#B71C1C; padding:6px 12px; border-radius:6px; border:none; font-weight:600; font-size:11px; cursor:pointer">Cancel</button>
-          </div>
-          <div style="display:flex; align-items:center; gap:12px; padding:10px 0">
-            <div style="width:36px; height:36px; border-radius:50%; background:var(--gold); color:#fff; font-weight:700; display:flex; align-items:center; justify-content:center">JP</div>
-            <div style="flex:1"><div style="font-weight:600; color:var(--navy)">John Paul</div><div style="font-size:10px; color:var(--slate)">Front Office 27-28 May</div></div>
-            <button style="background:#FDECEA; color:#B71C1C; padding:6px 12px; border-radius:6px; border:none; font-weight:600; font-size:11px; cursor:pointer">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:20px">
-      <div style="background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-        <div style="font-size:12px; font-weight:800; color:var(--navy); margin-bottom:12px; text-transform:uppercase">OCCUPANCY FORECAST</div>
-        <div style="height:180px; background:#f9f9f9; border-radius:8px; display:flex; align-items:flex-end; justify-content:space-around; padding:12px">
-          <div style="height:40%; width:8%; background:var(--gold); border-radius:4px"></div>
-          <div style="height:55%; width:8%; background:var(--gold); border-radius:4px"></div>
-          <div style="height:65%; width:8%; background:#B71C1C; border-radius:4px"></div>
-          <div style="height:62%; width:8%; background:var(--amber); border-radius:4px"></div>
-          <div style="height:50%; width:8%; background:var(--gold); border-radius:4px"></div>
-          <div style="height:45%; width:8%; background:var(--gold); border-radius:4px"></div>
-          <div style="height:35%; width:8%; background:var(--green); border-radius:4px"></div>
-        </div>
-      </div>
-
-      <div style="background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-        <div style="font-size:12px; font-weight:800; color:var(--navy); margin-bottom:12px; text-transform:uppercase">STAFFING REC.</div>
-        <table style="width:100%; border-collapse:collapse; font-size:11px">
-          <tr style="background:#f5f5f5">
-            <th style="padding:8px; text-align:left; color:var(--slate); font-size:10px; border:none">Dept</th>
-            <th style="padding:8px; text-align:center; color:var(--slate); font-size:10px; border:none">Need</th>
-            <th style="padding:8px; text-align:center; color:var(--slate); font-size:10px; border:none">+/-</th>
-          </tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:6px">Front</td><td style="padding:6px; text-align:center">22</td><td style="padding:6px; text-align:center; color:#B71C1C; font-weight:600">-4</td></tr>
-          <tr style="border-bottom:1px solid #eee"><td style="padding:6px">House</td><td style="padding:6px; text-align:center">35</td><td style="padding:6px; text-align:center; color:#B71C1C; font-weight:600">-7</td></tr>
-          <tr><td style="padding:6px">F&B</td><td style="padding:6px; text-align:center">30</td><td style="padding:6px; text-align:center; color:#B71C1C; font-weight:600">-5</td></tr>
-        </table>
-      </div>
-
-      <div style="background:#fff; border-radius:12px; padding:16px; box-shadow:0 2px 8px rgba(0,0,0,0.08)">
-        <div style="font-size:12px; font-weight:800; color:var(--navy); margin-bottom:12px; text-transform:uppercase">ACTIONS</div>
-        <div style="font-size:11px; line-height:1.8">
-          <div style="padding:8px; background:#f9f9f9; border-radius:6px; margin-bottom:6px">✅ Approve 16 swaps</div>
-          <div style="padding:8px; background:#f9f9f9; border-radius:6px; margin-bottom:6px">❌ Cancel 7 leaves</div>
-          <div style="padding:8px; background:#f9f9f9; border-radius:6px; margin-bottom:6px">👥 Add 16 on-call</div>
-          <div style="padding:8px; background:#f9f9f9; border-radius:6px"><a href="#" style="color:var(--gold); text-decoration:none; font-weight:600">Roster Planner →</a></div>
-        </div>
-      </div>
+    <div id="dashLiveRoot" style="font-family:'DM Sans',sans-serif">
+      <div style="padding:40px;text-align:center;color:var(--slate)">Loading dashboard…</div>
     </div>
   </div>
 
@@ -9136,6 +9047,304 @@ function devExportScheduleJSON() {
   window.addEventListener('load', ()=>setTimeout(renderForecast, 300));
 })();
 
+</script>
+<script>
+// ════════════════════════════════════════════════
+// LIVE DASHBOARD — driven by Forecast Excel/CSV data
+// ════════════════════════════════════════════════
+(function(){
+  const FC_KEY = 'yph_forecast_v2';
+  const HIGH_OCC = 85, CRIT_OCC = 92;
+  const ARR_PER_FO = 6;       // 1 Front-Office staff per 6 arrivals
+  const ROOMS_PER_HK = 14;    // 1 Housekeeper per 14 occupied rooms
+  const ROOMS_PER_FB = 18;    // 1 F&B staff per 18 occupied rooms
+
+  function loadFC(){
+    try { const v = JSON.parse(localStorage.getItem(FC_KEY)||'[]'); return Array.isArray(v)?v:[]; }
+    catch(e){ return []; }
+  }
+  function totalRooms(){
+    try {
+      if (typeof HOTELS_DATA !== 'undefined' && HOTELS_DATA){
+        let t=0; Object.values(HOTELS_DATA).forEach(h => { if (h && h.rooms) t += +h.rooms||0; });
+        if (t>0) return t;
+      }
+    } catch(e){}
+    return 361; // fallback to original demo value
+  }
+  function fmtDay(ds){
+    const d = new Date(ds);
+    return isNaN(d) ? ds : d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+  }
+  function dayKey(d){ return d.toISOString().slice(0,10); }
+
+  // Aggregate forecast rows by date for next N days across active hotel filter
+  function buildSeries(days){
+    const data = loadFC();
+    const sel = document.getElementById('hotelFilter');
+    const hf = sel ? sel.value : 'all';
+    const filtered = (!hf||hf==='all') ? data : data.filter(r => r.hotel===hf);
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const out = [];
+    for (let i=0;i<days;i++){
+      const d = new Date(today.getTime()+i*86400000);
+      const ds = dayKey(d);
+      const rows = filtered.filter(r => r.date===ds);
+      const occVals = rows.map(r=>+r.occ||0).filter(v=>v>0);
+      const avgOcc = occVals.length ? (occVals.reduce((a,b)=>a+b,0)/occVals.length) : 0;
+      const arr = rows.reduce((a,r)=>a+(+r.arr||0),0);
+      const dep = rows.reduce((a,r)=>a+(+r.dep||0),0);
+      const notes = rows.map(r=>r.notes).filter(Boolean).join(' • ');
+      out.push({date:ds, label:fmtDay(ds), occ:Math.round(avgOcc), arr, dep, notes, hasData: rows.length>0});
+    }
+    return out;
+  }
+
+  function occColor(o){
+    if (o>=CRIT_OCC) return '#B71C1C';
+    if (o>=HIGH_OCC) return '#E65C00';
+    if (o>=70) return '#C9963A';
+    if (o>0)   return '#1B6B3A';
+    return '#94A3B8';
+  }
+
+  function staffingForDay(d){
+    const occRooms = Math.round((d.occ/100) * totalRooms());
+    return {
+      front: Math.max(4, Math.ceil(d.arr / ARR_PER_FO) + Math.ceil(d.dep / (ARR_PER_FO*1.5))),
+      house: Math.max(6, Math.ceil(occRooms / ROOMS_PER_HK)),
+      fb:    Math.max(5, Math.ceil(occRooms / ROOMS_PER_FB)),
+    };
+  }
+
+  function suggestionsFor(series){
+    const sugs = [];
+    series.forEach((d,idx) => {
+      if (!d.hasData) return;
+      const when = idx===0?'Today':idx===1?'Tomorrow':d.label;
+      if (d.occ>=CRIT_OCC) sugs.push({sev:'critical', text:`🔴 ${when}: ${d.occ}% occupancy — CRITICAL. Add staff across all depts, cancel pending leaves, call on-call list.`});
+      else if (d.occ>=HIGH_OCC) sugs.push({sev:'high', text:`🟠 ${when}: ${d.occ}% occupancy — HIGH. Reinforce Front Office & Housekeeping.`});
+      if (d.arr>=50) sugs.push({sev:'high', text:`🌆 ${when}: ${d.arr} arrivals — add MID/AFTERNOON Front Office & Bellmen.`});
+      if (d.dep>=50) sugs.push({sev:'high', text:`🌅 ${when}: ${d.dep} departures — add MORNING Housekeeping & checkout staff.`});
+      if (d.arr>=50 && d.dep>=50) sugs.push({sev:'critical', text:`⚡ ${when}: Heavy turnover (${d.arr} in / ${d.dep} out) — split shifts recommended.`});
+    });
+    if (!sugs.length) sugs.push({sev:'ok', text:'✅ No critical staffing issues detected for the next 10 days based on current forecast.'});
+    return sugs;
+  }
+
+  function render(){
+    const root = document.getElementById('dashLiveRoot'); if (!root) return;
+    const data = loadFC();
+    if (!data.length){
+      root.innerHTML = `
+        <div style="background:#fff;border-radius:14px;padding:40px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+          <div style="font-size:48px;margin-bottom:12px">📊</div>
+          <div style="font-family:'Syne';font-weight:800;font-size:20px;color:var(--navy);margin-bottom:8px">No forecast data yet</div>
+          <div style="color:var(--slate);font-size:13px;margin-bottom:20px">Upload an Excel/CSV in the <b>Forecast</b> tab. The dashboard will automatically calculate occupancy, arrivals, departures and staffing suggestions for the next 10 days.</div>
+          <button onclick="switchPage('forecast')" style="background:var(--gold);border:none;color:#fff;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px">🏨 Go to Forecast</button>
+        </div>`;
+      return;
+    }
+
+    const series = buildSeries(10);
+    const today = series[0], tomorrow = series[1];
+    const peak = series.reduce((m,d)=> d.occ>m.occ?d:m, series[0]);
+    const totalRm = totalRooms();
+    const occRoomsToday = Math.round((today.occ/100)*totalRm);
+    const trendVsTomorrow = tomorrow.occ - today.occ;
+    const totalArr10 = series.reduce((a,d)=>a+d.arr,0);
+    const totalDep10 = series.reduce((a,d)=>a+d.dep,0);
+
+    // ── KPI cards ──
+    const kpis = `
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px">
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:3px solid ${occColor(today.occ)}">
+          <div style="font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;margin-bottom:8px">Occupancy (Today)</div>
+          <div style="font-size:28px;font-weight:800;color:var(--navy)">${today.occ}%</div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:10px">${occRoomsToday} / ${totalRm} Rooms</div>
+          <span style="display:inline-block;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;background:${trendVsTomorrow>=0?'#FDECEA':'#D4EDDA'};color:${trendVsTomorrow>=0?'#B71C1C':'#1B6B3A'}">${trendVsTomorrow>=0?'↑':'↓'} ${Math.abs(trendVsTomorrow)}% tomorrow</span>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:3px solid var(--gold)">
+          <div style="font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;margin-bottom:8px">Arrivals (Today)</div>
+          <div style="font-size:28px;font-weight:800;color:var(--navy)">${today.arr}</div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:10px">${totalArr10} next 10 days</div>
+          <span style="display:inline-block;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;background:#FDF3E3;color:#C9963A">Tomorrow: ${tomorrow.arr}</span>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:3px solid var(--gold)">
+          <div style="font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;margin-bottom:8px">Departures (Today)</div>
+          <div style="font-size:28px;font-weight:800;color:var(--navy)">${today.dep}</div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:10px">${totalDep10} next 10 days</div>
+          <span style="display:inline-block;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;background:#FDF3E3;color:#C9963A">Tomorrow: ${tomorrow.dep}</span>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.08);border-top:3px solid ${occColor(peak.occ)}">
+          <div style="font-size:11px;font-weight:600;color:var(--slate);text-transform:uppercase;margin-bottom:8px">Peak (10 days)</div>
+          <div style="font-size:28px;font-weight:800;color:${occColor(peak.occ)}">${peak.occ}%</div>
+          <div style="font-size:12px;color:var(--slate);margin-bottom:10px">${peak.label}</div>
+          <span style="display:inline-block;font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;background:${peak.occ>=HIGH_OCC?'#FDECEA':'#D4EDDA'};color:${peak.occ>=HIGH_OCC?'#B71C1C':'#1B6B3A'}">${peak.occ>=HIGH_OCC?'⚠ Plan ahead':'Manageable'}</span>
+        </div>
+      </div>`;
+
+    // ── Staffing alert ──
+    const alertDay = series.find(d => d.occ>=HIGH_OCC && d.hasData);
+    const alertHtml = alertDay ? `
+      <div style="background:linear-gradient(135deg, ${alertDay.occ>=CRIT_OCC?'#B71C1C':'#E65C00'} 0%, #5a1010 100%);border-radius:12px;padding:20px;color:#fff;box-shadow:0 4px 20px rgba(183,28,28,.3)">
+        <div style="font-size:24px;margin-bottom:8px">⚠️</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px">STAFFING ALERT</div>
+        <div style="font-size:14px;margin-bottom:8px;font-weight:600">${alertDay.occ>=CRIT_OCC?'Critical':'High'} Occupancy: ${alertDay.label}</div>
+        <div style="font-size:12px;margin-bottom:12px;line-height:1.6">Occupancy reaches <b>${alertDay.occ}%</b> with ${alertDay.arr} arrivals / ${alertDay.dep} departures.</div>
+        <div style="font-size:12px;margin-bottom:12px">• Increase staff in Front Office &amp; Housekeeping<br>• Cancel pending leaves for that period<br>• Call on-call list / approve overtime</div>
+        <button onclick="document.getElementById('dash10Plan').scrollIntoView({behavior:'smooth'})" style="background:#fff;border:none;color:#B71C1C;padding:10px 20px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">VIEW 10-DAY PLAN ↓</button>
+      </div>` : `
+      <div style="background:linear-gradient(135deg,#1B6B3A 0%,#0d3a1f 100%);border-radius:12px;padding:20px;color:#fff;box-shadow:0 4px 20px rgba(27,107,58,.3)">
+        <div style="font-size:24px;margin-bottom:8px">✅</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px">STAFFING OK</div>
+        <div style="font-size:13px;line-height:1.6">No high-occupancy days detected in the next 10 days. Keep monitoring &amp; re-import the forecast when bookings change.</div>
+      </div>`;
+
+    // ── 10-day bar chart ──
+    const maxOcc = Math.max(100, ...series.map(d=>d.occ));
+    const bars = series.map(d => {
+      const h = Math.max(4, Math.round((d.occ/maxOcc)*100));
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">
+        <div style="font-size:10px;font-weight:700;color:${occColor(d.occ)}">${d.occ}%</div>
+        <div title="${d.label}: ${d.occ}%" style="width:80%;height:${h*1.4}px;background:${occColor(d.occ)};border-radius:4px 4px 0 0;min-height:4px"></div>
+        <div style="font-size:9px;color:var(--slate);text-align:center;font-weight:600">${d.label.split(' ')[0]}<br>${d.label.split(' ').slice(1).join(' ')}</div>
+      </div>`;
+    }).join('');
+
+    // ── Staffing recommendation table (today) ──
+    const st = staffingForDay(today);
+    const stTom = staffingForDay(tomorrow);
+    const recRows = [
+      {dept:'Front Office', today:st.front, tom:stTom.front},
+      {dept:'Housekeeping', today:st.house, tom:stTom.house},
+      {dept:'F&B',          today:st.fb,    tom:stTom.fb},
+    ].map(r => {
+      const diff = r.tom - r.today;
+      const col = diff>0?'#B71C1C':diff<0?'#1B6B3A':'#64748B';
+      return `<tr style="border-bottom:1px solid #eee">
+        <td style="padding:8px;font-weight:600">${r.dept}</td>
+        <td style="padding:8px;text-align:center">${r.today}</td>
+        <td style="padding:8px;text-align:center">${r.tom}</td>
+        <td style="padding:8px;text-align:center;color:${col};font-weight:700">${diff>0?'+':''}${diff}</td>
+      </tr>`;
+    }).join('');
+
+    // ── 10-day plan ──
+    const planRows = series.map((d,idx) => {
+      const s = staffingForDay(d);
+      const bg = d.occ>=CRIT_OCC?'#FDECEA':d.occ>=HIGH_OCC?'#FFF3E0':d.occ>=70?'#FDF3E3':d.occ>0?'#D4EDDA':'#F1F5F9';
+      const bd = occColor(d.occ);
+      return `<tr style="background:${bg};border-left:4px solid ${bd}">
+        <td style="padding:10px;font-weight:700;color:var(--navy)">${idx===0?'⭐ ':''}${d.label}</td>
+        <td style="padding:10px;text-align:center;font-weight:800;color:${bd}">${d.hasData?d.occ+'%':'—'}</td>
+        <td style="padding:10px;text-align:center">${d.arr||'—'}</td>
+        <td style="padding:10px;text-align:center">${d.dep||'—'}</td>
+        <td style="padding:10px;text-align:center;font-weight:700">${d.hasData?s.front:'—'}</td>
+        <td style="padding:10px;text-align:center;font-weight:700">${d.hasData?s.house:'—'}</td>
+        <td style="padding:10px;text-align:center;font-weight:700">${d.hasData?s.fb:'—'}</td>
+        <td style="padding:10px;font-size:11px;color:var(--slate)">${d.notes||''}</td>
+      </tr>`;
+    }).join('');
+
+    // ── Suggestions ──
+    const sugs = suggestionsFor(series);
+    const sugHtml = sugs.map(s => {
+      const bg = s.sev==='critical'?'#FDECEA':s.sev==='high'?'#FFF3E0':'#D4EDDA';
+      const bd = s.sev==='critical'?'#B71C1C':s.sev==='high'?'#E65C00':'#1B6B3A';
+      return `<div style="background:${bg};border-left:4px solid ${bd};padding:10px 14px;border-radius:6px;margin-bottom:6px;font-size:12px;color:var(--navy);font-weight:500">${s.text}</div>`;
+    }).join('');
+
+    root.innerHTML = `
+      ${kpis}
+      <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:20px;margin-bottom:20px">
+        ${alertHtml}
+        <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+          <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:12px;text-transform:uppercase">Staffing Need — Today vs Tomorrow</div>
+          <table style="width:100%;border-collapse:collapse;font-size:12px">
+            <thead><tr style="background:#f5f5f5">
+              <th style="padding:8px;text-align:left;color:var(--slate);font-size:10px">Department</th>
+              <th style="padding:8px;text-align:center;color:var(--slate);font-size:10px">Today</th>
+              <th style="padding:8px;text-align:center;color:var(--slate);font-size:10px">Tomorrow</th>
+              <th style="padding:8px;text-align:center;color:var(--slate);font-size:10px">Δ</th>
+            </tr></thead>
+            <tbody>${recRows}</tbody>
+          </table>
+          <div style="font-size:10px;color:var(--slate);margin-top:8px;line-height:1.5">Heuristic: 1 FO / ${ARR_PER_FO} arrivals · 1 HK / ${ROOMS_PER_HK} occupied rooms · 1 F&amp;B / ${ROOMS_PER_FB} rooms.</div>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px">
+        <div style="font-size:12px;font-weight:800;color:var(--navy);margin-bottom:12px;text-transform:uppercase">10-Day Occupancy Forecast</div>
+        <div style="height:200px;background:#f9f9f9;border-radius:8px;display:flex;align-items:flex-end;justify-content:space-around;padding:14px 12px 8px;gap:6px">${bars}</div>
+      </div>
+
+      <div id="dash10Plan" style="background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="font-family:'Syne';font-weight:800;font-size:16px;color:var(--navy)">📅 10-Day Work Plan</div>
+          <div style="font-size:11px;color:var(--slate)">Auto-calculated from your forecast</div>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:separate;border-spacing:0 4px;font-size:12px;min-width:760px">
+            <thead><tr style="background:var(--navy);color:#fff">
+              <th style="padding:10px;text-align:left">Day</th>
+              <th style="padding:10px;text-align:center">Occ %</th>
+              <th style="padding:10px;text-align:center">Arrivals</th>
+              <th style="padding:10px;text-align:center">Departures</th>
+              <th style="padding:10px;text-align:center">Front Office</th>
+              <th style="padding:10px;text-align:center">Housekeeping</th>
+              <th style="padding:10px;text-align:center">F&amp;B</th>
+              <th style="padding:10px;text-align:left">Notes</th>
+            </tr></thead>
+            <tbody>${planRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <div style="background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.08)">
+        <div style="font-family:'Syne';font-weight:800;font-size:16px;color:var(--navy);margin-bottom:12px">💡 Smart Suggestions — Get More Staff Where It Matters</div>
+        ${sugHtml}
+        <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="switchPage('forecast')" style="background:var(--gold);border:none;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">🏨 Update Forecast</button>
+          <button onclick="switchPage('roster')" style="background:var(--navy);border:none;color:#fff;padding:10px 18px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">📅 Open Roster Planner</button>
+          <button onclick="switchPage('requests')" style="background:#fff;border:1.5px solid var(--navy);color:var(--navy);padding:10px 18px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer">📋 Review Leave Requests</button>
+        </div>
+      </div>
+    `;
+  }
+
+  window.renderLiveDashboard = render;
+
+  // Hook switchPage so dashboard refreshes whenever you open it
+  const _prevSwitch = window.switchPage;
+  window.switchPage = function(name){
+    if (_prevSwitch) _prevSwitch(name);
+    if (name === 'dashboard') setTimeout(render, 50);
+  };
+
+  // Refresh whenever forecast import / manual edit saves
+  window.addEventListener('storage', e => { if (e.key === FC_KEY) render(); });
+  const _origSave = window.fcHandleFile;
+  // we already piggyback via storage event for cross-tab; also hook hotel filter changes
+  const _origRenderAll = window.renderAll;
+  window.renderAll = function(){
+    if (_origRenderAll) _origRenderAll.apply(this, arguments);
+    const dp = document.getElementById('page-dashboard');
+    if (dp && dp.classList.contains('active')) render();
+  };
+
+  // Patch forecast save path so dashboard updates instantly in same tab
+  ['fcHandleFile','fcManualEdit','fcClearData'].forEach(()=>{}); // no-op marker
+  // Wrap saveFC indirectly: poll renderForecast wrapper
+  const _origRenderForecast = window.renderForecast;
+  window.renderForecast = function(){
+    if (_origRenderForecast) _origRenderForecast.apply(this, arguments);
+    render();
+  };
+
+  window.addEventListener('load', ()=> setTimeout(render, 400));
+})();
 </script>
 </body>
 </html>
