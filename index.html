@@ -3665,6 +3665,13 @@ function _switchPageOriginal(name) {
   const pageEl = document.getElementById("page-"+name);
   if (!pageEl) return;
   pageEl.classList.add("active");
+  // Always start at top — prevents "blank space, must scroll down" when a page
+  // was previously left scrolled or starts off-screen.
+  try {
+    pageEl.scrollTop = 0;
+    window.scrollTo(0, 0);
+    requestAnimationFrame(()=>{ pageEl.scrollTop = 0; window.scrollTo(0,0); });
+  } catch(e) {}
   const tabEl = document.querySelector(`[data-p="${name}"]`);
   if (tabEl) tabEl.classList.add("active");
   if(name==="roster")   renderRoster();
@@ -6920,7 +6927,21 @@ function cpDelPos(dept,pos){
 
 function cpRenderShifts(){
   const grid=document.getElementById('cpShiftGrid'); if(!grid)return;
-  grid.innerHTML=Object.entries(SHIFTS).map(([k,v])=>`
+  const addForm = `
+    <div style="grid-column:1/-1;background:rgba(201,150,58,.08);border:1.5px dashed rgba(201,150,58,.35);border-radius:12px;padding:12px;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:#E8B04A;margin-bottom:8px;letter-spacing:.5px">➕ ADD NEW SHIFT / TIMING</div>
+      <div style="display:grid;grid-template-columns:90px 1fr 1.2fr 80px auto;gap:8px;align-items:end">
+        <div><label class="cp-lbl2">Code</label><input class="cp-inp2" id="cpNewShiftCode" placeholder="NIT" maxlength="5" style="text-transform:uppercase;font-family:'DM Mono',monospace" oninput="this.value=this.value.toUpperCase()"></div>
+        <div><label class="cp-lbl2">Label</label><input class="cp-inp2" id="cpNewShiftLabel" placeholder="Night Shift"></div>
+        <div><label class="cp-lbl2">Time</label><input class="cp-inp2" id="cpNewShiftTime" placeholder="22:00-06:00" style="font-family:'DM Mono',monospace"></div>
+        <div><label class="cp-lbl2">Hours</label>
+          <select class="cp-inp2" id="cpNewShiftHours">${[4,6,8,9,10,12].map(h=>`<option value="${h}" ${h==9?'selected':''}>${h}h</option>`).join('')}</select>
+        </div>
+        <button class="bgold" onclick="cpAddShiftInline()" style="white-space:nowrap">+ Add Timing</button>
+      </div>
+      <div id="cpNewShiftMsg" style="font-size:11px;margin-top:6px;min-height:14px"></div>
+    </div>`;
+  grid.innerHTML = addForm + Object.entries(SHIFTS).map(([k,v])=>`
     <div style="background:rgba(255,255,255,.03);border:1.5px solid ${v.border||'rgba(255,255,255,.1)'};border-radius:10px;padding:12px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
         <div style="display:flex;align-items:center;gap:7px">
@@ -6945,16 +6966,34 @@ function cpSaveShift(k){
   if(typeof saveShiftSettings==='function') saveShiftSettings();
   cpToast('✅ Shift '+k+' saved!');
 }
-function cpAddShift(){
-  const code=prompt('Shift code (max 4 chars):')?.toUpperCase().trim(); if(!code)return;
-  if(SHIFTS[code]){cpToast('❌ Code exists!');return;}
-  const label=prompt('Label:'); if(!label)return;
-  const time=prompt('Time (e.g. 22:00-06:00):','—')||'—';
-  const hrs=parseInt(prompt('Hours:','9')||9);
-  SHIFTS[code]={label,time,hours:hrs,bg:'#E3F2FD',color:'#0D47A1',border:'#90CAF9',custom:true};
-  cpRenderShifts();
+function cpAddShiftInline(){
+  const msg=document.getElementById('cpNewShiftMsg');
+  const setMsg=(t,c)=>{ if(msg){msg.style.color=c||'#F87171';msg.textContent=t;} };
+  const code=(document.getElementById('cpNewShiftCode')?.value||'').toUpperCase().trim();
+  const label=(document.getElementById('cpNewShiftLabel')?.value||'').trim();
+  const time=(document.getElementById('cpNewShiftTime')?.value||'').trim()||'—';
+  const hours=parseInt(document.getElementById('cpNewShiftHours')?.value||9);
+  if(!code){ setMsg('❌ Code is required'); return; }
+  if(code.length>5){ setMsg('❌ Code max 5 chars'); return; }
+  if(!label){ setMsg('❌ Label is required'); return; }
+  if(SHIFTS[code]){ setMsg('❌ Code "'+code+'" already exists'); return; }
+  const palette=[{bg:'#E3F2FD',color:'#0D47A1',border:'#90CAF9'},{bg:'#F3E5F5',color:'#4A148C',border:'#CE93D8'},{bg:'#E8F5E9',color:'#1B5E20',border:'#A5D6A7'},{bg:'#FFF3E0',color:'#E65100',border:'#FFB74D'},{bg:'#FCE4EC',color:'#880E4F',border:'#F48FB1'}];
+  const p=palette[Object.keys(SHIFTS).length%palette.length];
+  SHIFTS[code]={label,time,hours,bg:p.bg,color:p.color,border:p.border,custom:true};
   if(typeof saveShiftSettings==='function') saveShiftSettings();
+  cpRenderShifts();
+  setMsg('✅ Shift "'+code+'" added','#4ADE80');
   cpToast('✅ Shift '+code+' added!');
+}
+// Legacy entry point (used by "+ Add Shift" header button) — now scrolls to & focuses the inline form
+function cpAddShift(){
+  const grid=document.getElementById('cpShiftGrid');
+  if(!grid) return;
+  cpRenderShifts();
+  setTimeout(()=>{
+    const el=document.getElementById('cpNewShiftCode');
+    if(el){ el.scrollIntoView({behavior:'smooth',block:'center'}); el.focus(); }
+  },50);
 }
 function cpDelShift(k){
   if(!confirm('Delete shift "'+k+'"?'))return;
@@ -8167,6 +8206,18 @@ const THEMES = {
   corporate: { name: '🏢 Corporate Blue', navy:'#0A2240', navy2:'#0D2D55', gold:'#1E90FF', gold2:'#4FAFFF', bg:'#051525', accent:'#1E90FF' },
 };
 let activeTheme = localStorage.getItem('activeTheme_v1') || 'default';
+// Load custom image themes from localStorage
+try {
+  const savedImgs = JSON.parse(localStorage.getItem('customImageThemes_v1')||'{}');
+  Object.entries(savedImgs).forEach(([k,v])=>{ THEMES[k]=v; });
+} catch(e) {}
+function _saveImageThemes(){
+  const imgThemes={};
+  Object.entries(THEMES).forEach(([k,v])=>{ if(v.image) imgThemes[k]=v; });
+  try{ localStorage.setItem('customImageThemes_v1', JSON.stringify(imgThemes)); }catch(e){
+    alert('⚠️ Image too large to save. Use a smaller image (under ~2MB).');
+  }
+}
 function applyTheme(themeKey) {
   const t = THEMES[themeKey] || THEMES.default;
   activeTheme = themeKey;
@@ -8176,68 +8227,80 @@ function applyTheme(themeKey) {
   root.style.setProperty('--navy2', t.navy2);
   root.style.setProperty('--gold', t.gold);
   root.style.setProperty('--gold2', t.gold2);
-  document.body.style.background = t.bg;
+  // Background — image overrides solid color
+  if (t.image) {
+    document.body.style.background = `linear-gradient(rgba(8,15,30,.72), rgba(8,15,30,.82)), url("${t.image}") center/cover fixed no-repeat`;
+  } else {
+    document.body.style.background = t.bg;
+  }
   const landing = document.getElementById('landing');
-  if (landing) landing.style.background = `linear-gradient(135deg, ${t.bg}, ${t.navy} 50%, ${t.navy2})`;
+  if (landing) {
+    if (t.image) {
+      landing.style.background = `linear-gradient(135deg, rgba(8,15,30,.7), rgba(15,30,53,.75) 50%, rgba(27,45,74,.8)), url("${t.image}") center/cover no-repeat`;
+    } else {
+      landing.style.background = `linear-gradient(135deg, ${t.bg}, ${t.navy} 50%, ${t.navy2})`;
+    }
+  }
 }
 function cpRenderThemes() {
   const container = document.getElementById('cpThemeList');
   if (!container) return;
-  container.innerHTML = Object.entries(THEMES).map(([key, t]) => `
-    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:${activeTheme===key?'rgba(201,150,58,.12)':'rgba(255,255,255,.03)'};border:1.5px solid ${activeTheme===key?'var(--gold)':'rgba(255,255,255,.07)'};border-radius:12px;margin-bottom:8px;cursor:pointer" onclick="applyTheme('${key}');cpRenderThemes();cpToast('✅ Theme: ${t.name}')">
-      <div style="display:flex;gap:4px">
-        <div style="width:18px;height:18px;border-radius:4px;background:${t.navy}"></div>
-        <div style="width:18px;height:18px;border-radius:4px;background:${t.gold}"></div>
-        <div style="width:18px;height:18px;border-radius:4px;background:${t.bg}"></div>
-      </div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#fff">${t.name}</div></div>
+  container.innerHTML = Object.entries(THEMES).map(([key, t]) => {
+    const preview = t.image
+      ? `<div style="width:64px;height:40px;border-radius:6px;background:url('${t.image}') center/cover;border:1px solid rgba(255,255,255,.15)"></div>`
+      : `<div style="display:flex;gap:4px">
+           <div style="width:18px;height:40px;border-radius:4px;background:${t.navy}"></div>
+           <div style="width:18px;height:40px;border-radius:4px;background:${t.gold}"></div>
+           <div style="width:18px;height:40px;border-radius:4px;background:${t.bg}"></div>
+         </div>`;
+    const delBtn = t.image && key !== 'default'
+      ? `<button class="bx bxr" onclick="event.stopPropagation();cpDeleteImageTheme('${key}')" style="font-size:10px;padding:3px 7px">🗑</button>`
+      : '';
+    return `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:${activeTheme===key?'rgba(201,150,58,.12)':'rgba(255,255,255,.03)'};border:1.5px solid ${activeTheme===key?'var(--gold)':'rgba(255,255,255,.07)'};border-radius:12px;margin-bottom:8px;cursor:pointer" onclick="applyTheme('${key}');cpRenderThemes();cpToast('✅ Theme: ${t.name.replace(/'/g,"\\'")}')">
+      ${preview}
+      <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#fff">${t.name}</div>${t.image?'<div style="font-size:10px;color:#64748B;margin-top:2px">🖼 Custom image theme</div>':''}</div>
       ${activeTheme===key ? '<span style="font-size:10px;font-weight:700;color:var(--gold2);background:rgba(201,150,58,.15);padding:2px 8px;border-radius:100px">ACTIVE</span>' : ''}
-    </div>`).join('');
+      ${delBtn}
+    </div>`;
+  }).join('');
 }
-// Apply saved theme on load
-setTimeout(() => { if (activeTheme !== 'default') applyTheme(activeTheme); }, 500);
-
-// Inject Theme tab into control panel
-(function injectThemeTab(){
-  const tryInject = () => {
-    const cpNav = document.querySelector('.cp-nav');
-    const cpBody = document.querySelector('.cp-body');
-    if (!cpNav || !cpBody || document.getElementById('cpt-themes')) return;
-    const navItem = document.createElement('div');
-    navItem.className = 'cp-nav-item';
-    navItem.textContent = '🎨 Themes';
-    navItem.setAttribute('onclick', "cpTab('themes')");
-    cpNav.appendChild(navItem);
-    const tab = document.createElement('div');
-    tab.id = 'cpt-themes';
-    tab.style.display = 'none';
-    tab.innerHTML = `
-      <div class="cp-stitle">🎨 Theme System — Special Events</div>
-      <div class="cp-infobox">Apply event themes to change the system's color scheme for holidays and special occasions. Themes persist until you change them back.</div>
-      <div id="cpThemeList"></div>
-      <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)">
-        <div class="cp-stitle">🖌 Custom Theme</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
-          <div><label class="cp-lbl2">Primary (Navy)</label><input type="color" id="ctNavy" value="#0F1E35" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
-          <div><label class="cp-lbl2">Secondary</label><input type="color" id="ctNavy2" value="#1B2D4A" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
-          <div><label class="cp-lbl2">Gold / Accent</label><input type="color" id="ctGold" value="#C9963A" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
-          <div><label class="cp-lbl2">Background</label><input type="color" id="ctBg" value="#0B1525" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
-        </div>
-        <button class="bgold" style="margin-top:10px;width:100%" onclick="applyCustomTheme()">Apply Custom Theme</button>
-      </div>`;
-    cpBody.appendChild(tab);
-    const _orig = window.cpTab;
-    if (_orig) {
-      window.cpTab = function(id) {
-        _orig(id);
-        const el = document.getElementById('cpt-themes');
-        if (el) el.style.display = (id === 'themes') ? 'block' : 'none';
-        if (id === 'themes') cpRenderThemes();
-      };
-    }
+function cpUploadImageTheme(input) {
+  const file = input.files && input.files[0];
+  if (!file) return;
+  if (!file.type.startsWith('image/')) { alert('Please select an image file.'); return; }
+  if (file.size > 3 * 1024 * 1024) {
+    if (!confirm('Image is '+(file.size/1024/1024).toFixed(1)+'MB. Large images may slow the app and might not save. Continue?')) { input.value=''; return; }
+  }
+  const nameInp = document.getElementById('ctImgName');
+  const themeName = (nameInp?.value || file.name.replace(/\.[^.]+$/,'')).trim() || 'My Theme';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    // Auto-pick accent colors based on dark overlay defaults — user picks colors below if desired
+    const navy = document.getElementById('ctNavy')?.value || '#0F1E35';
+    const navy2 = document.getElementById('ctNavy2')?.value || '#1B2D4A';
+    const gold = document.getElementById('ctGold')?.value || '#C9963A';
+    const key = 'img_' + Date.now();
+    THEMES[key] = { name: '🖼 '+themeName, navy, navy2, gold, gold2: gold, bg: navy, accent: gold, image: dataUrl };
+    _saveImageThemes();
+    applyTheme(key);
+    cpRenderThemes();
+    cpToast('✅ Image theme "'+themeName+'" applied!');
+    input.value = '';
+    if (nameInp) nameInp.value = '';
   };
-  setInterval(tryInject, 2000);
-})();
+  reader.readAsDataURL(file);
+}
+function cpDeleteImageTheme(key) {
+  if (!THEMES[key] || !THEMES[key].image) return;
+  if (!confirm('Delete theme "'+THEMES[key].name+'"?')) return;
+  if (activeTheme === key) applyTheme('default');
+  delete THEMES[key];
+  _saveImageThemes();
+  cpRenderThemes();
+  cpToast('🗑 Theme deleted');
+}
 function applyCustomTheme() {
   const navy = document.getElementById('ctNavy')?.value || '#0F1E35';
   const navy2 = document.getElementById('ctNavy2')?.value || '#1B2D4A';
@@ -8248,6 +8311,8 @@ function applyCustomTheme() {
   cpRenderThemes();
   cpToast('✅ Custom theme applied!');
 }
+// Apply saved theme on load
+setTimeout(() => { if (activeTheme !== 'default') applyTheme(activeTheme); }, 500);
 
 // ════════════════════════════════════════════════
 // DEVELOPER: EXPORT / IMPORT SYSTEM
@@ -8548,7 +8613,19 @@ function devExportScheduleJSON() {
               <div><label class="cp-lbl2">Gold / Accent</label><input type="color" id="ctGold" value="#C9963A" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
               <div><label class="cp-lbl2">Background</label><input type="color" id="ctBg" value="#0B1525" style="width:100%;height:34px;border:none;border-radius:8px;cursor:pointer;background:none"></div>
             </div>
-            <button class="bgold" style="margin-top:10px;width:100%" onclick="applyCustomTheme()">Apply Custom Theme</button>
+            <button class="bgold" style="margin-top:10px;width:100%" onclick="applyCustomTheme()">Apply Custom Theme Colors</button>
+          </div>
+          <div style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07)">
+            <div class="cp-stitle">🖼 Image Theme — Upload your own background</div>
+            <div class="cp-infobox" style="margin-top:6px">Upload any image (logo, hotel photo, event poster). The system uses it as the app background with a dark overlay so text stays readable.</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+              <div><label class="cp-lbl2">Theme Name</label><input class="cp-inp2" id="ctImgName" placeholder="e.g. National Day 2026"></div>
+              <div>
+                <label class="cp-lbl2">Upload Image</label>
+                <input type="file" id="ctImgFile" accept="image/*" onchange="cpUploadImageTheme(this)" class="cp-inp2" style="padding:6px;font-size:11px">
+              </div>
+            </div>
+            <div style="font-size:10px;color:#64748B;margin-top:6px">Tip: Use images under 2MB for best performance. The accent colors above will be applied with the image.</div>
           </div>
         </div>`, function(){ if (typeof cpRenderThemes==='function') cpRenderThemes(); });
     }
