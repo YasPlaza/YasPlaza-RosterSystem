@@ -3173,7 +3173,7 @@ async function clearBroadcast() {
   if (!confirm('Remove the broadcast message for all users?')) return;
   const msgEl = document.getElementById('broadcastMsg2');
   const inp = document.getElementById('broadcastInput');
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
   if (db) {
     try { await db.ref('settings/broadcastMessage').remove(); } catch(e) {}
   }
@@ -3345,7 +3345,7 @@ function backToLanding() {
   document.getElementById("landing").style.display="flex";
   document.getElementById("passModal").classList.remove("show");
   const inp = document.getElementById('landEmpId');
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
   _currentLandEmpId = null;
   if (typeof stopLiveDashClock === 'function') stopLiveDashClock();
 }
@@ -6631,7 +6631,7 @@ function logoutEmp() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
 }
 function renderEmpHotel(empId, y, m, d) {
   const hotel = getHotelAssignment(empId, y, m, d);
@@ -7648,7 +7648,7 @@ function exitAuthSelector() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
   _currentLandEmpId = null;
 }
 
@@ -7704,7 +7704,7 @@ function exitLiveDash() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
   _currentLandEmpId = null;
 }
 
@@ -7881,7 +7881,7 @@ function cpAddLiveAuthId() {
   if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) { cpToast('⚠️ Already authorized!'); return; }
   LIVE_AUTHORIZED_IDS.push(id);
   saveLiveAuthorizedIds();
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
   laRender();
   cpToast('✅ ' + id + ' can now access Live Dashboard!');
   if(typeof logAccess==='function') logAccess('s', 'Live auth ID added: ' + id);
@@ -7930,14 +7930,17 @@ function laRender() {
 }
 
 function laAddId() {
-  const inp = document.getElementById('laEmpIdInp');
-  const msg = document.getElementById('laMsg');
+  // Two panels share the same IDs (original + mounted tab) — pick the visible one with a value
+  const inputs = Array.from(document.querySelectorAll('#laEmpIdInp'));
+  const msgs   = Array.from(document.querySelectorAll('#laMsg'));
+  const inp = inputs.find(i => i.offsetParent !== null && i.value.trim()) || inputs.find(i => i.offsetParent !== null) || inputs[0];
+  const msg = msgs.find(m => m.offsetParent !== null) || msgs[0];
   const id = (inp ? inp.value : '').trim().toUpperCase();
-  if (!id) { if(msg) { msg.style.color='#F87171'; msg.textContent='❌ Please enter an Employee ID.'; } return; }
+  if (!id) { msgs.forEach(m => { m.style.color='#F87171'; m.textContent='❌ Please enter an Employee ID.'; }); return; }
 
   // Check if already authorized
   if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) {
-    if(msg) { msg.style.color='#FBBF24'; msg.textContent='⚠️ ' + id + ' already has Live Dashboard access.'; }
+    msgs.forEach(m => { m.style.color='#FBBF24'; m.textContent='⚠️ ' + id + ' already has Live Dashboard access.'; });
     return;
   }
 
@@ -7946,10 +7949,10 @@ function laAddId() {
 
   LIVE_AUTHORIZED_IDS.push(id);
   saveLiveAuthorizedIds();
-  if (inp) inp.value = '';
+  inputs.forEach(i => i.value = '');
 
   const empInfo = emp ? (emp.name + ' · ' + emp.department) : '(will auto-resolve on next login)';
-  if(msg) { msg.style.color='#4ADE80'; msg.textContent='✅ ' + id + ' added — ' + empInfo; }
+  msgs.forEach(m => { m.style.color='#4ADE80'; m.textContent='✅ ' + id + ' added — ' + empInfo; });
   laRender();
   if(typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
   if(typeof logAccess==='function') logAccess('s','Live access added: '+id);
@@ -7966,12 +7969,12 @@ function laAddId() {
 function laRemoveId(i) {
   const id = LIVE_AUTHORIZED_IDS[i];
   if (!id) return;
+  if (!confirm('Remove ' + id + ' from Live Dashboard access?')) return;
   LIVE_AUTHORIZED_IDS.splice(i, 1);
   saveLiveAuthorizedIds();
   laRender();
   if(typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-  const msg = document.getElementById('laMsg');
-  if(msg) { msg.style.color='#F87171'; msg.textContent='🗑 ' + id + ' removed from Live Dashboard access.'; }
+  document.querySelectorAll('#laMsg').forEach(m => { m.style.color='#F87171'; m.textContent='🗑 ' + id + ' removed from Live Dashboard access.'; });
   if(typeof logAccess==='function') logAccess('s','Live access removed: '+id);
 }
 
