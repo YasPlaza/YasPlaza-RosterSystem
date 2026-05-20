@@ -111,7 +111,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .exit-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.65);border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;transition:.2s}
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
-.page{display:none;flex:1;min-height:calc(100vh - 56px);padding:20px 22px;animation:fadeIn .25s ease both}
+.page{display:none;flex:1;height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -1350,46 +1350,38 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
   <!-- ══ FORECAST PAGE ══ -->
   <div class="page" id="page-forecast">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:14px;margin-bottom:18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
-        <div style="font-size:12px;color:var(--slate);margin-top:4px">Upload Excel/CSV with date, occupancy %, arrivals, departures. System generates smart staffing suggestions.</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
+        <div style="font-size:11px;color:var(--slate);margin-top:3px">Per-hotel occupancy, arrivals & departures. Upload Excel/CSV with columns: <b>Hotel, Date, Occupancy %, Arrivals, Departures, Notes</b>.</div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <label class="btn btn-primary" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
           📁 Import Excel/CSV
           <input type="file" id="fcFileInput" accept=".csv,.xlsx,.xls" style="display:none" onchange="fcHandleFile(event)">
         </label>
-        <button class="btn btn-ghost" onclick="fcDownloadTemplate()">⬇ Template</button>
-        <button class="btn btn-ghost" onclick="fcManualEdit()">✏️ Manual Edit</button>
-        <button class="btn btn-ghost" onclick="fcClearData()" style="color:var(--red)">🗑️ Clear</button>
+        <button class="btn btn-ghost btn-sm" onclick="fcDownloadTemplate()">⬇ Template</button>
+        <button class="btn btn-ghost btn-sm" onclick="fcManualEdit()">✏️ Manual Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="fcClearData()" style="color:var(--red)">🗑️ Clear</button>
       </div>
     </div>
 
-    <!-- KPI Cards -->
-    <div id="fcKpiRow" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin-bottom:18px"></div>
+    <!-- Global KPI Cards (across selected hotels) -->
+    <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px"></div>
 
     <!-- Suggestions Alert Banner -->
-    <div id="fcSuggestionsBox" style="margin-bottom:18px"></div>
+    <div id="fcSuggestionsBox" style="margin-bottom:14px"></div>
 
-    <!-- 10-Day Strip -->
-    <div class="card" style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);margin-bottom:18px">
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--navy);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">📅 Upcoming 10 Days</div>
-      <div id="fcDayStrip" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px"></div>
-    </div>
-
-    <!-- Detailed Table -->
-    <div class="card" style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);margin-bottom:18px;overflow:auto">
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--navy);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">📊 Forecast Detail</div>
-      <div id="fcTableWrap"></div>
-    </div>
+    <!-- Per-hotel sections (Occupancy + Arrivals + Departures each) -->
+    <div id="fcHotelSections" style="display:flex;flex-direction:column;gap:14px;margin-bottom:14px"></div>
 
     <!-- Department Recommendations -->
-    <div class="card" style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh)">
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:var(--navy);margin-bottom:14px;text-transform:uppercase;letter-spacing:.5px">💡 Smart Staffing Recommendations</div>
+    <div class="card" style="background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:18px">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">💡 Smart Staffing Recommendations</div>
       <div id="fcRecsBox"></div>
     </div>
   </div>
+
 
 <div class="page" id="page-settings">
 <style>
@@ -8655,22 +8647,42 @@ function devExportScheduleJSON() {
 </script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous">
 // ════════════════════════════════════════════════
-// FORECAST PAGE — 10-day occupancy & smart suggestions
+// FORECAST PAGE — per-hotel 10-day occupancy & smart suggestions
 // ════════════════════════════════════════════════
 (function(){
-  const STORAGE_KEY = 'yph_forecast_v1';
-  // Thresholds
-  const HIGH_OCC = 85;       // % — occupancy considered HIGH
-  const CRITICAL_OCC = 92;   // % — CRITICAL high
-  const HIGH_ARR = 50;       // arrivals/day -> mid-shift boost
-  const HIGH_DEP = 50;       // departures/day -> morning boost
+  const STORAGE_KEY = 'yph_forecast_v2';
+  const LEGACY_KEY  = 'yph_forecast_v1';
+  const HIGH_OCC = 85, CRITICAL_OCC = 92, HIGH_ARR = 50, HIGH_DEP = 50;
+
+  // Hotels list (excludes the "All Hotels" pseudo-entry)
+  function hotelDefs(){
+    const arr = (typeof HOTELS !== 'undefined' && Array.isArray(HOTELS)) ? HOTELS : [];
+    return arr.filter(h => h && h.id && h.id !== 'all');
+  }
+  function hotelName(id){
+    const h = hotelDefs().find(x => x.id === id);
+    return h ? h.name : id;
+  }
+  function hotelColor(id){
+    const h = hotelDefs().find(x => x.id === id);
+    return h ? h.color : '#1B2A4A';
+  }
 
   function loadFC(){
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); } catch(e){ return []; }
+    try {
+      const v = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+      if (Array.isArray(v)) return v;
+      // migrate legacy (no hotel) -> assign to first real hotel
+      const legacy = JSON.parse(localStorage.getItem(LEGACY_KEY)||'[]');
+      const first = (hotelDefs()[0]||{id:'unknown'}).id;
+      const migrated = legacy.map(r => Object.assign({hotel:first}, r));
+      if (migrated.length) saveFC(migrated);
+      return migrated;
+    } catch(e){ return []; }
   }
   function saveFC(rows){
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); } catch(e){}
-    if (typeof db !== 'undefined' && db) { try { db.ref('forecast').set(rows); } catch(e){} }
+    if (typeof db !== 'undefined' && db) { try { db.ref('forecast_v2').set(rows); } catch(e){} }
   }
   function fmtDate(d){
     const dt = (d instanceof Date) ? d : new Date(d);
@@ -8680,35 +8692,50 @@ function devExportScheduleJSON() {
   function parseDateCell(v){
     if (v==null||v==='') return null;
     if (v instanceof Date) return v;
-    if (typeof v === 'number'){ // Excel serial
+    if (typeof v === 'number'){
       const d = new Date(Math.round((v - 25569)*86400*1000));
       if (!isNaN(d)) return d;
     }
     const s = String(v).trim();
     const d1 = new Date(s); if (!isNaN(d1)) return d1;
     const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-    if (m){
-      let [_,a,b,c] = m; c = c.length===2?'20'+c:c;
-      const d = new Date(+c, +b-1, +a); if (!isNaN(d)) return d;
-    }
+    if (m){ let [_,a,b,c]=m; c=c.length===2?'20'+c:c; const d=new Date(+c,+b-1,+a); if(!isNaN(d)) return d; }
     return null;
   }
   function num(v){ const n = parseFloat(String(v||'').replace('%','').replace(',','')); return isNaN(n)?0:n; }
+  function resolveHotelId(v){
+    if (!v) return null;
+    const s = String(v).trim().toLowerCase();
+    const h = hotelDefs().find(x => x.id.toLowerCase()===s || (x.name||'').toLowerCase()===s);
+    return h ? h.id : null;
+  }
+  function activeHotels(){
+    const sel = document.getElementById('hotelFilter');
+    const v = sel ? sel.value : 'all';
+    if (!v || v === 'all') return hotelDefs();
+    const one = hotelDefs().find(h => h.id === v);
+    return one ? [one] : hotelDefs();
+  }
 
+  // ─── Template ───
   window.fcDownloadTemplate = function(){
     const today = new Date();
-    const rows = [['Date','Occupancy %','Arrivals','Departures','Notes']];
-    for (let i=0;i<10;i++){
-      const d = new Date(today.getTime()+i*86400000);
-      rows.push([d.toISOString().slice(0,10),'',  '',  '',  '']);
-    }
-    const csv = rows.map(r=>r.join(',')).join('\n');
+    const rows = [['Hotel','Date','Occupancy %','Arrivals','Departures','Notes']];
+    const hotels = hotelDefs();
+    hotels.forEach(h => {
+      for (let i=0;i<10;i++){
+        const d = new Date(today.getTime()+i*86400000);
+        rows.push([h.id, d.toISOString().slice(0,10),'','','','']);
+      }
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
     const blob = new Blob([csv],{type:'text/csv'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href=url; a.download='forecast_template.csv'; a.click();
     setTimeout(()=>URL.revokeObjectURL(url),500);
   };
 
+  // ─── Import ───
   window.fcHandleFile = function(evt){
     const file = evt.target.files[0]; if (!file) return;
     const reader = new FileReader();
@@ -8721,23 +8748,51 @@ function devExportScheduleJSON() {
           rows = XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
         } else {
           const text = (typeof e.target.result === 'string') ? e.target.result : new TextDecoder().decode(e.target.result);
-          rows = text.split(/\r?\n/).map(r=>r.split(/[,;\t]/));
-        }
-        const data = [];
-        for (let i=1;i<rows.length;i++){
-          const r = rows[i]; if (!r || !r[0]) continue;
-          const dt = parseDateCell(r[0]); if (!dt) continue;
-          data.push({
-            date: dt.toISOString().slice(0,10),
-            occ: num(r[1]),
-            arr: num(r[2]),
-            dep: num(r[3]),
-            notes: String(r[4]||'').trim()
+          rows = text.split(/\r?\n/).map(r => {
+            // simple CSV split that handles quoted fields
+            const out=[]; let cur='', inQ=false;
+            for (let i=0;i<r.length;i++){
+              const ch=r[i];
+              if (ch==='"'){ if (inQ && r[i+1]==='"'){cur+='"';i++;} else inQ=!inQ; }
+              else if (ch===',' && !inQ){ out.push(cur); cur=''; }
+              else cur+=ch;
+            }
+            out.push(cur); return out;
           });
         }
-        data.sort((a,b)=>a.date.localeCompare(b.date));
-        saveFC(data); renderForecast();
-        alert('Imported '+data.length+' days.');
+        // detect header row: look for "hotel" or "date" in first row
+        const header = (rows[0]||[]).map(x => String(x||'').toLowerCase().trim());
+        const hasHeader = header.some(h => /hotel|date|occup|arriv|depart/.test(h));
+        const idx = {
+          hotel:  header.findIndex(h => /hotel/.test(h)),
+          date:   header.findIndex(h => /date/.test(h)),
+          occ:    header.findIndex(h => /occup/.test(h)),
+          arr:    header.findIndex(h => /arriv/.test(h)),
+          dep:    header.findIndex(h => /depart/.test(h)),
+          notes:  header.findIndex(h => /note/.test(h)),
+        };
+        // fallback positions if no header
+        if (!hasHeader){ idx.hotel=0; idx.date=1; idx.occ=2; idx.arr=3; idx.dep=4; idx.notes=5; }
+        const startRow = hasHeader ? 1 : 0;
+        const out = [];
+        const defaultHotel = (hotelDefs()[0]||{id:''}).id;
+        for (let i=startRow;i<rows.length;i++){
+          const r = rows[i]; if (!r) continue;
+          const dt = parseDateCell(r[idx.date]); if (!dt) continue;
+          const hid = resolveHotelId(r[idx.hotel]) || defaultHotel;
+          if (!hid) continue;
+          out.push({
+            hotel: hid,
+            date: dt.toISOString().slice(0,10),
+            occ: num(r[idx.occ]),
+            arr: num(r[idx.arr]),
+            dep: num(r[idx.dep]),
+            notes: String(r[idx.notes]||'').trim()
+          });
+        }
+        out.sort((a,b)=> a.hotel.localeCompare(b.hotel) || a.date.localeCompare(b.date));
+        saveFC(out); renderForecast();
+        alert('Imported '+out.length+' rows across '+new Set(out.map(r=>r.hotel)).size+' hotel(s).');
       } catch(err){ alert('Import failed: '+err.message); }
       evt.target.value='';
     };
@@ -8746,211 +8801,246 @@ function devExportScheduleJSON() {
   };
 
   window.fcClearData = function(){
-    if (!confirm('Clear all forecast data?')) return;
+    if (!confirm('Clear ALL forecast data (every hotel)?')) return;
     saveFC([]); renderForecast();
   };
 
+  // ─── Manual Edit (per hotel, based on active filter) ───
   window.fcManualEdit = function(){
     const data = loadFC();
-    let html = '<div style="max-height:60vh;overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">'+
-      '<thead><tr style="background:var(--navy);color:#fff"><th style="padding:8px">Date</th><th style="padding:8px">Occ %</th><th style="padding:8px">Arrivals</th><th style="padding:8px">Departures</th><th style="padding:8px">Notes</th></tr></thead><tbody>';
+    const hotels = activeHotels();
     const today = new Date();
-    for (let i=0;i<10;i++){
-      const d = new Date(today.getTime()+i*86400000);
-      const ds = d.toISOString().slice(0,10);
-      const row = data.find(r=>r.date===ds) || {date:ds,occ:'',arr:'',dep:'',notes:''};
-      html += `<tr><td style="padding:4px"><input type="date" value="${row.date}" data-i="${i}" data-f="date" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:100%"></td>`+
-        `<td style="padding:4px"><input type="number" value="${row.occ||''}" data-i="${i}" data-f="occ" min="0" max="100" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:80px"></td>`+
-        `<td style="padding:4px"><input type="number" value="${row.arr||''}" data-i="${i}" data-f="arr" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:80px"></td>`+
-        `<td style="padding:4px"><input type="number" value="${row.dep||''}" data-i="${i}" data-f="dep" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:80px"></td>`+
-        `<td style="padding:4px"><input type="text" value="${(row.notes||'').replace(/"/g,'&quot;')}" data-i="${i}" data-f="notes" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:100%"></td></tr>`;
-    }
-    html += '</tbody></table></div>';
+    let html = '<div style="max-height:65vh;overflow:auto">';
+    hotels.forEach(h => {
+      html += `<div style="font-family:'Syne';font-weight:800;color:${h.color};margin:12px 0 6px;font-size:13px">🏨 ${h.name}</div>`;
+      html += '<table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px">'+
+        '<thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px">Date</th><th style="padding:6px">Occ %</th><th style="padding:6px">Arrivals</th><th style="padding:6px">Departures</th><th style="padding:6px">Notes</th></tr></thead><tbody>';
+      for (let i=0;i<10;i++){
+        const d = new Date(today.getTime()+i*86400000);
+        const ds = d.toISOString().slice(0,10);
+        const row = data.find(r=>r.hotel===h.id && r.date===ds) || {date:ds,occ:'',arr:'',dep:'',notes:''};
+        html += `<tr><td style="padding:3px"><input type="date" value="${row.date}" data-h="${h.id}" data-i="${i}" data-f="date" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:100%"></td>`+
+          `<td style="padding:3px"><input type="number" value="${row.occ||''}" data-h="${h.id}" data-i="${i}" data-f="occ" min="0" max="100" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:70px"></td>`+
+          `<td style="padding:3px"><input type="number" value="${row.arr||''}" data-h="${h.id}" data-i="${i}" data-f="arr" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:70px"></td>`+
+          `<td style="padding:3px"><input type="number" value="${row.dep||''}" data-h="${h.id}" data-i="${i}" data-f="dep" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:70px"></td>`+
+          `<td style="padding:3px"><input type="text" value="${(row.notes||'').replace(/"/g,'&quot;')}" data-h="${h.id}" data-i="${i}" data-f="notes" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:100%"></td></tr>`;
+      }
+      html += '</tbody></table>';
+    });
+    html += '</div>';
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-    modal.innerHTML = `<div style="background:#fff;border-radius:14px;padding:24px;max-width:900px;width:100%">
-      <h3 style="font-family:'Syne';font-weight:800;color:var(--navy);margin-bottom:14px">✏️ Manual Forecast Edit (Next 10 Days)</h3>
+    modal.innerHTML = `<div style="background:#fff;border-radius:14px;padding:20px;max-width:1000px;width:100%;max-height:90vh;display:flex;flex-direction:column">
+      <h3 style="font-family:'Syne';font-weight:800;color:var(--navy);margin-bottom:10px">✏️ Manual Forecast Edit — Next 10 Days</h3>
       ${html}
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
         <button class="btn btn-ghost" id="fcCancel">Cancel</button>
         <button class="btn btn-primary" id="fcSave">💾 Save</button>
       </div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('#fcCancel').onclick = ()=>modal.remove();
     modal.querySelector('#fcSave').onclick = ()=>{
-      const rows = [];
-      for (let i=0;i<10;i++){
-        const inputs = modal.querySelectorAll(`input[data-i="${i}"]`);
-        const obj = {}; inputs.forEach(inp=>{ obj[inp.dataset.f] = inp.type==='number' ? num(inp.value) : inp.value; });
-        if (obj.date) rows.push(obj);
-      }
-      rows.sort((a,b)=>a.date.localeCompare(b.date));
-      saveFC(rows); renderForecast(); modal.remove();
+      // Keep rows for hotels we didn't edit (filter mode)
+      const keep = data.filter(r => !hotels.find(h => h.id === r.hotel));
+      const out = [...keep];
+      hotels.forEach(h => {
+        for (let i=0;i<10;i++){
+          const inputs = modal.querySelectorAll(`input[data-h="${h.id}"][data-i="${i}"]`);
+          const obj = {hotel:h.id};
+          inputs.forEach(inp => { obj[inp.dataset.f] = inp.type==='number' ? num(inp.value) : inp.value; });
+          if (obj.date) out.push(obj);
+        }
+      });
+      out.sort((a,b)=> a.hotel.localeCompare(b.hotel) || a.date.localeCompare(b.date));
+      saveFC(out); renderForecast(); modal.remove();
     };
   };
 
-  function getNext10(){
-    const data = loadFC();
+  // ─── Build next-10 days for one hotel ───
+  function getNext10(hotelId, allData){
     const today = new Date(); today.setHours(0,0,0,0);
     const out = [];
     for (let i=0;i<10;i++){
       const d = new Date(today.getTime()+i*86400000);
       const ds = d.toISOString().slice(0,10);
-      const row = data.find(r=>r.date===ds) || {date:ds,occ:0,arr:0,dep:0,notes:''};
-      out.push(Object.assign({},row,{_date:d}));
+      const row = allData.find(r => r.hotel===hotelId && r.date===ds) || {hotel:hotelId,date:ds,occ:0,arr:0,dep:0,notes:''};
+      out.push(Object.assign({}, row, {_date:d}));
     }
     return out;
   }
 
-  function generateSuggestions(rows){
+  function generateSuggestions(rows, hName){
     const sugs = [];
-    rows.forEach(r=>{
+    rows.forEach(r => {
       const day = fmtDate(r._date);
-      if (r.occ >= CRITICAL_OCC){
-        sugs.push({severity:'critical',day,text:`🔴 ${day}: Occupancy ${r.occ}% (CRITICAL). Add staff across all departments, cancel pending leaves, alert on-call list.`});
-      } else if (r.occ >= HIGH_OCC){
-        sugs.push({severity:'high',day,text:`🟠 ${day}: Occupancy ${r.occ}% is HIGH. Increase Front Office & Housekeeping staff, review leave approvals.`});
-      }
-      if (r.dep >= HIGH_DEP){
-        sugs.push({severity:'high',day,text:`🌅 ${day}: ${r.dep} departures expected. Add extra staff in MORNING shift (check-out rush, room turnover, F&B breakfast).`});
-      }
-      if (r.arr >= HIGH_ARR){
-        sugs.push({severity:'high',day,text:`🌆 ${day}: ${r.arr} arrivals expected. Add staff in MID/AFTERNOON shift (check-in surge, concierge, F&B dinner). Cancel non-critical day-offs.`});
-      }
-      if (r.arr >= HIGH_ARR && r.dep >= HIGH_DEP){
-        sugs.push({severity:'critical',day,text:`⚡ ${day}: Heavy turnover (${r.arr} in / ${r.dep} out). Deploy split shifts (SPL) and consider PH cancellations.`});
-      }
+      const tag = hName ? `[${hName}] ` : '';
+      if (r.occ >= CRITICAL_OCC)      sugs.push({severity:'critical',text:`🔴 ${tag}${day}: Occupancy ${r.occ}% (CRITICAL). Add staff across all depts, cancel pending leaves.`});
+      else if (r.occ >= HIGH_OCC)     sugs.push({severity:'high',text:`🟠 ${tag}${day}: Occupancy ${r.occ}% HIGH. Increase Front Office & Housekeeping.`});
+      if (r.dep >= HIGH_DEP)          sugs.push({severity:'high',text:`🌅 ${tag}${day}: ${r.dep} departures — add MORNING shift staff.`});
+      if (r.arr >= HIGH_ARR)          sugs.push({severity:'high',text:`🌆 ${tag}${day}: ${r.arr} arrivals — add MID/AFTERNOON staff.`});
+      if (r.arr >= HIGH_ARR && r.dep >= HIGH_DEP) sugs.push({severity:'critical',text:`⚡ ${tag}${day}: Heavy turnover (${r.arr} in / ${r.dep} out). Split shifts recommended.`});
     });
-    // 3+ consecutive high days -> roster planning alert
-    let streak = 0, streakStart = null;
-    rows.forEach(r=>{
-      if (r.occ >= HIGH_OCC){ if (!streakStart) streakStart = fmtDate(r._date); streak++; }
-      else { if (streak >= 3) sugs.push({severity:'high',day:streakStart,text:`📈 ${streak} consecutive HIGH-occupancy days from ${streakStart}. Adjust roster planner now to balance off-days.`}); streak=0; streakStart=null; }
-    });
-    if (streak >= 3) sugs.push({severity:'high',day:streakStart,text:`📈 ${streak} consecutive HIGH-occupancy days from ${streakStart}. Adjust roster planner to balance off-days.`});
     return sugs;
   }
 
-  function renderForecast(){
-    const rows = getNext10();
-    const kpiRow = document.getElementById('fcKpiRow'); if (!kpiRow) return;
+  function kpiCard(label, value, sub, color){
+    return `<div style="background:#fff;border-radius:var(--r);padding:14px 16px;box-shadow:var(--sh);border-left:4px solid ${color}">
+      <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase">${label}</div>
+      <div style="font-family:'Syne';font-size:26px;font-weight:800;color:${color};margin-top:4px">${value}</div>
+      <div style="font-size:10px;color:var(--slate);margin-top:2px">${sub}</div>
+    </div>`;
+  }
+
+  function hotelSection(h, rows){
     const totalArr = rows.reduce((a,r)=>a+(+r.arr||0),0);
     const totalDep = rows.reduce((a,r)=>a+(+r.dep||0),0);
-    const avgOcc = rows.length ? (rows.reduce((a,r)=>a+(+r.occ||0),0)/rows.length) : 0;
-    const peak = rows.reduce((m,r)=> (+r.occ>+m.occ?r:m), rows[0]||{occ:0,_date:new Date()});
+    const avgOcc   = rows.length ? (rows.reduce((a,r)=>a+(+r.occ||0),0)/rows.length) : 0;
+    const peak     = rows.reduce((m,r)=> (+r.occ>+m.occ?r:m), rows[0]);
     const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
 
-    kpiRow.innerHTML = `
-      <div style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:4px solid ${occColor}">
-        <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase">Avg Occupancy</div>
-        <div style="font-family:'Syne';font-size:30px;font-weight:800;color:${occColor};margin-top:6px">${avgOcc.toFixed(1)}%</div>
-        <div style="font-size:11px;color:var(--slate);margin-top:2px">Next 10 days</div>
-      </div>
-      <div style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:4px solid #4527A0">
-        <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase">Total Arrivals</div>
-        <div style="font-family:'Syne';font-size:30px;font-weight:800;color:#4527A0;margin-top:6px">${totalArr}</div>
-        <div style="font-size:11px;color:var(--slate);margin-top:2px">Across 10 days</div>
-      </div>
-      <div style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:4px solid #E65C00">
-        <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase">Total Departures</div>
-        <div style="font-family:'Syne';font-size:30px;font-weight:800;color:#E65C00;margin-top:6px">${totalDep}</div>
-        <div style="font-size:11px;color:var(--slate);margin-top:2px">Across 10 days</div>
-      </div>
-      <div style="background:#fff;border-radius:var(--r);padding:18px;box-shadow:var(--sh);border-left:4px solid #C9963A">
-        <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase">Peak Day</div>
-        <div style="font-family:'Syne';font-size:22px;font-weight:800;color:var(--navy);margin-top:6px">${fmtDate(peak._date)}</div>
-        <div style="font-size:13px;font-weight:700;color:${peak.occ>=HIGH_OCC?'#B71C1C':'#1B6B3A'};margin-top:2px">${peak.occ}%</div>
-      </div>`;
-
-    // Day strip
-    const strip = document.getElementById('fcDayStrip');
-    strip.innerHTML = rows.map(r=>{
+    const strip = rows.map(r => {
       const col = r.occ>=CRITICAL_OCC?'#B71C1C':r.occ>=HIGH_OCC?'#E65C00':r.occ>=70?'#C9963A':'#1B6B3A';
-      const bg = r.occ>=CRITICAL_OCC?'#FDECEA':r.occ>=HIGH_OCC?'#FFF3E0':r.occ>=70?'#FDF3E3':'#D4EDDA';
-      return `<div style="background:${bg};border:1.5px solid ${col};border-radius:10px;padding:10px;text-align:center">
-        <div style="font-size:10px;font-weight:700;color:var(--navy);text-transform:uppercase">${fmtDate(r._date)}</div>
-        <div style="font-family:'Syne';font-size:22px;font-weight:800;color:${col};margin:4px 0">${r.occ||0}%</div>
+      const bg  = r.occ>=CRITICAL_OCC?'#FDECEA':r.occ>=HIGH_OCC?'#FFF3E0':r.occ>=70?'#FDF3E3':'#D4EDDA';
+      return `<div style="background:${bg};border:1.5px solid ${col};border-radius:8px;padding:8px;text-align:center">
+        <div style="font-size:9px;font-weight:700;color:var(--navy);text-transform:uppercase">${fmtDate(r._date)}</div>
+        <div style="font-family:'Syne';font-size:18px;font-weight:800;color:${col};margin:3px 0">${r.occ||0}%</div>
         <div style="font-size:9px;color:var(--slate)">↓${r.arr||0} ↑${r.dep||0}</div>
       </div>`;
     }).join('');
 
-    // Table
-    document.getElementById('fcTableWrap').innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
+    const table = `<table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:var(--navy);color:#fff">
-        <th style="padding:10px;text-align:left">Date</th><th style="padding:10px">Occupancy</th>
-        <th style="padding:10px">Arrivals</th><th style="padding:10px">Departures</th>
-        <th style="padding:10px">Status</th><th style="padding:10px;text-align:left">Notes</th>
+        <th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th>
+        <th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th>
+        <th style="padding:7px">Status</th><th style="padding:7px;text-align:left">Notes</th>
       </tr></thead><tbody>
-      ${rows.map(r=>{
-        const status = r.occ>=CRITICAL_OCC?'<span style="background:#FDECEA;color:#B71C1C;padding:3px 8px;border-radius:6px;font-weight:700">CRITICAL</span>'
-          : r.occ>=HIGH_OCC?'<span style="background:#FFF3E0;color:#E65C00;padding:3px 8px;border-radius:6px;font-weight:700">HIGH</span>'
-          : r.occ>=70?'<span style="background:#FDF3E3;color:#C9963A;padding:3px 8px;border-radius:6px;font-weight:700">MODERATE</span>'
-          : '<span style="background:#D4EDDA;color:#1B6B3A;padding:3px 8px;border-radius:6px;font-weight:700">NORMAL</span>';
+      ${rows.map(r => {
+        const status = r.occ>=CRITICAL_OCC?'<span style="background:#FDECEA;color:#B71C1C;padding:2px 6px;border-radius:5px;font-weight:700;font-size:10px">CRITICAL</span>'
+          : r.occ>=HIGH_OCC?'<span style="background:#FFF3E0;color:#E65C00;padding:2px 6px;border-radius:5px;font-weight:700;font-size:10px">HIGH</span>'
+          : r.occ>=70?'<span style="background:#FDF3E3;color:#C9963A;padding:2px 6px;border-radius:5px;font-weight:700;font-size:10px">MOD</span>'
+          : '<span style="background:#D4EDDA;color:#1B6B3A;padding:2px 6px;border-radius:5px;font-weight:700;font-size:10px">NORMAL</span>';
         return `<tr style="border-bottom:1px solid #eee">
-          <td style="padding:10px;font-weight:600">${fmtDate(r._date)}</td>
-          <td style="padding:10px;text-align:center;font-weight:700">${r.occ||0}%</td>
-          <td style="padding:10px;text-align:center">${r.arr||0}</td>
-          <td style="padding:10px;text-align:center">${r.dep||0}</td>
-          <td style="padding:10px;text-align:center">${status}</td>
-          <td style="padding:10px;color:var(--slate)">${r.notes||''}</td></tr>`;
+          <td style="padding:6px;font-weight:600">${fmtDate(r._date)}</td>
+          <td style="padding:6px;text-align:center;font-weight:700">${r.occ||0}%</td>
+          <td style="padding:6px;text-align:center">${r.arr||0}</td>
+          <td style="padding:6px;text-align:center">${r.dep||0}</td>
+          <td style="padding:6px;text-align:center">${status}</td>
+          <td style="padding:6px;color:var(--slate)">${r.notes||''}</td></tr>`;
       }).join('')}
     </tbody></table>`;
 
-    // Suggestions
-    const sugs = generateSuggestions(rows);
+    return `<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid ${h.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,${h.color}15,transparent)">
+        <div style="font-family:'Syne';font-weight:800;font-size:15px;color:${h.color}">🏨 ${h.name}</div>
+        <div style="display:flex;gap:14px;font-size:11px;color:var(--slate)">
+          <span><b style="color:${occColor};font-size:14px">${avgOcc.toFixed(1)}%</b> avg occ</span>
+          <span><b style="color:#4527A0;font-size:14px">${totalArr}</b> arrivals</span>
+          <span><b style="color:#E65C00;font-size:14px">${totalDep}</b> departures</span>
+          <span>Peak: <b style="color:var(--navy)">${fmtDate(peak._date)} ${peak.occ}%</b></span>
+        </div>
+      </div>
+      <div style="padding:12px 16px">
+        <div style="font-size:10px;font-weight:700;color:var(--slate);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px">📅 Next 10 Days</div>
+        <div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">${strip}</div>
+        <div style="overflow:auto">${table}</div>
+      </div>
+    </div>`;
+  }
+
+  function renderForecast(){
+    const root = document.getElementById('fcGlobalKpi'); if (!root) return;
+    const allData = loadFC();
+    const hotels  = activeHotels();
+
+    // Global totals (across visible hotels)
+    let gArr=0, gDep=0, occSum=0, occCount=0, peak={occ:0,_date:new Date(),hotel:''};
+    const allRowsByHotel = hotels.map(h => {
+      const rs = getNext10(h.id, allData);
+      rs.forEach(r => {
+        gArr += (+r.arr||0); gDep += (+r.dep||0);
+        occSum += (+r.occ||0); occCount++;
+        if ((+r.occ||0) > (+peak.occ||0)) peak = Object.assign({}, r, {hotel:h.id});
+      });
+      return {h, rs};
+    });
+    const avgOcc = occCount ? occSum/occCount : 0;
+    const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
+
+    root.innerHTML =
+      kpiCard('Avg Occupancy', avgOcc.toFixed(1)+'%', `${hotels.length} hotel(s) · 10 days`, occColor) +
+      kpiCard('Total Arrivals', gArr,                 'Across visible hotels', '#4527A0') +
+      kpiCard('Total Departures', gDep,               'Across visible hotels', '#E65C00') +
+      kpiCard('Peak Day', peak.hotel ? (fmtDate(peak._date)+' · '+peak.occ+'%') : '—',
+              peak.hotel ? hotelName(peak.hotel) : 'No data', '#C9963A');
+
+    // Per-hotel sections
+    const sectionsEl = document.getElementById('fcHotelSections');
+    sectionsEl.innerHTML = allRowsByHotel.map(({h, rs}) => hotelSection(h, rs)).join('') ||
+      '<div style="background:#fff;border-radius:var(--r);padding:30px;text-align:center;color:var(--slate);box-shadow:var(--sh)">No hotels configured. Add hotels in Dev Panel.</div>';
+
+    // Suggestions across all visible hotels
+    let allSugs = [];
+    allRowsByHotel.forEach(({h,rs}) => { allSugs = allSugs.concat(generateSuggestions(rs, h.name)); });
     const box = document.getElementById('fcSuggestionsBox');
-    if (sugs.length === 0){
-      box.innerHTML = '<div style="background:#D4EDDA;color:#1B6B3A;padding:14px 18px;border-radius:10px;border-left:4px solid #1B6B3A;font-weight:600">✓ All clear — no staffing alerts for the next 10 days.</div>';
+    if (!allSugs.length){
+      box.innerHTML = '<div style="background:#D4EDDA;color:#1B6B3A;padding:12px 16px;border-radius:10px;border-left:4px solid #1B6B3A;font-weight:600;font-size:12px">✓ All clear — no staffing alerts for the next 10 days.</div>';
     } else {
-      const crit = sugs.filter(s=>s.severity==='critical');
-      const high = sugs.filter(s=>s.severity==='high');
-      box.innerHTML = (crit.length?`<div style="background:linear-gradient(135deg,#B71C1C,#7F1010);color:#fff;padding:16px 20px;border-radius:12px;margin-bottom:10px;box-shadow:var(--sh)">
-        <div style="font-family:'Syne';font-weight:800;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:8px">⚠️ CRITICAL ALERTS (${crit.length})</div>
-        ${crit.map(s=>`<div style="padding:6px 0;border-top:1px solid rgba(255,255,255,.2);font-size:12px">${s.text}</div>`).join('')}
-      </div>`:'') +
-      (high.length?`<div style="background:#FFF3E0;color:#7A3700;padding:16px 20px;border-radius:12px;border-left:4px solid #E65C00">
-        <div style="font-family:'Syne';font-weight:800;font-size:14px;margin-bottom:10px">🟠 STAFFING SUGGESTIONS (${high.length})</div>
-        ${high.map(s=>`<div style="padding:6px 0;border-top:1px solid rgba(230,92,0,.2);font-size:12px">${s.text}</div>`).join('')}
-      </div>`:'');
+      const crit = allSugs.filter(s=>s.severity==='critical');
+      const high = allSugs.filter(s=>s.severity==='high');
+      box.innerHTML =
+        (crit.length?`<div style="background:linear-gradient(135deg,#B71C1C,#7F1010);color:#fff;padding:12px 16px;border-radius:10px;margin-bottom:8px;box-shadow:var(--sh)">
+          <div style="font-family:'Syne';font-weight:800;font-size:12px;margin-bottom:6px">⚠️ CRITICAL ALERTS (${crit.length})</div>
+          ${crit.slice(0,6).map(s=>`<div style="padding:3px 0;border-top:1px solid rgba(255,255,255,.2);font-size:11px">${s.text}</div>`).join('')}
+          ${crit.length>6?`<div style="font-size:10px;opacity:.85;margin-top:4px">+${crit.length-6} more…</div>`:''}
+        </div>`:'') +
+        (high.length?`<div style="background:#FFF3E0;color:#7A3700;padding:12px 16px;border-radius:10px;border-left:4px solid #E65C00">
+          <div style="font-family:'Syne';font-weight:800;font-size:12px;margin-bottom:6px">🟠 STAFFING SUGGESTIONS (${high.length})</div>
+          ${high.slice(0,8).map(s=>`<div style="padding:3px 0;border-top:1px solid rgba(230,92,0,.2);font-size:11px">${s.text}</div>`).join('')}
+          ${high.length>8?`<div style="font-size:10px;opacity:.85;margin-top:4px">+${high.length-8} more…</div>`:''}
+        </div>`:'');
     }
 
-    // Department-level recommendations
+    // Department recommendations (aggregate)
     const recs = [];
-    const highDays = rows.filter(r=>r.occ>=HIGH_OCC);
-    const heavyArr = rows.filter(r=>r.arr>=HIGH_ARR);
-    const heavyDep = rows.filter(r=>r.dep>=HIGH_DEP);
-    if (highDays.length) recs.push({dept:'Front Office',action:`Add +${Math.ceil(highDays.length/2)} staff per high-occ day`,reason:`${highDays.length} high-occupancy days`});
-    if (highDays.length) recs.push({dept:'Housekeeping',action:`Boost morning crew by +30%`,reason:`Room turnover on ${highDays.length} days`});
-    if (heavyArr.length) recs.push({dept:'F&B Service',action:`Add mid-shift staff (lunch+dinner)`,reason:`${heavyArr.length} heavy-arrival days`});
-    if (heavyDep.length) recs.push({dept:'Front Office',action:`Add early morning shift coverage`,reason:`${heavyDep.length} heavy-departure days`});
-    if (highDays.length>=5) recs.push({dept:'All Departments',action:`Cancel/reschedule pending leaves; activate on-call list`,reason:`Sustained high demand`});
+    let highDays=0, heavyArr=0, heavyDep=0;
+    allRowsByHotel.forEach(({rs}) => {
+      highDays += rs.filter(r=>r.occ>=HIGH_OCC).length;
+      heavyArr += rs.filter(r=>r.arr>=HIGH_ARR).length;
+      heavyDep += rs.filter(r=>r.dep>=HIGH_DEP).length;
+    });
+    if (highDays) recs.push({dept:'Front Office',action:`Add +${Math.ceil(highDays/2)} staff on high-occ days`,reason:`${highDays} high-occupancy day(s)`});
+    if (highDays) recs.push({dept:'Housekeeping',action:`Boost morning crew by +30%`,reason:`Room turnover on ${highDays} day(s)`});
+    if (heavyArr) recs.push({dept:'F&B Service',action:`Add mid-shift staff`,reason:`${heavyArr} heavy-arrival day(s)`});
+    if (heavyDep) recs.push({dept:'Front Office',action:`Add early-morning shift coverage`,reason:`${heavyDep} heavy-departure day(s)`});
+    if (highDays>=5) recs.push({dept:'All Departments',action:`Cancel/reschedule pending leaves; activate on-call list`,reason:`Sustained high demand`});
     const recBox = document.getElementById('fcRecsBox');
-    if (recs.length===0){ recBox.innerHTML = '<div style="color:var(--slate);font-size:13px">No specific department recommendations — staffing levels appear adequate.</div>'; }
-    else { recBox.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead><tr style="background:#F7FAFF"><th style="padding:10px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Department</th><th style="padding:10px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Recommended Action</th><th style="padding:10px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Reason</th></tr></thead>
-      <tbody>${recs.map(r=>`<tr style="border-bottom:1px solid #eee"><td style="padding:10px;font-weight:700;color:var(--navy)">${r.dept}</td><td style="padding:10px;color:#1B6B3A;font-weight:600">${r.action}</td><td style="padding:10px;color:var(--slate)">${r.reason}</td></tr>`).join('')}</tbody></table>`; }
+    recBox.innerHTML = recs.length ? `<table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr style="background:#F7FAFF"><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Department</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Recommended Action</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Reason</th></tr></thead>
+      <tbody>${recs.map(r=>`<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">${r.dept}</td><td style="padding:7px;color:#1B6B3A;font-weight:600">${r.action}</td><td style="padding:7px;color:var(--slate)">${r.reason}</td></tr>`).join('')}</tbody></table>`
+      : '<div style="color:var(--slate);font-size:12px">No specific department recommendations — staffing levels appear adequate.</div>';
   }
 
   window.renderForecast = renderForecast;
 
-  // Hook into switchPage to render on tab open
+  // Hook switchPage + hotel filter
   const _origSwitch = window.switchPage;
   window.switchPage = function(name){
     if (_origSwitch) _origSwitch(name);
     if (name === 'forecast') setTimeout(renderForecast, 50);
   };
-  if (typeof window._switchPageOriginal === 'function'){
-    const _orig2 = window._switchPageOriginal;
-    window._switchPageOriginal = function(name){
-      _orig2(name);
-      if (name === 'forecast') setTimeout(renderForecast, 50);
-    };
-  }
+  // Re-render when hotel filter changes (the existing onchange calls renderAll;
+  // we piggyback so forecast also refreshes).
+  const _origRenderAll = window.renderAll;
+  window.renderAll = function(){
+    if (_origRenderAll) _origRenderAll.apply(this, arguments);
+    const fp = document.getElementById('page-forecast');
+    if (fp && fp.classList.contains('active')) renderForecast();
+  };
 
-  // Initial render on load
   window.addEventListener('load', ()=>setTimeout(renderForecast, 300));
 })();
 
 </script>
 </body>
 </html>
+
