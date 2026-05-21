@@ -9969,9 +9969,11 @@ function devExportScheduleJSON() {
   const DEP_SPLIT = { morning:0.60, afternoon:0.30, night:0.10 };
 
   // PDF property-code → app hotel id
+  // AUHMY=Yas Plaza Mangrove, AUHYI=Crowne Plaza, AUHAY=Yas Plaza Marina
+  // AUHSY=Yas Plaza Circuit,  AUHBY=Yas Plaza Bay
   const DEFAULT_PROP_MAP = {
-    'AUHMY':'marina','AUHYI':'staybridge','AUHBY':'bay',
-    'AUHAY':'crowne','AUHSY':'mangrove'
+    'AUHMY':'mangrove','AUHYI':'crowne','AUHBY':'bay',
+    'AUHAY':'marina',  'AUHSY':'circuit'
   };
   // PDF title → app hotel id
   const TITLE_MAP = [
@@ -10033,7 +10035,8 @@ function devExportScheduleJSON() {
   }
 
   // FORECAST PDF (Oracle Reports "History and Forecast")
-  // Row example: "21.05.26 Thu 41 4 2 0 21 20 20.30% 20,913.48 510.08 1 0 90 83"
+  // Row: Date Day TotalOcc ArrRooms CompRooms HouseUse DeductIndiv DeductGroup Occ% Revenue AvgRate DepRooms OOO Adl
+  // Example: "21.05.26 Thu 41 4 2 0 21 20 20.30% 20,913.48 510.08 1 0 90 83"
   function parseForecastPdf(pages){
     const out = []; let currentHotel = null;
     const lineRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+[\d,.]+\s+[\d,.]+\s+(\d+)/;
@@ -10173,6 +10176,10 @@ function devExportScheduleJSON() {
             📄 Import Event List PDF
             <input type="file" id="sxEvFile" accept=".pdf" style="display:none">
           </label>
+          <label class="btn btn-primary btn-sm" id="sxFcBtnStaff" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#1B6B3A">
+            📊 Import Forecast PDF
+            <input type="file" id="sxFcFileStaff" accept=".pdf" style="display:none">
+          </label>
           <button class="btn btn-ghost btn-sm" id="sxEvClear" style="color:var(--red)">🗑 Clear events</button>
         </div>
       </div>
@@ -10183,9 +10190,9 @@ function devExportScheduleJSON() {
           <label>Valet · 1 per (arrivals+departures)<input type="number" id="sxV1" min="1"></label>
           <label>Valet · 1 per (event guests)<input type="number" id="sxV2" min="1"></label>
           <label>Valet · minimum per shift<input type="number" id="sxV3" min="0"></label>
-          <label>HK Casual · rooms per attendant<input type="number" id="sxH1" min="1"></label>
-          <label>HK Casual · event guest threshold<input type="number" id="sxH2" min="1"></label>
-          <label>HK Casual · per threshold add<input type="number" id="sxH3" min="0" step="0.5"></label>
+          <label>HK Casual · rooms per attendant (arr+dep)<input type="number" id="sxH1" min="1"></label>
+          <label style="display:none"><input type="number" id="sxH2" min="1"></label>
+          <label style="display:none"><input type="number" id="sxH3" min="0" step="0.5"></label>
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
           <label style="font-size:11px;color:var(--slate);font-weight:600">Date</label>
@@ -10290,15 +10297,14 @@ function devExportScheduleJSON() {
   }
   function hkRecommendation(hotelId, dateISO, cfg, fc, evs){
     const fRow = fc.find(r=>r.hotel===hotelId && r.date===dateISO) || {arr:0,dep:0,occ:0};
+    // HK casuals are based ONLY on forecast arrivals + departures (not events)
+    // Workload = departures (full clean) + arrivals (incoming room prep)
+    const workload = (fRow.dep||0) + (fRow.arr||0);
+    const need = Math.ceil(workload / Math.max(1, cfg.hk.roomsPerAttendant));
+    const have = +cfg.currentHK[hotelId]||0;
+    // Still show event info for awareness, but don't add to need
     const hotelEvs = evs.filter(e=>e.hotel===hotelId && e.date===dateISO);
     const evGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
-    // Rooms to clean ≈ departures (full clean) + half of stay-overs estimated from occ
-    // We don't know exact rooms; use departures + arrivals as a proxy workload.
-    const workload = (fRow.dep||0) + Math.round((fRow.arr||0)*0.5);
-    const base = Math.ceil(workload/Math.max(1,cfg.hk.roomsPerAttendant));
-    const evAdd = Math.ceil(evGuests / Math.max(1,cfg.hk.eventCasualThreshold)) * (cfg.hk.eventCasualPerThreshold||0);
-    const need = base + Math.ceil(evAdd);
-    const have = +cfg.currentHK[hotelId]||0;
     return { workload, evGuests, evCount:hotelEvs.length, need, have, extra: Math.max(0, need-have) };
   }
 
@@ -10372,13 +10378,13 @@ function devExportScheduleJSON() {
           </tbody>
         </table>
 
-        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals (full day)</div>
+        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals (full day · forecast only)</div>
         <table class="sx-tbl">
-          <thead><tr><th>Workload (rooms)</th><th>Event guests</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
+          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
           <tbody>
             <tr>
-              <td>${hk.workload}</td>
-              <td>${hk.evGuests}</td>
+              <td>${hk.workload} rooms</td>
+              <td>${hk.evCount ? hk.evCount+' event(s), '+hk.evGuests+' pax' : '—'}</td>
               <td><b style="color:var(--navy)">${hk.need}</b></td>
               <td><input type="number" class="sx-inp" min="0" value="${hk.have}" data-h="${h.id}" data-kind="hk"></td>
               <td>${pill(hk)}</td>
@@ -10392,7 +10398,7 @@ function devExportScheduleJSON() {
               <div class="sx-rec add">
                 <div>🅿 <b>${r.shift.label}</b> shift: add <b>+${r.extra} valet</b> · arrivals ${r.arr}, departures ${r.dep}${r.evCount?`, ${r.evCount} event(s) (${r.evGuests} pax)`:''}</div>
               </div>`).join('')}
-            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ~${hk.workload} rooms${hk.evCount?`, ${hk.evCount} event(s) (${hk.evGuests} pax)`:''}</div>`:''}
+            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ${hk.workload} rooms (arr+dep forecast)${hk.evCount?` · ${hk.evCount} event(s) on-site (${hk.evGuests} pax, info only)`:''}</div>`:''}
           </div>` : '<div class="sx-rec okrec">✅ Staffing is sufficient for this day.</div>'}
       </div>`;
     }).join('');
@@ -10446,6 +10452,8 @@ function devExportScheduleJSON() {
     get('sxDate').addEventListener('change', renderStaffing);
     get('sxRecalc').addEventListener('click', renderStaffing);
     get('sxEvFile').addEventListener('change', onEventsPdf);
+    const fcStaff = get('sxFcFileStaff');
+    if (fcStaff) fcStaff.addEventListener('change', onForecastPdf);
     get('sxEvClear').addEventListener('click', ()=>{
       if (!confirm('Clear all imported events?')) return;
       saveEvents([]); renderStaffing();
