@@ -1951,12 +1951,12 @@ const DAYS_S  = ["Sun","Mon","Tue","Wed","Thu","Fri","SAT"];
 const HOTELS = [
   {id:"all",        name:"All Hotels",          color:"#1B2A4A",light:"#C5D1E8"},
   {id:"yph",        name:"YPH",color:"#7B5EA7",light:"#EDE7F6"},
-  {id:"marina",     name:"Yas Plaza Marina",     color:"#006064",light:"#E0F7FA"},
-  {id:"circuit",    name:"Yas Plaza Circuit",    color:"#1B2A4A",light:"#D6E0F0"},
-  {id:"mangrove",   name:"Yas Plaza Mangrove",   color:"#1B5E20",light:"#E8F5E9"},
-  {id:"bay",        name:"Yas Plaza Bay",        color:"#0D47A1",light:"#E3F2FD"},
-  {id:"crowne",     name:"Crowne Plaza",         color:"#BF360C",light:"#FBE9E7"},
-  {id:"staybridge", name:"Staybridge",           color:"#4A148C",light:"#EDE7F6"},
+  {id:"marina",     name:"Yas Plaza Marina",     color:"#006064",light:"#E0F7FA",rooms:290},
+  {id:"circuit",    name:"Yas Plaza Circuit",    color:"#1B2A4A",light:"#D6E0F0",rooms:122},
+  {id:"mangrove",   name:"Yas Plaza Mangrove",   color:"#1B5E20",light:"#E8F5E9",rooms:347},
+  {id:"bay",        name:"Yas Plaza Bay",        color:"#0D47A1",light:"#E3F2FD",rooms:98},
+  {id:"crowne",     name:"Crowne Plaza",         color:"#BF360C",light:"#FBE9E7",rooms:375},
+  {id:"staybridge", name:"Staybridge",           color:"#4A148C",light:"#EDE7F6",rooms:164},
 ];
 // HOTELS_DATA is initialized after its declaration below (see STATE section)
 
@@ -9348,6 +9348,17 @@ function devExportScheduleJSON() {
     try { const v = JSON.parse(localStorage.getItem(FC_KEY)||'[]'); return Array.isArray(v)?v:[]; }
     catch(e){ return []; }
   }
+  // Known room counts per hotel (from 100% occupancy days in the forecast PDF)
+  const HOTEL_ROOMS = {
+    marina:     290,
+    circuit:    122,
+    staybridge: 164,
+    crowne:     375,
+    mangrove:   347,
+    bay:         98
+  };
+  const TOTAL_YPH_ROOMS = Object.values(HOTEL_ROOMS).reduce((a,b)=>a+b,0); // 1396
+
   function totalRooms(){
     try {
       if (typeof HOTELS_DATA !== 'undefined' && HOTELS_DATA){
@@ -9355,7 +9366,7 @@ function devExportScheduleJSON() {
         if (t>0) return t;
       }
     } catch(e){}
-    return 361; // fallback to original demo value
+    return TOTAL_YPH_ROOMS;
   }
   function fmtDay(ds){
     const d = new Date(ds);
@@ -9376,8 +9387,17 @@ function devExportScheduleJSON() {
       const d = new Date(today.getTime()+i*86400000);
       const ds = dayKey(d);
       const rows = filtered.filter(r => r.date===ds);
-      const occVals = rows.map(r=>+r.occ||0).filter(v=>v>0);
-      const avgOcc = occVals.length ? (occVals.reduce((a,b)=>a+b,0)/occVals.length) : 0;
+      // Weighted OCC%: sum of occupied rooms across hotels / sum of available rooms for those hotels
+      let totalOccRooms = 0, totalAvailRooms = 0;
+      rows.forEach(r => {
+        const occPct = +r.occ||0;
+        if (occPct > 0) {
+          const availRooms = HOTEL_ROOMS[r.hotel] || 0;
+          totalOccRooms += Math.round((occPct/100) * availRooms);
+          totalAvailRooms += availRooms;
+        }
+      });
+      const avgOcc = totalAvailRooms > 0 ? (totalOccRooms / totalAvailRooms * 100) : 0;
       const arr = rows.reduce((a,r)=>a+(+r.arr||0),0);
       const dep = rows.reduce((a,r)=>a+(+r.dep||0),0);
       const notes = rows.map(r=>r.notes).filter(Boolean).join(' • ');
@@ -10039,10 +10059,17 @@ function devExportScheduleJSON() {
   // Example: "21.05.26 Thu 41 4 2 0 21 20 20.30% 20,913.48 510.08 1 0 90 83"
   function parseForecastPdf(pages){
     const out = []; let currentHotel = null;
+    // More flexible regex: allow any whitespace between columns, handle comma-formatted numbers
     const lineRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+[\d,.]+\s+[\d,.]+\s+(\d+)/;
+    // Also try a looser pattern that splits on whitespace tokens
     pages.forEach(lines => lines.forEach(l => {
       const m = matchHotelTitle(l); if (m){ currentHotel = m; return; }
-      const r = l.match(lineRe);
+      let r = l.match(lineRe);
+      // Fallback: try matching after trimming extra spaces
+      if (!r) {
+        const norm = l.replace(/\s+/g,' ').trim();
+        r = norm.match(lineRe);
+      }
       if (r && currentHotel){
         const [_, dRaw, totalOcc, arr, occ, dep] = r;
         const parts = dRaw.split(/[.\-\/]/).map(Number);
