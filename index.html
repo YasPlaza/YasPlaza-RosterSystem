@@ -83,6 +83,13 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
   /* Force colours through */
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
+  /* Roster print: dates 15-14 */
+  @media print {
+    .hide-before-15th { display: none !important; }
+    .date-before-15 { display: none !important; }
+  }
+
+
   /* Page margins */
   @page { margin: 10mm; size: landscape; }
 }
@@ -812,14 +819,14 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
   <!-- Two tiles -->
   <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:24px">
-    <!-- Live Dashboard tile -->
+    <!-- LIVE tile -->
     <div onclick="openLiveDashFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#1a4a2e,#0d6b35);border:1.5px solid rgba(74,222,128,.3);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(74,222,128,.12)"
       onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(74,222,128,.25)'"
       onmouseout="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(74,222,128,.12)'">
       <div style="width:56px;height:56px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
         <div style="width:16px;height:16px;border-radius:50%;background:#4ADE80;box-shadow:0 0 12px #4ADE80;animation:blink 1.5s infinite"></div>
       </div>
-      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">Live Dashboard</div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">LIVE</div>
       <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Staff on duty right now</div>
     </div>
     <!-- My Roster tile -->
@@ -885,6 +892,26 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   <div class="el" id="empLoginForm">
     <div style="font-size:34px;margin-bottom:12px">🪪</div>
     <h2>My Roster</h2>
+<div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; padding:0 12px;">
+  <div style="flex:1; min-width:150px;">
+    <label style="font-size:11px; color:var(--slate2); display:block; margin-bottom:4px;">Section</label>
+    <select id="liveSectionFilter" onchange="applyLiveFilters()" style="width:100%; padding:8px; border:1px solid rgba(201,150,58,.25); border-radius:8px; background:#1B2D4A; color:#fff; font-size:12px;">
+      <option value="">All Sections</option>
+      <option value="Front Desk">Front Desk</option>
+      <option value="Concierge Plaza">Concierge Plaza</option>
+      <option value="Valet Service">Valet Service</option>
+    </select>
+  </div>
+  <div style="flex:1; min-width:150px;">
+    <label style="font-size:11px; color:var(--slate2); display:block; margin-bottom:4px;">Hotel</label>
+    <select id="liveHotelFilter" onchange="applyLiveFilters()" style="width:100%; padding:8px; border:1px solid rgba(201,150,58,.25); border-radius:8px; background:#1B2D4A; color:#fff; font-size:12px;">
+      <option value="">All Hotels</option>
+      <option value="Yas Hotel">Yas Hotel</option>
+      <option value="Yas Island">Yas Island</option>
+    </select>
+  </div>
+</div>
+
     <p>Enter your Employee ID to view your schedule, hotel assignment, and leave balance. Updates from your manager appear instantly.</p>
     <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);border-radius:8px;font-size:11px;color:var(--gold2)">
       💡 <strong>Tip:</strong> Tap any day in your 7-day schedule to see full duty details — shift time, hotel, section &amp; more.
@@ -1560,7 +1587,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-nav-item" onclick="cpTab('departments')">🏢 Departments & Positions</div>
       <div class="cp-nav-item" onclick="cpTab('shifts')">⏰ Shifts</div>
       <div class="cp-nav-item" onclick="cpTab('access')">🔑 Access & Passwords</div>
-      <div class="cp-nav-item" onclick="cpTab('live')">🟢 Live Dashboard</div>
+      <div class="cp-nav-item" onclick="cpTab('live')">🟢 LIVE</div>
       <div class="cp-nav-item" onclick="cpTab('notifications')">🔔 Notifications</div>
       <div class="cp-nav-item" onclick="cpTab('firebase')">🔥 Firebase Config</div>
       <div class="cp-nav-item" onclick="cpTab('logs')">📋 Activity Logs</div>
@@ -1650,7 +1677,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <!-- LIVE DASHBOARD -->
     <div class="cp-panel" id="cpt-live" style="display:none">
       <div class="cp-ph">
-        <div class="cp-pt">🟢 Live Dashboard <span class="cp-badge">Access & Positions</span></div>
+        <div class="cp-pt">🟢 LIVE <span class="cp-badge">Access & Positions</span></div>
         <button class="bgold" onclick="cpOpenLiveUserForm()">+ Add User</button>
       </div>
       <div class="cp-body">
@@ -1659,7 +1686,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
         <!-- Inline Add/Edit Form -->
         <div id="cpLUForm" style="display:none;background:rgba(201,150,58,.06);border:1.5px dashed rgba(201,150,58,.3);border-radius:10px;padding:12px;margin-bottom:16px">
-          <div class="cp-stitle" id="cpLUFormTitle" style="margin-bottom:8px">Add Live Dashboard User</div>
+          <div class="cp-stitle" id="cpLUFormTitle" style="margin-bottom:8px">Add LIVE User</div>
           <div class="cp-g2" style="margin-bottom:8px">
             <div><label class="cp-lbl2">Name</label><input class="cp-inp2" id="luName" placeholder="e.g. Ahmed (Duty Manager)"></div>
             <div><label class="cp-lbl2">PIN</label><input class="cp-inp2" id="luPin" placeholder="e.g. DM-2026"></div>
@@ -1694,7 +1721,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
 
         <div class="cp-stitle">Monitored Positions</div>
-        <div class="cp-infobox">📍 Only staff with these positions appear in Live Dashboard. Add or remove as needed.</div>
+        <div class="cp-infobox">📍 Only staff with these positions appear in LIVE. Add or remove as needed.</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="cpMonPosList"></div>
         <div style="display:grid;grid-template-columns:1fr auto;gap:7px">
           <div><label class="cp-lbl2">Add Position to Monitor</label><select class="cp-inp2" id="cpMonPosInput"></select></div>
@@ -1706,11 +1733,11 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         <!-- ══ AUTHORIZED STAFF — LIVE DASHBOARD ACCESS ══ -->
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)">
           <div class="cp-stitle" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            🟢 Staff Live Dashboard Access
-            <span style="font-size:10px;color:#64748B;font-weight:400">Add employee IDs — they see Live Dashboard + Roster on login</span>
+            🟢 Staff LIVE Access
+            <span style="font-size:10px;color:#64748B;font-weight:400">Add employee IDs — they see LIVE + Roster on login</span>
           </div>
           <div class="cp-infobox" style="margin-bottom:12px">
-            Staff added here will see a <strong style="color:#4ADE80">Live Dashboard</strong> tile (locked to their own department) + <strong style="color:#E8B04A">My Roster</strong> tile when they enter their ID. Everyone else only sees their roster.
+            Staff added here will see a <strong style="color:#4ADE80">LIVE</strong> tile (locked to their own department) + <strong style="color:#E8B04A">My Roster</strong> tile when they enter their ID. Everyone else only sees their roster.
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
             <input id="laEmpIdInp" class="cp-inp2" placeholder="Employee ID  e.g. E001" maxlength="10"
@@ -2159,14 +2186,14 @@ function logAccess(type,msg){
   localStorage.setItem('accessLog_v1',JSON.stringify(ACCESS_LOG));
 }
 
-// Live Dashboard access users
+// LIVE access users
 let LIVE_USERS = JSON.parse(localStorage.getItem('liveUsers_v1')||'[]');
 function saveLiveUsers(){
   localStorage.setItem('liveUsers_v1',JSON.stringify(LIVE_USERS));
   if(typeof db!=='undefined'&&db) db.ref('settings/liveUsers').set(LIVE_USERS).catch(()=>{});
 }
 
-// Monitored positions for Live Dashboard
+// Monitored positions for LIVE
 let LIVE_MON_POSITIONS = JSON.parse(localStorage.getItem('liveMonPos_v1')||
   JSON.stringify(['Duty Manager','FO Manager','Supervisor','Bell Captain','Concierge Supervisor']));
 function saveLiveMonPos(){
@@ -2181,7 +2208,38 @@ let managerPass = "Manager@2025";   // Legacy fallback
 let developerPass = "Dev@2025";     // Developer only
 let deptPasswords = {};              // {departmentName: password} — set by Developer
 let deptAccessGrants = {};           // {dept: [panel1, panel2...]} — granted by Developer
-let staffData = {};     // {id: empObj}
+let staffData = {};
+
+// ======== DEPARTMENT ACCESS CONTROL ========
+let currentUserDept = null;
+let currentUserRole = null;
+
+function setUserContext(dept, role) {
+  currentUserDept = dept;
+  currentUserRole = role;
+  console.log('[ACCESS]', 'User set to:', dept, '|', role);
+}
+
+function canViewDepartment(targetDept) {
+  // DEV can see everything
+  if (currentUserRole === 'DEV' || currentUserRole === 'Developer') {
+    return true;
+  }
+  // Others see only their own department
+  if (!currentUserDept) return false;
+  return targetDept === currentUserDept;
+}
+
+function filterByDepartment(items, deptField = 'Department') {
+  // DEV sees all
+  if (currentUserRole === 'DEV' || currentUserRole === 'Developer') {
+    return items;
+  }
+  // Filter by current user's department
+  if (!currentUserDept) return [];
+  return items.filter(item => item[deptField] === currentUserDept);
+}
+     // {id: empObj}
 let schedData = {};     // {empId: {"YYYY-M": {day: code}}}
 let settingsData = {};  // {adminPass, ...}
 let hotelData = {};     // {empId: {"YYYY-M": {day: hotelId}}}
@@ -3490,7 +3548,7 @@ function checkPass() {
     CURRENT_DEPT = dept;
     document.getElementById("passModal").classList.remove("show");
     // Department users go straight to the Roster admin view.
-    // Live Dashboard access is reserved for specific staff IDs the Developer authorizes.
+    // LIVE access is reserved for specific staff IDs the Developer authorizes.
     enterAdmin();
   } else {
     document.getElementById("passErr").textContent = "❌ Incorrect password for " + dept + ".";
@@ -3498,7 +3556,7 @@ function checkPass() {
   }
 }
 
-// ── Manager chooser: Live Dashboard vs Roster ──
+// ── Manager chooser: LIVE vs Roster ──
 function showDeptModeChooser(dept){
   let m = document.getElementById('deptModeModal');
   if(!m){
@@ -3517,7 +3575,7 @@ function showDeptModeChooser(dept){
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
         <button id="dmcLive" style="background:linear-gradient(135deg,#1B6B3A,#22c55e);color:#fff;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
           <div style="font-size:28px;margin-bottom:6px">🟢</div>
-          <div style="font-weight:700;font-size:13px">Live Dashboard</div>
+          <div style="font-weight:700;font-size:13px">LIVE</div>
           <div style="font-size:10px;opacity:.85;margin-top:3px">Staff on duty right now</div>
         </button>
         <button id="dmcRoster" style="background:linear-gradient(135deg,#C9963A,#E8B04A);color:#0D1B2E;border:none;border-radius:12px;padding:18px 12px;cursor:pointer;font-family:inherit">
@@ -3527,7 +3585,7 @@ function showDeptModeChooser(dept){
         </button>
       </div>
       <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px;margin-bottom:12px">
-        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🟢 Live Dashboard Options</div>
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">🟢 LIVE Options</div>
         <div style="margin-bottom:8px"><label style="font-size:10px;color:rgba(255,255,255,.4);display:block;margin-bottom:3px">Department</label>
           <select id="dmcDeptSel" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:7px;color:#fff;padding:6px 8px;font-size:11px">
             <option value="__ALL__" ${dept==='all'?'selected':''}>🌐 All Departments</option>
@@ -3573,7 +3631,7 @@ function showDeptModeChooser(dept){
   document.getElementById('dmcRoster').onclick = ()=>{ m.remove(); enterAdmin(); };
 }
 
-// ── Manager Live Dashboard (on-duty view) ──
+// ── Manager LIVE (on-duty view) ──
 function openManagerLiveDashboard(dept, filterPos, filterSec){
   let m = document.getElementById('mgrLiveModal');
   if(!m){
@@ -3647,7 +3705,7 @@ function openManagerLiveDashboard(dept, filterPos, filterSec){
     <div style="max-width:720px;margin:0 auto;background:#F7FAFF;border-radius:16px;overflow:hidden;box-shadow:0 16px 56px rgba(0,0,0,.4)">
       <div style="background:linear-gradient(135deg,#0F1E35,#1B2D4A);color:#fff;padding:16px 20px;display:flex;align-items:center;justify-content:space-between">
         <div>
-          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800">🟢 Live Dashboard</div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800">🟢 LIVE</div>
           <div style="font-size:11px;opacity:.7;margin-top:2px">${filterLabel} · ${today.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short'})} · ${today.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</div>
         </div>
         <div style="display:flex;gap:8px">
@@ -6823,7 +6881,7 @@ const CP_MODS=[
   {key:'handover',       icon:'📝',name:'Handover Notes',     desc:'End-of-shift handover between staff'},
   {key:'leaveRequests',  icon:'🏖',name:'Leave Requests',     desc:'Annual leave, sick leave & training'},
   {key:'autoRoster',     icon:'🤖',name:'Auto Roster',        desc:'AI-powered automatic scheduling'},
-  {key:'liveDashboard',  icon:'🟢',name:'Live Dashboard',     desc:'Real-time on-shift view for managers'},
+  {key:'liveDashboard',  icon:'🟢',name:'LIVE',     desc:'Real-time on-shift view for managers'},
   {key:'overtimeTracker',icon:'⏰',name:'Overtime Tracker',   desc:'Track extra hours for payroll'},
   {key:'analytics',      icon:'📊',name:'Analytics',          desc:'Monthly stats & coverage trends'},
   {key:'noticeBoard',    icon:'📌',name:'Notice Board',       desc:'Digital announcements with read receipts'},
@@ -7138,12 +7196,12 @@ function cpRenderLive(){
     </div>`).join('')
     :'<div style="font-size:12px;color:#64748B;padding:8px">No live dashboard users. Add one above.</div>';
 
-  // Live Dashboard preview panel
+  // LIVE preview panel
   const previewWrap = document.getElementById('cpLivePreview');
   if(previewWrap){
     const allDepts = getAllDepts();
     previewWrap.innerHTML = `
-      <div class="cp-stitle" style="margin-top:14px">🟢 Live Dashboard Preview</div>
+      <div class="cp-stitle" style="margin-top:14px">🟢 LIVE Preview</div>
       <div class="cp-infobox">Select a department and position to preview who's currently on duty.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
         <div><label class="cp-lbl2">Department</label>
@@ -7236,7 +7294,7 @@ function cpUpdateLivePreview(){
     ${absent.length?`<div style="font-size:10px;font-weight:700;color:#9CA3AF;margin:6px 0 5px">⛔ ABSENT</div>${absent.map(e=>miniCard(e)).join('')}`:''}
   `;
 }
-// ── Live Dashboard user form (inline, no prompts) ──
+// ── LIVE user form (inline, no prompts) ──
 let _cpLUEditIdx = -1;
 function cpOpenLiveUserForm(editIdx){
   _cpLUEditIdx = (typeof editIdx === 'number') ? editIdx : -1;
@@ -7249,7 +7307,7 @@ function cpOpenLiveUserForm(editIdx){
     depts.map(d=>`<option value="${d}">${d}</option>`).join('');
   if(_cpLUEditIdx >= 0){
     const u = LIVE_USERS[_cpLUEditIdx];
-    title.textContent = 'Edit Live Dashboard User';
+    title.textContent = 'Edit LIVE User';
     document.getElementById('luName').value = u.name||'';
     document.getElementById('luPin').value = u.pin||'';
     document.getElementById('luType').value = u.type||'manager';
@@ -7257,7 +7315,7 @@ function cpOpenLiveUserForm(editIdx){
     const seeAll = !u.positions || !u.positions.length;
     document.getElementById('luAllPos').checked = seeAll;
   } else {
-    title.textContent = 'Add Live Dashboard User';
+    title.textContent = 'Add LIVE User';
     document.getElementById('luName').value = '';
     document.getElementById('luPin').value = '';
     document.getElementById('luType').value = 'manager';
@@ -7630,7 +7688,7 @@ function wireLegendPills(){
 
 // ════════════════════════════════════════════════
 // NEW: AUTHORIZED LIVE DASHBOARD IDs
-// Dev adds employee IDs that get Live Dashboard access
+// Dev adds employee IDs that get LIVE access
 // ════════════════════════════════════════════════
 let LIVE_AUTHORIZED_IDS = JSON.parse(localStorage.getItem('liveAuthorizedIds_v1') || '[]');
 function saveLiveAuthorizedIds() {
@@ -7682,7 +7740,7 @@ function landLogin() {
   const authorized = isLiveAuthorized(id);
 
   if (authorized) {
-    // Show the two-window selector (Live Dashboard OR Roster)
+    // Show the two-window selector (LIVE OR Roster)
     openAuthSelector(id, emp);
   } else {
     // Non-authorized: go straight to roster view
@@ -7994,7 +8052,7 @@ function cpAddLiveAuthId() {
   saveLiveAuthorizedIds();
   ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   laRender();
-  cpToast('✅ ' + id + ' can now access Live Dashboard!');
+  cpToast('✅ ' + id + ' can now access LIVE!');
   if(typeof logAccess==='function') logAccess('s', 'Live auth ID added: ' + id);
   // Firebase lookup for name
   if (!staffData[id] && typeof db !== 'undefined' && db) {
@@ -8051,7 +8109,7 @@ function laAddId() {
 
   // Check if already authorized
   if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) {
-    msgs.forEach(m => { m.style.color='#FBBF24'; m.textContent='⚠️ ' + id + ' already has Live Dashboard access.'; });
+    msgs.forEach(m => { m.style.color='#FBBF24'; m.textContent='⚠️ ' + id + ' already has LIVE access.'; });
     return;
   }
 
@@ -8080,12 +8138,12 @@ function laAddId() {
 function laRemoveId(i) {
   const id = LIVE_AUTHORIZED_IDS[i];
   if (!id) return;
-  if (!confirm('Remove ' + id + ' from Live Dashboard access?')) return;
+  if (!confirm('Remove ' + id + ' from LIVE access?')) return;
   LIVE_AUTHORIZED_IDS.splice(i, 1);
   saveLiveAuthorizedIds();
   laRender();
   if(typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-  document.querySelectorAll('#laMsg').forEach(m => { m.style.color='#F87171'; m.textContent='🗑 ' + id + ' removed from Live Dashboard access.'; });
+  document.querySelectorAll('#laMsg').forEach(m => { m.style.color='#F87171'; m.textContent='🗑 ' + id + ' removed from LIVE access.'; });
   if(typeof logAccess==='function') logAccess('s','Live access removed: '+id);
 }
 
@@ -8101,10 +8159,10 @@ if (_origCpRenderLive) {
       sec.id = 'cpLiveAuthSection';
       sec.innerHTML = `
         <div class="cp-stitle" style="margin-top:18px;display:flex;align-items:center;gap:8px">
-          🔑 Authorized Live Dashboard IDs
+          🔑 Authorized LIVE IDs
           <span style="font-size:10px;color:#64748B;font-weight:400">Staff with these IDs see LIVE view on login</span>
         </div>
-        <div class="cp-infobox" style="margin-bottom:10px">Add employee IDs below. These staff will get the Live Dashboard + "View My Roster" button when they enter their ID on the main page. Others only see their roster.</div>
+        <div class="cp-infobox" style="margin-bottom:10px">Add employee IDs below. These staff will get the LIVE + "View My Roster" button when they enter their ID on the main page. Others only see their roster.</div>
         <div id="cpLiveAuthIds" style="margin-bottom:10px"></div>
         <div style="display:flex;gap:8px;align-items:center">
           <input id="cpLiveAuthIdInp" class="cp-inp2" placeholder="Employee ID (e.g. E001)" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
@@ -8588,7 +8646,7 @@ function devExportScheduleJSON() {
       (the originals were appended into .cp-body and the Holidays
       injector kept re-running because its existence-check used the
       wrong element ID).
-   3) Lock the Live Dashboard department filter to the authorized
+   3) Lock the LIVE department filter to the authorized
       staff member's own department (non-developers).
    ════════════════════════════════════════════════ */
 (function fixPackV1(){
@@ -8716,12 +8774,12 @@ function devExportScheduleJSON() {
     // Live Access (Authorized Staff)
     if (!document.getElementById('cpt-liveaccess')) {
       mountTab('\u{1F7E2} Live Access', 'cpt-liveaccess', `
-        <div class="cp-ph"><div class="cp-pt">&#128994; Live Dashboard Access <span class="cp-badge">Authorized Staff</span></div></div>
+        <div class="cp-ph"><div class="cp-pt">&#128994; LIVE Access <span class="cp-badge">Authorized Staff</span></div></div>
         <div class="cp-body">
-          <div class="cp-stitle">&#128994; Live Dashboard Access</div>
+          <div class="cp-stitle">&#128994; LIVE Access</div>
           <div class="cp-infobox" style="margin-bottom:14px">
-            Add employee IDs here to give them access to the <strong style="color:#4ADE80">Live Dashboard</strong>.
-            When they log in on the main screen they will see two tiles: <strong style="color:#4ADE80">Live Dashboard</strong> (locked to their own department &amp; they can filter by section) and <strong style="color:#E8B04A">My Roster</strong>.
+            Add employee IDs here to give them access to the <strong style="color:#4ADE80">LIVE</strong>.
+            When they log in on the main screen they will see two tiles: <strong style="color:#4ADE80">LIVE</strong> (locked to their own department &amp; they can filter by section) and <strong style="color:#E8B04A">My Roster</strong>.
             Staff NOT on this list only see their personal roster.
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
@@ -8793,7 +8851,7 @@ function devExportScheduleJSON() {
   }, 500);
   document.addEventListener('click', function(){ mountAll(); }, true);
 
-  // ---------- 3. Lock Live Dashboard dept filter to user's department ----------
+  // ---------- 3. Lock LIVE dept filter to user's department ----------
   const _origOpenLive = typeof openLiveDashForEmployee === 'function' ? openLiveDashForEmployee : null;
   if (_origOpenLive) {
     window.openLiveDashForEmployee = function(id, emp){
