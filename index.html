@@ -35,7 +35,59 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
 
-/* ════ SYNC INDICATOR ════ */
+/* ════ PRINT / PDF ════ */
+@media print {
+  /* Hide all chrome/nav/chrome elements */
+  #landing, #passModal, #fbSetupModal, #empPortal, #authStaffSelector,
+  #liveDashWindow, #syncBar, #sinanLogo, #onlineStatus,
+  .topbar, .mnav, .exit-btn, .topbar-r,
+  .spop, #shiftPop, #hotelPop,
+  #autoScheduleModal, #requestPopup, .mover,
+  .btn-danger, .btn-gold[onclick*="Print"], button[onclick*="openPicker"],
+  #rSearch, #rHotelF, #rPosF, #rDeptF, .fb,
+  .no-print, [data-noprint] { display: none !important; }
+
+  /* Full-page white background */
+  body, #app, .page { background: #fff !important; color: #000 !important; }
+
+  /* Remove fixed positioning so topbar doesn't overlap */
+  .topbar { position: relative !important; }
+
+  /* Make the active page fill the page */
+  #app { display: block !important; }
+  .page.active {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding: 8px !important;
+  }
+
+  /* Roster table — fit on page */
+  .tw { max-height: none !important; overflow: visible !important; }
+  table { page-break-inside: auto; font-size: 8px !important; }
+  tr { page-break-inside: avoid; }
+  th { background: #1B2D4A !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  td { padding: 2px 3px !important; }
+
+  /* Shift pills — keep colours */
+  .sp { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 7px !important; padding: 1px 2px !important; }
+  .hp { -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 6px !important; }
+
+  /* Stat cards */
+  .sc, .card { box-shadow: none !important; border: 1px solid #dde3f0 !important; }
+  .g4 { grid-template-columns: repeat(4, 1fr) !important; }
+
+  /* Cards for handover / forecast */
+  #page-handover .card, #page-forecast .card { break-inside: avoid; }
+
+  /* Force colours through */
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+  /* Page margins */
+  @page { margin: 10mm; size: landscape; }
+}
+
+
 #syncBar{position:fixed;top:0;left:0;right:0;height:3px;background:var(--gold);z-index:9999;transform:scaleX(0);transform-origin:left;transition:transform .3s ease;display:none}
 #syncBar.active{display:block;animation:syncPulse 1.5s ease-in-out infinite}
 @keyframes syncPulse{0%{transform:scaleX(0)}50%{transform:scaleX(.7)}100%{transform:scaleX(1);opacity:0}}
@@ -1322,7 +1374,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 </div>
 
 <!-- ══ HANDOVER PAGE ══ -->
-<div class="page" id="page-handover">
+<div class="page" id="page-handover" style="padding:18px 22px">
   <div style="max-width:860px;margin:0 auto">
 
     <!-- Write card -->
@@ -1356,7 +1408,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
 
   <!-- ══ FORECAST PAGE ══ -->
-  <div class="page" id="page-forecast">
+  <div class="page" id="page-forecast" style="padding:18px 22px">
     <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
       <div>
         <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
@@ -3173,7 +3225,7 @@ async function clearBroadcast() {
   if (!confirm('Remove the broadcast message for all users?')) return;
   const msgEl = document.getElementById('broadcastMsg2');
   const inp = document.getElementById('broadcastInput');
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   if (db) {
     try { await db.ref('settings/broadcastMessage').remove(); } catch(e) {}
   }
@@ -3345,7 +3397,7 @@ function backToLanding() {
   document.getElementById("landing").style.display="flex";
   document.getElementById("passModal").classList.remove("show");
   const inp = document.getElementById('landEmpId');
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   _currentLandEmpId = null;
   if (typeof stopLiveDashClock === 'function') stopLiveDashClock();
 }
@@ -3667,11 +3719,16 @@ function _switchPageOriginal(name) {
   pageEl.classList.add("active");
   // Always start at top — prevents "blank space, must scroll down" when a page
   // was previously left scrolled or starts off-screen.
-  try {
+  const resetScroll = () => {
     pageEl.scrollTop = 0;
     window.scrollTo(0, 0);
-    requestAnimationFrame(()=>{ pageEl.scrollTop = 0; window.scrollTo(0,0); });
-  } catch(e) {}
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  };
+  resetScroll();
+  requestAnimationFrame(()=>{ resetScroll(); });
+  setTimeout(resetScroll, 50);
+  setTimeout(resetScroll, 150);
   const tabEl = document.querySelector(`[data-p="${name}"]`);
   if (tabEl) tabEl.classList.add("active");
   if(name==="roster")   renderRoster();
@@ -4285,9 +4342,11 @@ function renderRoster() {
   const days=Array.from({length:numDays},(_,i)=>i+1);
   const dths=days.map(d=>{
     const dow=new Date(YEAR,MONTH,d).getDay(); const isSat=dow===6;
-    return`<th class="${isSat?"sat-th":""}" style="text-align:center;min-width:34px;padding:6px 1px">
+    const hol = getHolidayForDate(YEAR, MONTH, d);
+    return`<th class="${isSat?"sat-th":""}" style="text-align:center;min-width:34px;padding:6px 1px" title="${hol ? '🇦🇪 '+hol.name : ''}">
       <div style="font-size:9px;font-weight:800">${d}</div>
       <div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div>
+      ${hol ? `<div style="font-size:6px;color:#FFD54F;font-weight:700;line-height:1.2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32px">🇦🇪</div>` : ''}
     </th>`;
   }).join("");
 
@@ -4299,14 +4358,25 @@ function renderRoster() {
     const cells=days.map(d=>{
       const code=sch[d]||""; const sh=SHIFTS[code];
       const dow=new Date(YEAR,MONTH,d).getDay(); const isSat=dow===6;
-      return`<td class="${isSat?"sat-td":""}" style="padding:2px 1px;text-align:center">
+      const hol = getHolidayForDate(YEAR, MONTH, d);
+      return`<td class="${isSat?"sat-td":""}" style="padding:2px 1px;text-align:center${hol?';background:rgba(255,213,0,.06)':''}" title="${hol ? '🇦🇪 '+hol.name : ''}">
         <div class="sp ${sh?'sp-'+code:'sp-empty'}" onclick="openPicker(event,'${emp.id}',${d})" title="${sh?sh.label+' '+sh.time:''}">${code||"—"}</div>
         ${renderHotelPill(emp.id, d)}
+        ${hol ? `<div style="font-size:5.5px;color:#C9963A;font-weight:800;line-height:1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32px">🇦🇪</div>` : ''}
       </td>`;
     }).join("");
+    // Build holiday badges for days this employee works that are holidays
+    const holDays = days.filter(d => sch[d] && !['OFF','AL','EX','UNP'].includes(sch[d]) && getHolidayForDate(YEAR, MONTH, d));
+    const holBadge = holDays.length ? holDays.map(d => {
+      const hol = getHolidayForDate(YEAR, MONTH, d);
+      return `<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(201,150,58,.12);color:#C9963A;border:1px solid rgba(201,150,58,.3);border-radius:4px;padding:1px 4px;font-size:7px;font-weight:700;white-space:nowrap">🇦🇪 ${d}:${hol.name.length>14?hol.name.substring(0,13)+'…':hol.name}</span>`;
+    }).join('') : '';
     return`<tr style="${ei%2?"background:#FAFBFD":""}">
       <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei%2?"background:#FAFBFD":""}">
-        <div style="font-weight:600;font-size:11px">${emp.name||"—"}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+          <div style="font-weight:600;font-size:11px">${emp.name||"—"}</div>
+          ${holBadge ? `<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:flex-end">${holBadge}</div>` : ''}
+        </div>
         <div style="font-size:9px;color:${hotel?.color||"#888"};margin-top:1px">${hotel?.name||emp.hotel}</div>
       </td>
       <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
@@ -6638,7 +6708,7 @@ function logoutEmp() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
 }
 function renderEmpHotel(empId, y, m, d) {
   const hotel = getHotelAssignment(empId, y, m, d);
@@ -6682,12 +6752,14 @@ function showEmpDash(emp) {
     const sh=SHIFTS[code];
     const dSec = sectionOverrides[emp.id]?.[schKey(dYr,dMth)]?.[dNum] || '';
     const dBlock = (typeof blockDays !== 'undefined' && blockDays[schKey(dYr,dMth)]) ? (blockDays[schKey(dYr,dMth)][dNum]||'') : '';
-    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""} ${dBlock?"blocked-day":""}" onclick="openDutyModal(${dNum},${dMth},${dYr},'${emp.id}')" title="${dBlock?'🔴 '+dBlock:''}">
+    const dHol = getHolidayForDate(dYr, dMth, dNum);
+    return`<div class="wd ${isToday?"today":""} ${isSat?"sat":""} ${dBlock?"blocked-day":""}" onclick="openDutyModal(${dNum},${dMth},${dYr},'${emp.id}')" title="${dBlock?'🔴 '+dBlock:dHol?'🇦🇪 '+dHol.name:''}">
       <div class="wdn">${DAYS_S[d.getDay()]}</div>
-      <div class="wdnum">${dNum}${dBlock?'<span style="color:#FF5252;font-size:7px;display:block">🔴</span>':''}</div>
+      <div class="wdnum">${dNum}${dBlock?'<span style="color:#FF5252;font-size:7px;display:block">🔴</span>':dHol?'<span style="color:#C9963A;font-size:7px;display:block">🇦🇪</span>':''}</div>
       ${sh?'<div class="wds" style="background:'+sh.bg+';color:'+sh.color+'">'+code+'</div><div class="wdt">'+shiftTimeOrLabel(sh)+'</div>'
           :'<div class="wds" style="background:#333;color:#777">—</div>'}
       ${dSec?'<div class="wdt" style="color:#5EEAD4;font-size:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%">📍'+dSec+'</div>':''}
+      ${dHol?'<div style="font-size:6px;color:#C9963A;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;line-height:1.2">'+dHol.name.substring(0,16)+'</div>':''}
       ${renderEmpHotel(emp.id, dYr, dMth, dNum)}
     </div>`;
   }).join("");
@@ -7687,7 +7759,7 @@ function exitAuthSelector() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   _currentLandEmpId = null;
 }
 
@@ -7743,7 +7815,7 @@ function exitLiveDash() {
   const landing = document.getElementById('landing');
   if (landing) landing.style.display = 'flex';
   const inp = document.getElementById('landEmpId');
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   _currentLandEmpId = null;
 }
 
@@ -7920,7 +7992,7 @@ function cpAddLiveAuthId() {
   if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) { cpToast('⚠️ Already authorized!'); return; }
   LIVE_AUTHORIZED_IDS.push(id);
   saveLiveAuthorizedIds();
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   laRender();
   cpToast('✅ ' + id + ' can now access Live Dashboard!');
   if(typeof logAccess==='function') logAccess('s', 'Live auth ID added: ' + id);
@@ -7988,7 +8060,7 @@ function laAddId() {
 
   LIVE_AUTHORIZED_IDS.push(id);
   saveLiveAuthorizedIds();
-  inputs.forEach(i => i.value = '');
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
 
   const empInfo = emp ? (emp.name + ' · ' + emp.department) : '(will auto-resolve on next login)';
   msgs.forEach(m => { m.style.color='#4ADE80'; m.textContent='✅ ' + id + ' added — ' + empInfo; });
@@ -8050,23 +8122,34 @@ if (_origCpRenderLive) {
 // DEVELOPER: UAE HOLIDAYS MANAGEMENT
 // ════════════════════════════════════════════════
 let UAE_HOLIDAYS = JSON.parse(localStorage.getItem('uaeHolidays_v1') || 'null') || [
+  // ── 2025 ──
   {date:'2025-01-01', name:'New Year\'s Day'},
-  {date:'2025-03-31', name:'Eid Al Fitr (est.)'},
-  {date:'2025-04-01', name:'Eid Al Fitr (est.)'},
-  {date:'2025-04-02', name:'Eid Al Fitr (est.)'},
-  {date:'2025-06-06', name:'Arafat Day (est.)'},
-  {date:'2025-06-07', name:'Eid Al Adha (est.)'},
-  {date:'2025-06-08', name:'Eid Al Adha (est.)'},
-  {date:'2025-06-09', name:'Eid Al Adha (est.)'},
-  {date:'2025-06-26', name:'Islamic New Year (est.)'},
-  {date:'2025-09-04', name:'Prophet\'s Birthday (est.)'},
-  {date:'2025-11-17', name:'National Day Celebration'},
+  {date:'2025-03-29', name:'Eid Al Fitr Holiday'},
+  {date:'2025-03-30', name:'Eid Al Fitr'},
+  {date:'2025-03-31', name:'Eid Al Fitr Holiday'},
+  {date:'2025-04-01', name:'Eid Al Fitr Holiday'},
+  {date:'2025-06-05', name:'Arafat (Haj) Day'},
+  {date:'2025-06-06', name:'Eid Al Adha'},
+  {date:'2025-06-07', name:'Eid Al Adha Holiday'},
+  {date:'2025-06-08', name:'Eid Al Adha Holiday'},
+  {date:'2025-06-26', name:'Islamic New Year'},
+  {date:'2025-09-04', name:'Prophet\'s Birthday'},
+  {date:'2025-12-01', name:'Commemoration Day'},
   {date:'2025-12-02', name:'UAE National Day'},
   {date:'2025-12-03', name:'UAE National Day Holiday'},
+  // ── 2026 ──
   {date:'2026-01-01', name:'New Year\'s Day'},
-  {date:'2026-03-20', name:'Eid Al Fitr (est.)'},
-  {date:'2026-05-26', name:'Arafat Day (est.)'},
-  {date:'2026-05-27', name:'Eid Al Adha (est.)'},
+  {date:'2026-03-19', name:'Eid Al Fitr Holiday'},
+  {date:'2026-03-20', name:'Eid Al Fitr'},
+  {date:'2026-03-21', name:'Eid Al Fitr Holiday'},
+  {date:'2026-03-22', name:'Eid Al Fitr Holiday'},
+  {date:'2026-05-26', name:'Arafat (Haj) Day'},
+  {date:'2026-05-27', name:'Eid Al Adha'},
+  {date:'2026-05-28', name:'Eid Al Adha Holiday'},
+  {date:'2026-05-29', name:'Eid Al Adha Holiday'},
+  {date:'2026-06-16', name:'Islamic New Year'},
+  {date:'2026-08-25', name:'Prophet\'s Birthday'},
+  {date:'2026-11-30', name:'Commemoration Day'},
   {date:'2026-12-02', name:'UAE National Day'},
   {date:'2026-12-03', name:'UAE National Day Holiday'},
 ];
