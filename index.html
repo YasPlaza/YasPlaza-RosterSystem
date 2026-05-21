@@ -10347,14 +10347,49 @@ function devExportScheduleJSON() {
     const hs = hotels();
     const fc = fcLoad();
     const evs = loadEvents();
+
+    // Sub-hotel IDs (everything except 'all' and 'yph')
+    const subIds = hs.filter(h => h.id !== 'yph').map(h => h.id);
+
     root.innerHTML = hs.map(h=>{
-      const recs = shiftRecommendation(h.id, dateISO, cfg, fc, evs);
-      const hk   = hkRecommendation(h.id, dateISO, cfg, fc, evs);
-      const fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+      let recs, hk, fRow;
+
+      if (h.id === 'yph') {
+        // YPH = cluster: aggregate all sub-hotels
+        const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); }, 0);
+        const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); }, 0);
+        const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); }, 0) / subIds.length) : 0;
+        fRow = { arr: aggArr, dep: aggDep, occ: aggOcc };
+
+        // Aggregate events across all sub-hotels
+        const allEvs = evs.filter(e => e.date === dateISO); // all hotels
+        const cur = cfg.currentValet[h.id] || {};
+        recs = SHIFTS.map(sh=>{
+          const arr = Math.round(aggArr * ARR_SPLIT[sh.id]);
+          const dep = Math.round(aggDep * DEP_SPLIT[sh.id]);
+          const evShift = allEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
+          const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
+          const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
+          const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
+          const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
+          const have = +cur[sh.id]||0;
+          return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
+        });
+        const workload = aggDep + aggArr;
+        const need = Math.ceil(workload / Math.max(1, cfg.hk.roomsPerAttendant));
+        const have = +cfg.currentHK[h.id]||0;
+        const allEvGuests = allEvs.reduce((s,e)=>s+(e.guests||0),0);
+        hk = { workload, evGuests: allEvGuests, evCount: allEvs.length, need, have, extra: Math.max(0, need-have) };
+      } else {
+        recs = shiftRecommendation(h.id, dateISO, cfg, fc, evs);
+        hk   = hkRecommendation(h.id, dateISO, cfg, fc, evs);
+        fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+      }
+
       const pill = (x)=> x.extra>0 ? `<span class="sx-pill sx-warn">+${x.extra} needed</span>` : `<span class="sx-pill sx-ok">covered</span>`;
       return `
       <div class="sx-card">
-        <div class="sx-hotel-hdr"><span class="sx-hotel-dot" style="background:${h.color}"></span>${h.name}
+        <div class="sx-hotel-hdr"><span class="sx-hotel-dot" style="background:${h.color}"></span>${h.name}${h.id==='yph'?' <span style="font-size:10px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
           <span style="font-size:11px;font-weight:500;color:var(--slate);margin-left:auto">
             Occ ${fRow.occ||0}% · Arr ${fRow.arr||0} · Dep ${fRow.dep||0}
           </span>
