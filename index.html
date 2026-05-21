@@ -2509,29 +2509,44 @@ function renderArchives() {
     return `<div class="archive-item ${key===currentArchiveKey?'active':''}" onclick="currentArchiveKey='${key}';renderArchives()"><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--navy)">${formatArchiveMonth(key)}</div><div class="archive-meta">${staffCount} employees archived<br>Updated ${new Date(snap.updatedAt || Date.now()).toLocaleString()}</div></div>`;
   }).join('');
   const snap = archiveData[currentArchiveKey];
-  meta.textContent = `${formatArchiveMonth(currentArchiveKey)} · ${Object.keys(snap.staff || {}).length} employees`;
-  const numDays = getDIM(snap.year, snap.month);
-  const days = Array.from({length:numDays}, (_,i)=>i+1);
+  meta.textContent = `${getRosterLabel(snap.year, snap.month)} · ${Object.keys(snap.staff || {}).length} employees`;
+  // 15 → 14 next-month cycle
+  const rosterDays = getRosterDays(snap.year, snap.month);
+  // For days from next month, try to pull from the next archive snapshot if it exists
+  const nextKey = schKey((snap.month===11?snap.year+1:snap.year), (snap.month===11?0:snap.month+1));
+  const nextSnap = archiveData[nextKey];
   const hf = document.getElementById('hotelFilter')?.value || 'all';
   const df = document.getElementById('deptFilter')?.value || 'all';
   let staff = Object.values(snap.staff || {});
   if (df !== 'all') staff = staff.filter(e => e.department === df);
   if (hf !== 'all') staff = staff.filter(e => e.hotel === hf || e.hotel === 'all');
   const legend = Object.entries(SHIFTS).map(([k,v])=>`<span class="sp sp-${k}" style="cursor:default;font-size:8px">${k}<span style="font-weight:400"> ${shiftTimeOrLabel(v)}</span></span>`).join('');
+  const getCellCode = (empId, y, m, d) => {
+    if (y === snap.year && m === snap.month) {
+      return (snap.schedules && snap.schedules[empId] && snap.schedules[empId][d]) || '';
+    }
+    // try next archive
+    if (nextSnap && nextSnap.schedules && nextSnap.schedules[empId]) return nextSnap.schedules[empId][d] || '';
+    // fall back to live data
+    return (getEmpSch(empId, y, m) || {})[d] || '';
+  };
   const rows = staff.map((emp, idx) => {
-    const sch = (snap.schedules && snap.schedules[emp.id]) || {};
-    const stats = calcStats(emp, sch);
+    // Aggregate across the cycle for stats
+    const aggSch = {};
+    rosterDays.forEach(({y,m,d},i)=>{ aggSch[i+1] = getCellCode(emp.id,y,m,d); });
+    const stats = calcStats(emp, aggSch);
     const dc = (snap.deptConfig?.deptColors && snap.deptConfig.deptColors[emp.department]) || getDeptColor(emp.department);
     const hotel = HOTELS.find(h => h.id === emp.hotel);
-    const cells = days.map(d => {
-      const code = sch[d] || '';
+    const cells = rosterDays.map(({y,m,d}) => {
+      const code = getCellCode(emp.id, y, m, d);
       const sh = SHIFTS[code];
-      const dow = new Date(snap.year, snap.month, d).getDay();
-      return `<td class="${dow===6?'sat-td':''}" style="padding:2px 1px;text-align:center"><div class="sp ${sh?'sp-'+code:'sp-empty'}" style="cursor:default" title="${sh?sh.label+' '+sh.time:''}">${code || '—'}</div></td>`;
+      const dow = new Date(y, m, d).getDay();
+      const isMonthStart = d===1;
+      return `<td class="${dow===6?'sat-td':''}" style="padding:2px 1px;text-align:center${isMonthStart?';border-left:2px solid #C9963A':''}"><div class="sp ${sh?'sp-'+code:'sp-empty'}" style="cursor:default" title="${sh?sh.label+' '+sh.time:''}">${code || '—'}</div></td>`;
     }).join('');
     return `<tr style="${idx%2?'background:#FAFBFD':''}"><td class="sc-col" style="min-width:160px;padding:7px 10px;${idx%2?'background:#FAFBFD':''}"><div style="font-weight:600;font-size:11px">${emp.name || '—'}</div><div style="font-size:9px;color:${hotel?.color || '#888'};margin-top:1px">${hotel?.name || emp.hotel || '—'}</div></td><td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td><td style="font-size:9px;color:var(--slate);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis">${emp.position || ''}</td>${cells}<td style="text-align:center;background:#E8F5E9;font-weight:800;color:#1B5E20;font-size:12px">${stats.work}</td><td style="text-align:center;background:#E0F2F1;font-weight:800;color:#004D40;font-size:11px">${stats.hrs}h</td></tr>`;
   }).join('');
-  const dths = days.map(d => { const dow = new Date(snap.year, snap.month, d).getDay(); return `<th class="${dow===6?'sat-th':''}" style="text-align:center;min-width:34px;padding:6px 1px"><div style="font-size:9px;font-weight:800">${d}</div><div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div></th>`; }).join('');
+  const dths = rosterDays.map(({y,m,d}) => { const dow = new Date(y, m, d).getDay(); const isMonthStart=d===1; return `<th class="${dow===6?'sat-th':''}" style="text-align:center;min-width:34px;padding:6px 1px${isMonthStart?';border-left:2px solid #C9963A':''}"><div style="font-size:9px;font-weight:800">${d}</div><div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div>${isMonthStart?'<div style="font-size:6px;color:#C9963A;font-weight:700">'+MONTHS[m].substring(0,3)+'</div>':''}</th>`; }).join('');
   preview.innerHTML = `<div style="padding:9px 13px;background:var(--ice);display:flex;flex-wrap:wrap;gap:5px;border:1px solid #dde3f0;border-bottom:none;border-radius:12px 12px 0 0">${legend}</div><div class="tw" style="border:1px solid #dde3f0;border-top:none;border-radius:0 0 12px 12px"><table><thead><tr><th class="sc-col" style="min-width:160px">EMPLOYEE</th><th style="min-width:80px">DEPT</th><th style="min-width:120px">POSITION</th>${dths}<th style="text-align:center;background:#1B5E20;min-width:40px">DAYS</th><th style="text-align:center;background:#004D40;min-width:44px">HRS</th></tr></thead><tbody>${rows || `<tr><td colspan="100" style="text-align:center;padding:34px;color:var(--slate2)">No archived employees for this filter.</td></tr>`}</tbody></table></div>`;
 }
 
@@ -4097,11 +4112,13 @@ function fillAllSelects() {
   const fd=document.getElementById("f-dept");
   if(fd) fd.innerHTML = visibleDepts.map(d=>`<option>${d}</option>`).join("");
 
-  // Position filters
-  const allPos = getAllPos();
+  // Position filters — ISOLATION: dept users only see their own dept's positions
+  const visiblePos = isDeptUser
+    ? (DEPT_POS[CURRENT_DEPT] || [])
+    : getAllPos();
   ["rPosF","sPosF"].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
-    el.innerHTML='<option value="all">All Positions</option>'+allPos.map(p=>`<option>${p}</option>`).join("");
+    el.innerHTML='<option value="all">All Positions</option>'+visiblePos.map(p=>`<option>${p}</option>`).join("");
   });
 
   // Section filter (roster) — limited to visible depts
@@ -4125,16 +4142,28 @@ function fillAllSelects() {
   // Populate topbar dept filter
   const deptFilter = document.getElementById("deptFilter");
   if(deptFilter) {
-    const depts = getAllDepts();
-    deptFilter.innerHTML = '<option value="all" style="color:var(--navy)">All Depts</option>' + 
-      depts.map(d=>`<option value="${d}" style="color:var(--navy)">${d}</option>`).join("");
+    if (isDeptUser) {
+      deptFilter.innerHTML = `<option value="${CURRENT_DEPT}" style="color:var(--navy)">${CURRENT_DEPT}</option>`;
+      deptFilter.value = CURRENT_DEPT;
+      deptFilter.disabled = true;
+      deptFilter.style.opacity = "0.6";
+    } else {
+      deptFilter.innerHTML = '<option value="all" style="color:var(--navy)">All Depts</option>' +
+        depts.map(d=>`<option value="${d}" style="color:var(--navy)">${d}</option>`).join("");
+      deptFilter.disabled = false;
+      deptFilter.style.opacity = "1";
+    }
   }
 }
 
 function syncDeptFilters(sourceId) {
   const dept = document.getElementById(sourceId)?.value;
   const posEl = document.getElementById("rPosF"); if(!posEl) return;
-  if(!dept || dept==="all") {
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
+  if (isDeptUser) {
+    const pos = DEPT_POS[CURRENT_DEPT] || [];
+    posEl.innerHTML = '<option value="all">All Positions</option>'+pos.map(p=>`<option>${p}</option>`).join("");
+  } else if(!dept || dept==="all") {
     posEl.innerHTML = '<option value="all">All Positions</option>'+getAllPos().map(p=>`<option>${p}</option>`).join("");
   } else {
     posEl.innerHTML = '<option value="all">All Positions</option>'+(DEPT_POS[dept]||[]).map(p=>`<option>${p}</option>`).join("");
@@ -6273,19 +6302,24 @@ function printRoster() {
     const idx = parseInt(ans);
     if (!isNaN(idx) && idx>=1 && idx<=choices.length) sectionPick = choices[idx-1];
   }
-  const numDays=getDIM(); const hf=document.getElementById("hotelFilter")?.value||"all";
+  const rosterDays = getRosterDays(YEAR, MONTH);
+  const rangeLabel = getRosterLabel(YEAR, MONTH);
+  const hf=document.getElementById("hotelFilter")?.value||"all";
   let filt=hf==="all"?staffList():staffList().filter(e=>e.hotel===hf||e.hotel==="all");
   if (sectionPick !== 'all') filt = filt.filter(e => (e.section||'') === sectionPick);
   const hotelNm=(HOTELS.find(h=>h.id===hf)?.name||"All Hotels") + (sectionPick!=='all' ? ' · '+sectionPick : '');
-  const dths=Array.from({length:numDays},(_,i)=>{const d=i+1;const dow=new Date(YEAR,MONTH,d).getDay();const isSat=dow===6;
-    return`<th style="background:${isSat?"#c62828":"#1B2A4A"};color:${isSat?"#FFD54F":"#fff"};font-size:7px;padding:2px;text-align:center;min-width:22px;border:1px solid #444">${d}<br>${DAYS_S[dow]}</th>`;
+  const dths=rosterDays.map(({y,m,d})=>{const dow=new Date(y,m,d).getDay();const isSat=dow===6;const isMonthStart=d===1;
+    return`<th style="background:${isSat?"#c62828":"#1B2A4A"};color:${isSat?"#FFD54F":"#fff"};font-size:7px;padding:2px;text-align:center;min-width:22px;border:1px solid #444;${isMonthStart?'border-left:2px solid #C9963A;':''}">${d}<br>${DAYS_S[dow]}${isMonthStart?'<br><span style="font-size:6px;color:#FFD54F">'+MONTHS[m].substring(0,3)+'</span>':''}</th>`;
   }).join("");
   const rows=filt.map(emp=>{
-    const sch=getEmpSch(emp.id); const st=calcStats(emp,sch);
+    // Aggregate schedules across the two months in the cycle
+    const aggSch = {};
+    rosterDays.forEach(({y,m,d},i)=>{ aggSch[i+1] = (getEmpSch(emp.id,y,m)||{})[d] || ""; });
+    const st=calcStats(emp,aggSch);
     const hotel=HOTELS.find(h=>h.id===emp.hotel); const dc=getDeptColor(emp.department);
-    const cells=Array.from({length:numDays},(_,i)=>{const d=i+1;const c=sch[d]||"";const sh=SHIFTS[c];
-      const dow=new Date(YEAR,MONTH,d).getDay();const isSat=dow===6;
-      return`<td style="background:${sh?.bg||"#fff"};color:${sh?.color||"#333"};font-size:7px;font-weight:700;padding:1px;border:1px solid #ddd;text-align:center;${isSat?"border-left:2px solid #c62828;border-right:2px solid #c62828":""}">${c}</td>`;
+    const cells=rosterDays.map(({y,m,d})=>{const c=(getEmpSch(emp.id,y,m)||{})[d]||"";const sh=SHIFTS[c];
+      const dow=new Date(y,m,d).getDay();const isSat=dow===6;const isMonthStart=d===1;
+      return`<td style="background:${sh?.bg||"#fff"};color:${sh?.color||"#333"};font-size:7px;font-weight:700;padding:1px;border:1px solid #ddd;text-align:center;${isSat?"border-left:2px solid #c62828;border-right:2px solid #c62828":(isMonthStart?'border-left:2px solid #C9963A;':'')}">${c}</td>`;
     }).join("");
     return`<tr><td style="font-size:9px;padding:3px 5px;border:1px solid #ddd;font-weight:600;white-space:nowrap">${emp.name}</td>
       <td style="font-size:7px;padding:2px;border:1px solid #ddd;background:${dc.bg};color:${dc.color}">${emp.department}</td>
@@ -6296,12 +6330,12 @@ function printRoster() {
     </tr>`;
   }).join("");
   const win=window.open("","_blank");
-  win.document.write(`<!DOCTYPE html><html><head><title>Yas Plaza Roster ${MONTHS[MONTH]} ${YEAR}</title>
+  win.document.write(`<!DOCTYPE html><html><head><title>Yas Plaza Roster ${rangeLabel}</title>
   <style>body{font-family:Calibri,Arial;margin:10px}table{border-collapse:collapse;width:100%}@media print{.np{display:none}}</style>
   </head><body>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;border-bottom:3px solid #1B2A4A;padding-bottom:6px">
     <div><h2 style="color:#1B2A4A;font-size:14px;margin:0">🏨 Yas Plaza Hotels — ${hotelNm}</h2>
-    <p style="margin:2px 0;color:#666;font-size:9px">${MONTHS[MONTH]} ${YEAR} · ${filt.length} employees · ${new Date().toLocaleString()}</p></div>
+    <p style="margin:2px 0;color:#666;font-size:9px">${rangeLabel} · ${filt.length} employees · ${new Date().toLocaleString()}</p></div>
     <button class="np" onclick="window.print()" style="background:#1B2A4A;color:#fff;border:none;padding:7px 14px;border-radius:5px;cursor:pointer">🖨 Print PDF</button>
   </div>
   <table><thead><tr>
@@ -8180,37 +8214,27 @@ if (_origCpRenderLive) {
 // DEVELOPER: UAE HOLIDAYS MANAGEMENT
 // ════════════════════════════════════════════════
 let UAE_HOLIDAYS = JSON.parse(localStorage.getItem('uaeHolidays_v1') || 'null') || [
-  // ── 2025 ──
-  {date:'2025-01-01', name:'New Year\'s Day'},
-  {date:'2025-03-29', name:'Eid Al Fitr Holiday'},
-  {date:'2025-03-30', name:'Eid Al Fitr'},
-  {date:'2025-03-31', name:'Eid Al Fitr Holiday'},
-  {date:'2025-04-01', name:'Eid Al Fitr Holiday'},
-  {date:'2025-06-05', name:'Arafat (Haj) Day'},
-  {date:'2025-06-06', name:'Eid Al Adha'},
-  {date:'2025-06-07', name:'Eid Al Adha Holiday'},
-  {date:'2025-06-08', name:'Eid Al Adha Holiday'},
-  {date:'2025-06-26', name:'Islamic New Year'},
-  {date:'2025-09-04', name:'Prophet\'s Birthday'},
-  {date:'2025-12-01', name:'Commemoration Day'},
-  {date:'2025-12-02', name:'UAE National Day'},
-  {date:'2025-12-03', name:'UAE National Day Holiday'},
-  // ── 2026 ──
+  // ── UAE Public Holidays 2026 (official, updated — main days only) ──
   {date:'2026-01-01', name:'New Year\'s Day'},
-  {date:'2026-03-19', name:'Eid Al Fitr Holiday'},
   {date:'2026-03-20', name:'Eid Al Fitr'},
-  {date:'2026-03-21', name:'Eid Al Fitr Holiday'},
-  {date:'2026-03-22', name:'Eid Al Fitr Holiday'},
   {date:'2026-05-26', name:'Arafat (Haj) Day'},
   {date:'2026-05-27', name:'Eid Al Adha'},
-  {date:'2026-05-28', name:'Eid Al Adha Holiday'},
-  {date:'2026-05-29', name:'Eid Al Adha Holiday'},
   {date:'2026-06-16', name:'Islamic New Year'},
   {date:'2026-08-25', name:'Prophet\'s Birthday'},
-  {date:'2026-11-30', name:'Commemoration Day'},
+  {date:'2026-12-01', name:'Commemoration Day'},
   {date:'2026-12-02', name:'UAE National Day'},
-  {date:'2026-12-03', name:'UAE National Day Holiday'},
 ];
+// Clean any previously-cached list: drop 2025 entries and "Holiday" filler days
+try {
+  const _stored = JSON.parse(localStorage.getItem('uaeHolidays_v1')||'null');
+  if (Array.isArray(_stored)) {
+    const cleaned = _stored.filter(h => h && h.date && h.date.startsWith('2026') && !/\bHoliday$/i.test(h.name||''));
+    if (cleaned.length !== _stored.length) {
+      UAE_HOLIDAYS = cleaned.length ? cleaned : UAE_HOLIDAYS;
+      localStorage.setItem('uaeHolidays_v1', JSON.stringify(UAE_HOLIDAYS));
+    }
+  }
+} catch(e) {}
 function saveUAEHolidays() {
   try { localStorage.setItem('uaeHolidays_v1', JSON.stringify(UAE_HOLIDAYS)); } catch(e) {}
   if (typeof db !== 'undefined' && db) {
