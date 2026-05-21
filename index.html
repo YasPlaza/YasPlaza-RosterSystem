@@ -9943,6 +9943,540 @@ function devExportScheduleJSON() {
   window.addEventListener('load', ()=> { setTimeout(boot, 600); setTimeout(boot, 1500); });
 })();
 </script>
+<!-- ════════════════════════════════════════════════════════════════════
+     YPH ADD-ON · PDF Forecast Import + Valet/Housekeeping Staffing Page
+     ════════════════════════════════════════════════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+(function(){
+  'use strict';
+  // ── pdf.js worker ──
+  if (window.pdfjsLib) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  CONFIG (persisted in localStorage)
+  // ─────────────────────────────────────────────────────────────────
+  const SHIFTS = [
+    { id:'morning',   label:'Morning',   range:'06:00-14:00', from:6,  to:14 },
+    { id:'afternoon', label:'Afternoon', range:'14:00-22:00', from:14, to:22 },
+    { id:'night',     label:'Night',     range:'22:00-06:00', from:22, to:30 } // wraps
+  ];
+  // % of arrivals/departures expected within each shift
+  const ARR_SPLIT = { morning:0.15, afternoon:0.65, night:0.20 };
+  const DEP_SPLIT = { morning:0.60, afternoon:0.30, night:0.10 };
+
+  // PDF property-code → app hotel id
+  const DEFAULT_PROP_MAP = {
+    'AUHMY':'marina','AUHYI':'staybridge','AUHBY':'bay',
+    'AUHAY':'crowne','AUHSY':'mangrove'
+  };
+  // PDF title → app hotel id
+  const TITLE_MAP = [
+    [/yas\s*plaza\s*marina/i,   'marina'],
+    [/yas\s*plaza\s*circuit/i,  'circuit'],
+    [/yas\s*plaza\s*mangrove/i, 'mangrove'],
+    [/yas\s*plaza\s*bay/i,      'bay'],
+    [/crowne\s*plaza/i,         'crowne'],
+    [/staybridge/i,             'staybridge'],
+  ];
+
+  const CFG_KEY = 'yph_staffing_cfg_v1';
+  const EVT_KEY = 'yph_events_v1';
+  const defaultCfg = () => ({
+    valet:{ perArrDep:15, perEventGuests:60, minPerShift:1 },
+    hk:   { roomsPerAttendant:14, eventCasualThreshold:100, eventCasualPerThreshold:1 },
+    propMap: {...DEFAULT_PROP_MAP},
+    // current staffing matrices: { [hotelId]: { morning:N, afternoon:N, night:N } }  /  { [hotelId]: N }
+    currentValet:{}, currentHK:{}
+  });
+  const loadCfg = () => { try{const v=JSON.parse(localStorage.getItem(CFG_KEY)||'null');return v?{...defaultCfg(),...v,valet:{...defaultCfg().valet,...(v.valet||{})},hk:{...defaultCfg().hk,...(v.hk||{})},propMap:{...DEFAULT_PROP_MAP,...(v.propMap||{})}}:defaultCfg();}catch(e){return defaultCfg();} };
+  const saveCfg = c => { try{localStorage.setItem(CFG_KEY, JSON.stringify(c));}catch(e){} };
+  const loadEvents = () => { try{const v=JSON.parse(localStorage.getItem(EVT_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return[];} };
+  const saveEvents = e => { try{localStorage.setItem(EVT_KEY, JSON.stringify(e));}catch(e){} };
+
+  function hotels(){
+    const src = (typeof HOTELS_DATA!=='undefined' && HOTELS_DATA) ? HOTELS_DATA : (typeof HOTELS!=='undefined'?HOTELS:[]);
+    return src.filter(h => h.id !== 'all' && h.active !== false);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  PDF parsing
+  // ─────────────────────────────────────────────────────────────────
+  async function pdfPagesText(file){
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+    const pages = [];
+    for (let i=1; i<=pdf.numPages; i++){
+      const p = await pdf.getPage(i);
+      const tc = await p.getTextContent();
+      // group items by y-coordinate to reconstruct lines
+      const rows = {};
+      tc.items.forEach(it => {
+        const y = Math.round(it.transform[5]);
+        (rows[y] = rows[y] || []).push({ x: it.transform[4], s: it.str });
+      });
+      const lines = Object.keys(rows).sort((a,b)=>b-a).map(y =>
+        rows[y].sort((a,b)=>a.x-b.x).map(o=>o.s).join(' ').replace(/\s+/g,' ').trim()
+      ).filter(l => l.length);
+      pages.push(lines);
+    }
+    return pages;
+  }
+
+  // Map PDF hotel title → hotel id
+  function matchHotelTitle(line){
+    for (const [re,id] of TITLE_MAP) if (re.test(line)) return id;
+    return null;
+  }
+
+  // FORECAST PDF (Oracle Reports "History and Forecast")
+  // Row example: "21.05.26 Thu 41 4 2 0 21 20 20.30% 20,913.48 510.08 1 0 90 83"
+  function parseForecastPdf(pages){
+    const out = []; let currentHotel = null;
+    const lineRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+[\d,.]+\s+[\d,.]+\s+(\d+)/;
+    pages.forEach(lines => lines.forEach(l => {
+      const m = matchHotelTitle(l); if (m){ currentHotel = m; return; }
+      const r = l.match(lineRe);
+      if (r && currentHotel){
+        const [_, dRaw, totalOcc, arr, occ, dep] = r;
+        const parts = dRaw.split(/[.\-\/]/).map(Number);
+        // DD MM YY
+        const yyyy = 2000 + parts[2];
+        const dt = new Date(Date.UTC(yyyy, parts[1]-1, parts[0]));
+        if (isNaN(dt)) return;
+        out.push({
+          hotel: currentHotel, date: dt.toISOString().slice(0,10),
+          occ: +occ, arr: +arr, dep: +dep,
+          notes: 'PDF · Total Occ '+totalOcc
+        });
+      }
+    }));
+    return out;
+  }
+
+  // EVENT LIST PDF
+  // Date headers like "21-MAY-2026"; event rows start with property code (AUH...) then event title, ID, status, time, ...
+  function parseEventsPdf(pages, propMap){
+    const out = []; let currentDate = null;
+    const MONTHS = {JAN:0,FEB:1,MAR:2,APR:3,MAY:4,JUN:5,JUL:6,AUG:7,SEP:8,OCT:9,NOV:10,DEC:11};
+    const dateRe = /^(\d{1,2})-([A-Z]{3})-(\d{4})/;
+    // Event row: PROP  Event title  EVID  STATUS  HH:MM-HH:MM  HH:MM-HH:MM  Doorcard  FunctionRoom  EXP  GTD?  ACT?  Setup
+    const evRe = /^(AUH[A-Z]{2})\s+(.+?)\s+(\d{6,})\s+(ACT|DEF|TEN|INQ|LOST)\s+(\d{1,2}:\d{2})-(\d{1,2}:\d{2})\s+\d{1,2}:\d{2}-\d{1,2}:\d{2}\s+(.+)$/;
+    pages.forEach(lines => lines.forEach(l => {
+      const dm = l.match(dateRe);
+      if (dm){
+        const dt = new Date(Date.UTC(+dm[3], MONTHS[dm[2]], +dm[1]));
+        if (!isNaN(dt)) currentDate = dt.toISOString().slice(0,10);
+        return;
+      }
+      const em = l.match(evRe);
+      if (em && currentDate){
+        const [_, prop, title, evid, status, start, end, tail] = em;
+        // tail = "Doorcard FuncRoom EXP [GTD] [ACT] Setup..."
+        const nums = (tail.match(/(?<![\w.])\d{1,4}(?![\w.])/g) || []).map(Number);
+        const guests = nums.length ? Math.max(...nums) : 0;
+        out.push({
+          date: currentDate, prop,
+          hotel: propMap[prop] || null,
+          title: title.trim(), evid, status,
+          start, end, guests
+        });
+      }
+    }));
+    return out;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  Helpers for accessing existing forecast store (yph_forecast_v2)
+  // ─────────────────────────────────────────────────────────────────
+  const FC_KEY = 'yph_forecast_v2';
+  function fcLoad(){ try{const v=JSON.parse(localStorage.getItem(FC_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return[];} }
+  function fcSave(rows){
+    try{ localStorage.setItem(FC_KEY, JSON.stringify(rows)); }catch(e){}
+    if (typeof db!=='undefined' && db){ try{ db.ref('forecast_v2').set(rows); }catch(e){} }
+  }
+  function fcMergeImport(newRows){
+    const existing = fcLoad();
+    const map = new Map(); existing.forEach(r=>map.set(r.hotel+'|'+r.date,r));
+    newRows.forEach(r=>map.set(r.hotel+'|'+r.date,r));
+    const merged = Array.from(map.values()).sort((a,b)=>a.hotel.localeCompare(b.hotel)||a.date.localeCompare(b.date));
+    fcSave(merged);
+    if (typeof renderForecast==='function') try{ renderForecast(); }catch(e){}
+    if (typeof renderLiveDashboard==='function') try{ renderLiveDashboard(); }catch(e){}
+    return merged;
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  UI INJECTION
+  // ─────────────────────────────────────────────────────────────────
+  function injectStyles(){
+    if (document.getElementById('staffAddonCss')) return;
+    const css = document.createElement('style'); css.id='staffAddonCss';
+    css.textContent = `
+      #page-staffing{padding:18px 22px}
+      .sx-h{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)}
+      .sx-sub{font-size:11px;color:var(--slate);margin-top:3px}
+      .sx-card{background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:14px}
+      .sx-ct{font-family:'Syne';font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
+      .sx-tbl{width:100%;border-collapse:collapse;font-size:12px}
+      .sx-tbl th{background:var(--navy);color:#fff;padding:8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
+      .sx-tbl td{padding:7px 8px;border-bottom:1px solid #eef2f7;vertical-align:middle}
+      .sx-inp{width:62px;padding:5px 7px;border:1px solid #d3dbe8;border-radius:6px;font-size:12px;text-align:center;font-family:'DM Mono',monospace}
+      .sx-pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+      .sx-ok{background:#D4EDDA;color:#1B6B3A}
+      .sx-warn{background:#FFF3E0;color:#E65C00}
+      .sx-bad{background:#FDECEA;color:#B71C1C}
+      .sx-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+      .sx-cfg-grid label{display:flex;flex-direction:column;font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:600;gap:4px}
+      .sx-cfg-grid input{padding:7px 10px;border:1px solid #d3dbe8;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace}
+      .sx-hotel-hdr{font-family:'Syne';font-weight:800;font-size:14px;margin:6px 0 8px;display:flex;align-items:center;gap:8px}
+      .sx-hotel-dot{width:11px;height:11px;border-radius:50%}
+      .sx-rec{padding:9px 11px;border-radius:9px;margin:5px 0;font-size:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}
+      .sx-rec.add{background:#FFF3E0;border-left:3px solid var(--amber)}
+      .sx-rec.okrec{background:#D4EDDA;border-left:3px solid var(--green)}
+      .sx-evlist{max-height:180px;overflow:auto;font-size:11px}
+      .sx-evlist .row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed #eef2f7}
+      .sx-evlist .pcode{font-family:'DM Mono';font-weight:700;color:var(--gold);width:54px;flex-shrink:0}
+      .sx-evlist .ttl{flex:1;color:var(--navy)}
+      .sx-evlist .g{font-family:'DM Mono';font-weight:700;width:50px;text-align:right;color:var(--navy3)}
+    `;
+    document.head.appendChild(css);
+  }
+
+  function injectNavTab(){
+    const nav = document.querySelector('.topbar .nav'); if (!nav) return;
+    if (nav.querySelector('[data-p="staffing"]')) return;
+    const btn = document.createElement('button');
+    btn.className='tab'; btn.dataset.p='staffing'; btn.textContent='🅿 Staffing';
+    btn.onclick = () => window.switchPage('staffing');
+    const fc = nav.querySelector('[data-p="forecast"]');
+    fc ? fc.after(btn) : nav.appendChild(btn);
+  }
+
+  function injectStaffingPage(){
+    if (document.getElementById('page-staffing')) return;
+    const app = document.getElementById('app') || document.querySelector('.topbar')?.parentElement;
+    if (!app) return;
+    const pg = document.createElement('div');
+    pg.className='page'; pg.id='page-staffing';
+    pg.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+        <div>
+          <div class="sx-h">🅿 Valet &amp; 🧹 Housekeeping Staffing</div>
+          <div class="sx-sub">Enter current valet per shift and housekeeping per hotel. System uses forecast + events to suggest extras.</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            📄 Import Event List PDF
+            <input type="file" id="sxEvFile" accept=".pdf" style="display:none">
+          </label>
+          <button class="btn btn-ghost btn-sm" id="sxEvClear" style="color:var(--red)">🗑 Clear events</button>
+        </div>
+      </div>
+
+      <div class="sx-card">
+        <div class="sx-ct">⚙️ Staffing rules</div>
+        <div class="sx-cfg-grid">
+          <label>Valet · 1 per (arrivals+departures)<input type="number" id="sxV1" min="1"></label>
+          <label>Valet · 1 per (event guests)<input type="number" id="sxV2" min="1"></label>
+          <label>Valet · minimum per shift<input type="number" id="sxV3" min="0"></label>
+          <label>HK Casual · rooms per attendant<input type="number" id="sxH1" min="1"></label>
+          <label>HK Casual · event guest threshold<input type="number" id="sxH2" min="1"></label>
+          <label>HK Casual · per threshold add<input type="number" id="sxH3" min="0" step="0.5"></label>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <label style="font-size:11px;color:var(--slate);font-weight:600">Date</label>
+          <input type="date" id="sxDate" style="padding:6px 9px;border:1px solid #d3dbe8;border-radius:7px;font-size:12px">
+          <button class="btn btn-gold btn-sm" id="sxRecalc">🔄 Recalculate</button>
+          <span id="sxStatus" style="font-size:11px;color:var(--slate)"></span>
+        </div>
+      </div>
+
+      <div class="sx-card">
+        <div class="sx-ct">🏨 Hotel ↔ PDF property-code mapping</div>
+        <div id="sxPropMap" class="sx-cfg-grid"></div>
+      </div>
+
+      <div class="sx-card">
+        <div class="sx-ct">📅 Events on selected date</div>
+        <div id="sxEvBox" class="sx-evlist"></div>
+      </div>
+
+      <div id="sxHotelBlocks"></div>
+    `;
+    app.appendChild(pg);
+  }
+
+  function injectForecastPdfButton(){
+    const fcBtnRow = document.querySelector('#page-forecast label.btn');
+    if (!fcBtnRow || document.getElementById('sxFcPdfBtn')) return;
+    const wrap = document.createElement('label');
+    wrap.id='sxFcPdfBtn';
+    wrap.className='btn btn-primary btn-sm';
+    wrap.style.cssText='cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#1B6B3A';
+    wrap.innerHTML='📄 Import Forecast PDF<input type="file" id="sxFcFile" accept=".pdf" style="display:none">';
+    fcBtnRow.parentElement.insertBefore(wrap, fcBtnRow.nextSibling);
+    wrap.querySelector('input').addEventListener('change', onForecastPdf);
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  HANDLERS
+  // ─────────────────────────────────────────────────────────────────
+  async function onForecastPdf(evt){
+    const file = evt.target.files[0]; if (!file) return;
+    if (!window.pdfjsLib){ alert('PDF reader is still loading. Please try again.'); evt.target.value=''; return; }
+    try{
+      const pages = await pdfPagesText(file);
+      const rows = parseForecastPdf(pages);
+      if (!rows.length){
+        alert('Could not read any forecast rows from this PDF.\n\nMake sure it is the Opera "History and Forecast" report.');
+        evt.target.value=''; return;
+      }
+      const choice = confirm('Parsed '+rows.length+' rows across '+new Set(rows.map(r=>r.hotel)).size+' hotel(s).\n\nOK = merge into existing forecast\nCancel = abort');
+      if (!choice){ evt.target.value=''; return; }
+      const merged = fcMergeImport(rows);
+      alert('✅ Imported '+rows.length+' rows from PDF.\nTotal now: '+merged.length+' rows.');
+    }catch(err){ console.error(err); alert('PDF import failed: '+err.message); }
+    evt.target.value='';
+  }
+
+  async function onEventsPdf(evt){
+    const file = evt.target.files[0]; if (!file) return;
+    if (!window.pdfjsLib){ alert('PDF reader is still loading.'); evt.target.value=''; return; }
+    try{
+      const cfg = loadCfg();
+      const pages = await pdfPagesText(file);
+      const events = parseEventsPdf(pages, cfg.propMap);
+      if (!events.length){
+        alert('Could not read any events from this PDF.'); evt.target.value=''; return;
+      }
+      saveEvents(events);
+      document.getElementById('sxStatus').textContent =
+        '✅ '+events.length+' events imported across '+
+        new Set(events.map(e=>e.date)).size+' day(s).';
+      renderStaffing();
+    }catch(err){ console.error(err); alert('PDF import failed: '+err.message); }
+    evt.target.value='';
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  RECOMMENDATION ENGINE
+  // ─────────────────────────────────────────────────────────────────
+  function eventsInShift(evs, shift){
+    return evs.filter(e=>{
+      const h = parseInt((e.start||'0:0').split(':')[0],10);
+      if (shift.id==='night') return h>=22 || h<6;
+      return h>=shift.from && h<shift.to;
+    });
+  }
+  function shiftRecommendation(hotelId, dateISO, cfg, fc, evs){
+    const fRow = fc.find(r=>r.hotel===hotelId && r.date===dateISO) || {arr:0,dep:0,occ:0};
+    const hotelEvs = evs.filter(e=>e.hotel===hotelId && e.date===dateISO);
+    const cur = cfg.currentValet[hotelId] || {};
+    return SHIFTS.map(sh=>{
+      const arr = Math.round((fRow.arr||0)*ARR_SPLIT[sh.id]);
+      const dep = Math.round((fRow.dep||0)*DEP_SPLIT[sh.id]);
+      const evShift = eventsInShift(hotelEvs, sh);
+      const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
+      const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
+      const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
+      const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
+      const have = +cur[sh.id]||0;
+      return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
+    });
+  }
+  function hkRecommendation(hotelId, dateISO, cfg, fc, evs){
+    const fRow = fc.find(r=>r.hotel===hotelId && r.date===dateISO) || {arr:0,dep:0,occ:0};
+    const hotelEvs = evs.filter(e=>e.hotel===hotelId && e.date===dateISO);
+    const evGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
+    // Rooms to clean ≈ departures (full clean) + half of stay-overs estimated from occ
+    // We don't know exact rooms; use departures + arrivals as a proxy workload.
+    const workload = (fRow.dep||0) + Math.round((fRow.arr||0)*0.5);
+    const base = Math.ceil(workload/Math.max(1,cfg.hk.roomsPerAttendant));
+    const evAdd = Math.ceil(evGuests / Math.max(1,cfg.hk.eventCasualThreshold)) * (cfg.hk.eventCasualPerThreshold||0);
+    const need = base + Math.ceil(evAdd);
+    const have = +cfg.currentHK[hotelId]||0;
+    return { workload, evGuests, evCount:hotelEvs.length, need, have, extra: Math.max(0, need-have) };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  //  RENDERING
+  // ─────────────────────────────────────────────────────────────────
+  function renderPropMap(cfg){
+    const root = document.getElementById('sxPropMap'); if (!root) return;
+    const hs = hotels();
+    const opts = '<option value="">— none —</option>' + hs.map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
+    root.innerHTML = Object.keys(cfg.propMap).concat(Object.keys(DEFAULT_PROP_MAP))
+      .filter((v,i,a)=>a.indexOf(v)===i)
+      .map(code=>`
+        <label>PDF code <b style="color:var(--gold)">${code}</b>
+          <select data-prop="${code}" style="padding:7px 10px;border:1px solid #d3dbe8;border-radius:7px;font-size:12px">
+            ${opts.replace('value="'+(cfg.propMap[code]||'')+'"','value="'+(cfg.propMap[code]||'')+'" selected')}
+          </select>
+        </label>`).join('');
+    root.querySelectorAll('select').forEach(sel=>{
+      sel.addEventListener('change', ()=>{
+        const c = loadCfg(); c.propMap[sel.dataset.prop] = sel.value; saveCfg(c); renderStaffing();
+      });
+    });
+  }
+
+  function renderEventList(cfg, dateISO){
+    const root = document.getElementById('sxEvBox'); if (!root) return;
+    const evs = loadEvents().filter(e=>e.date===dateISO);
+    if (!evs.length){ root.innerHTML = '<div style="color:var(--slate);padding:10px 4px">No events for '+dateISO+'. Import the Event List PDF above.</div>'; return; }
+    root.innerHTML = evs.map(e=>`
+      <div class="row" title="${e.title}">
+        <div class="pcode">${e.prop}</div>
+        <div class="ttl">${e.title} <span style="color:var(--slate)">· ${e.start}-${e.end}</span></div>
+        <div class="g">${e.guests||0} pax</div>
+      </div>`).join('');
+  }
+
+  function renderHotelBlocks(cfg, dateISO){
+    const root = document.getElementById('sxHotelBlocks'); if (!root) return;
+    const hs = hotels();
+    const fc = fcLoad();
+    const evs = loadEvents();
+    root.innerHTML = hs.map(h=>{
+      const recs = shiftRecommendation(h.id, dateISO, cfg, fc, evs);
+      const hk   = hkRecommendation(h.id, dateISO, cfg, fc, evs);
+      const fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+      const pill = (x)=> x.extra>0 ? `<span class="sx-pill sx-warn">+${x.extra} needed</span>` : `<span class="sx-pill sx-ok">covered</span>`;
+      return `
+      <div class="sx-card">
+        <div class="sx-hotel-hdr"><span class="sx-hotel-dot" style="background:${h.color}"></span>${h.name}
+          <span style="font-size:11px;font-weight:500;color:var(--slate);margin-left:auto">
+            Occ ${fRow.occ||0}% · Arr ${fRow.arr||0} · Dep ${fRow.dep||0}
+          </span>
+        </div>
+
+        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 4px">🅿 Valet per shift</div>
+        <table class="sx-tbl">
+          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
+          <tbody>
+            ${recs.map(x=>`
+              <tr>
+                <td><b>${x.shift.label}</b><div style="font-size:10px;color:var(--slate)">${x.shift.range}</div></td>
+                <td>${x.arr}</td>
+                <td>${x.dep}</td>
+                <td>${x.evCount}</td>
+                <td>${x.evGuests}</td>
+                <td><b style="color:var(--navy)">${x.need}</b></td>
+                <td><input type="number" class="sx-inp" min="0" value="${x.have}" data-h="${h.id}" data-s="${x.shift.id}" data-kind="valet"></td>
+                <td>${pill(x)}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>
+
+        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals (full day)</div>
+        <table class="sx-tbl">
+          <thead><tr><th>Workload (rooms)</th><th>Event guests</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>${hk.workload}</td>
+              <td>${hk.evGuests}</td>
+              <td><b style="color:var(--navy)">${hk.need}</b></td>
+              <td><input type="number" class="sx-inp" min="0" value="${hk.have}" data-h="${h.id}" data-kind="hk"></td>
+              <td>${pill(hk)}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        ${(recs.some(r=>r.extra>0) || hk.extra>0) ? `
+          <div style="margin-top:10px">
+            ${recs.filter(r=>r.extra>0).map(r=>`
+              <div class="sx-rec add">
+                <div>🅿 <b>${r.shift.label}</b> shift: add <b>+${r.extra} valet</b> · arrivals ${r.arr}, departures ${r.dep}${r.evCount?`, ${r.evCount} event(s) (${r.evGuests} pax)`:''}</div>
+              </div>`).join('')}
+            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ~${hk.workload} rooms${hk.evCount?`, ${hk.evCount} event(s) (${hk.evGuests} pax)`:''}</div>`:''}
+          </div>` : '<div class="sx-rec okrec">✅ Staffing is sufficient for this day.</div>'}
+      </div>`;
+    }).join('');
+
+    root.querySelectorAll('input.sx-inp').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        const c = loadCfg();
+        const v = Math.max(0, +inp.value||0);
+        if (inp.dataset.kind==='valet'){
+          c.currentValet[inp.dataset.h] = c.currentValet[inp.dataset.h] || {};
+          c.currentValet[inp.dataset.h][inp.dataset.s] = v;
+        } else {
+          c.currentHK[inp.dataset.h] = v;
+        }
+        saveCfg(c); renderStaffing();
+      });
+    });
+  }
+
+  function renderStaffing(){
+    const cfg = loadCfg();
+    const dEl = document.getElementById('sxDate');
+    if (!dEl) return;
+    if (!dEl.value) dEl.value = new Date().toISOString().slice(0,10);
+    renderPropMap(cfg);
+    renderEventList(cfg, dEl.value);
+    renderHotelBlocks(cfg, dEl.value);
+  }
+
+  function bindStaffing(){
+    const cfg = loadCfg();
+    const get = id => document.getElementById(id);
+    if (!get('sxV1')) return;
+    get('sxV1').value = cfg.valet.perArrDep;
+    get('sxV2').value = cfg.valet.perEventGuests;
+    get('sxV3').value = cfg.valet.minPerShift;
+    get('sxH1').value = cfg.hk.roomsPerAttendant;
+    get('sxH2').value = cfg.hk.eventCasualThreshold;
+    get('sxH3').value = cfg.hk.eventCasualPerThreshold;
+    const onChg = ()=>{
+      const c = loadCfg();
+      c.valet.perArrDep            = +get('sxV1').value||15;
+      c.valet.perEventGuests       = +get('sxV2').value||60;
+      c.valet.minPerShift          = +get('sxV3').value||0;
+      c.hk.roomsPerAttendant       = +get('sxH1').value||14;
+      c.hk.eventCasualThreshold    = +get('sxH2').value||100;
+      c.hk.eventCasualPerThreshold = +get('sxH3').value||1;
+      saveCfg(c); renderStaffing();
+    };
+    ['sxV1','sxV2','sxV3','sxH1','sxH2','sxH3'].forEach(id => get(id).addEventListener('change', onChg));
+    get('sxDate').addEventListener('change', renderStaffing);
+    get('sxRecalc').addEventListener('click', renderStaffing);
+    get('sxEvFile').addEventListener('change', onEventsPdf);
+    get('sxEvClear').addEventListener('click', ()=>{
+      if (!confirm('Clear all imported events?')) return;
+      saveEvents([]); renderStaffing();
+    });
+  }
+
+  function boot(){
+    injectStyles();
+    injectNavTab();
+    injectStaffingPage();
+    injectForecastPdfButton();
+    bindStaffing();
+    const orig = window.switchPage;
+    if (orig && !orig.__sxWrapped){
+      const wrap = function(name){
+        orig.apply(this, arguments);
+        if (name === 'staffing') setTimeout(renderStaffing, 30);
+      };
+      wrap.__sxWrapped = true;
+      window.switchPage = wrap;
+    }
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', ()=> setTimeout(boot, 400));
+  } else {
+    setTimeout(boot, 400);
+  }
+  window.addEventListener('load', ()=> { setTimeout(boot, 800); setTimeout(boot, 1800); });
+})();
+</script>
 </body>
 </html>
 
