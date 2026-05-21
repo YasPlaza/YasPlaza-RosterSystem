@@ -1455,9 +1455,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <!-- Global KPI Cards (across selected hotels) -->
     <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px"></div>
 
-    <!-- All-Hotels Combined Summary Bar -->
-    <div id="fcClusterBar" style="display:none;margin-bottom:14px"></div>
-
     <!-- Suggestions Alert Banner -->
     <div id="fcSuggestionsBox" style="margin-bottom:14px"></div>
 
@@ -9213,8 +9210,32 @@ function devExportScheduleJSON() {
   }
 
   function hotelSection(h, rows){
+    // YPH = cluster card: aggregate ALL real hotels across the full allData store
+    const isYPH = h.id === 'yph';
+    if (isYPH) {
+      const allData = loadFC();
+      const subHotels = hotelDefs().filter(x => x.id !== 'yph');
+      // Build combined 10-day rows
+      const today = new Date(); today.setHours(0,0,0,0);
+      const combinedRows = [];
+      for (let i = 0; i < 10; i++) {
+        const d = new Date(today.getTime() + i * 86400000);
+        const ds = d.toISOString().slice(0, 10);
+        let arr=0, dep=0, occSum=0, occCount=0, rev=0;
+        subHotels.forEach(sh => {
+          const r = allData.find(x => x.hotel === sh.id && x.date === ds);
+          if (r) { arr+=(+r.arr||0); dep+=(+r.dep||0); occSum+=(+r.occ||0); occCount++; rev+=(+r.rev||0); }
+        });
+        combinedRows.push({ hotel:'yph', date:ds, _date:d,
+          arr, dep, occ: occCount ? Math.round(occSum/occCount) : 0, rev,
+          notes: occCount ? `${occCount}/${subHotels.length} hotels with data` : 'No data' });
+      }
+      rows = combinedRows;
+    }
+
     const totalArr = rows.reduce((a,r)=>a+(+r.arr||0),0);
     const totalDep = rows.reduce((a,r)=>a+(+r.dep||0),0);
+    const totalRev = rows.reduce((a,r)=>a+(+r.rev||0),0);
     const avgOcc   = rows.length ? (rows.reduce((a,r)=>a+(+r.occ||0),0)/rows.length) : 0;
     const peak     = rows.reduce((m,r)=> (+r.occ>+m.occ?r:m), rows[0]);
     const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
@@ -9233,6 +9254,7 @@ function devExportScheduleJSON() {
       <thead><tr style="background:var(--navy);color:#fff">
         <th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th>
         <th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th>
+        ${totalRev>0?'<th style="padding:7px">Revenue (AED)</th>':''}
         <th style="padding:7px">Status</th><th style="padding:7px;text-align:left">Notes</th>
       </tr></thead><tbody>
       ${rows.map(r => {
@@ -9245,18 +9267,20 @@ function devExportScheduleJSON() {
           <td style="padding:6px;text-align:center;font-weight:700">${r.occ||0}%</td>
           <td style="padding:6px;text-align:center">${r.arr||0}</td>
           <td style="padding:6px;text-align:center">${r.dep||0}</td>
+          ${totalRev>0?`<td style="padding:6px;text-align:right;font-family:'DM Mono',monospace;color:#1B6B3A">${r.rev>0?Math.round(r.rev).toLocaleString():'—'}</td>`:''}
           <td style="padding:6px;text-align:center">${status}</td>
           <td style="padding:6px;color:var(--slate)">${r.notes||''}</td></tr>`;
       }).join('')}
     </tbody></table>`;
 
     return `<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid ${h.color}">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,${h.color}15,transparent)">
-        <div style="font-family:'Syne';font-weight:800;font-size:15px;color:${h.color}">🏨 ${h.name}</div>
-        <div style="display:flex;gap:14px;font-size:11px;color:var(--slate)">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,${h.color}15,transparent);flex-wrap:wrap;gap:8px">
+        <div style="font-family:'Syne';font-weight:800;font-size:15px;color:${h.color}">🏨 ${h.name}${isYPH?' <span style="font-size:10px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700;vertical-align:middle">CLUSTER · ALL HOTELS</span>':''}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:14px;font-size:11px;color:var(--slate)">
           <span><b style="color:${occColor};font-size:14px">${avgOcc.toFixed(1)}%</b> avg occ</span>
-          <span><b style="color:#4527A0;font-size:14px">${totalArr}</b> arrivals</span>
-          <span><b style="color:#E65C00;font-size:14px">${totalDep}</b> departures</span>
+          <span><b style="color:#4527A0;font-size:14px">${totalArr.toLocaleString()}</b> arrivals</span>
+          <span><b style="color:#E65C00;font-size:14px">${totalDep.toLocaleString()}</b> departures</span>
+          ${totalRev > 0 ? `<span><b style="color:#1B6B3A;font-size:14px">AED ${Math.round(totalRev).toLocaleString()}</b> revenue</span>` : ''}
           <span>Peak: <b style="color:var(--navy)">${fmtDate(peak._date)} ${peak.occ}%</b></span>
         </div>
       </div>
@@ -9307,24 +9331,7 @@ function devExportScheduleJSON() {
       kpiCard('Peak Day', peak.hotel ? (fmtDate(peak._date)+' · '+peak.occ+'%') : '—',
               peak.hotel ? hotelName(peak.hotel) : 'No data', '#C9963A');
 
-    // Cluster summary bar (all hotels combined — shown whenever >1 hotel exists)
-    const clusterBar = document.getElementById('fcClusterBar');
-    if (clusterBar && allHotels.length > 1){
-      clusterBar.style.display = '';
-      clusterBar.innerHTML = `
-        <div style="background:linear-gradient(135deg,#0F1E35,#1B2D4A);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;box-shadow:var(--sh);color:#fff;display:flex;flex-wrap:wrap;gap:18px;align-items:center">
-          <div style="font-family:'Syne';font-weight:800;font-size:13px;color:var(--gold2);flex:0 0 auto">🏨 ALL HOTELS COMBINED <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.5)">(10-day window)</span></div>
-          <div style="display:flex;flex-wrap:wrap;gap:16px;flex:1">
-            <span style="font-size:12px">Avg Occ: <b style="color:${clusterAvgOcc>=CRITICAL_OCC?'#ff6b6b':clusterAvgOcc>=HIGH_OCC?'#FFB300':'#4ADE80'};font-size:15px">${clusterAvgOcc.toFixed(1)}%</b></span>
-            <span style="font-size:12px">Total Arrivals: <b style="color:#B39DDB;font-size:15px">${clusterArr.toLocaleString()}</b></span>
-            <span style="font-size:12px">Total Departures: <b style="color:#FFAB91;font-size:15px">${clusterDep.toLocaleString()}</b></span>
-            ${hasClusterRev ? `<span style="font-size:12px">Total Revenue: <b style="color:#4ADE80;font-size:15px">AED ${Math.round(clusterRev).toLocaleString()}</b></span>` : ''}
-            <span style="font-size:12px">${allHotels.length} hotels tracked</span>
-          </div>
-        </div>`;
-    } else if (clusterBar){
-      clusterBar.style.display = 'none';
-    }
+    // Cluster summary bar is rendered inside the YPH hotelSection card (see hotelSection)
 
     // Per-hotel sections
     const sectionsEl = document.getElementById('fcHotelSections');
@@ -10095,15 +10102,41 @@ function devExportScheduleJSON() {
     for (let i=1; i<=pdf.numPages; i++){
       const p = await pdf.getPage(i);
       const tc = await p.getTextContent();
-      // group items by y-coordinate to reconstruct lines
-      const rows = {};
-      tc.items.forEach(it => {
-        const y = Math.round(it.transform[5]);
-        (rows[y] = rows[y] || []).push({ x: it.transform[4], s: it.str });
-      });
-      const lines = Object.keys(rows).sort((a,b)=>b-a).map(y =>
-        rows[y].sort((a,b)=>a.x-b.x).map(o=>o.s).join(' ').replace(/\s+/g,' ').trim()
-      ).filter(l => l.length);
+
+      // Collect all items with their raw y and x positions
+      const items = tc.items
+        .filter(it => it.str && it.str.trim())
+        .map(it => ({ x: it.transform[4], y: it.transform[5], s: it.str.trim() }));
+
+      if (!items.length){ pages.push([]); continue; }
+
+      // Sort by descending y (top of page first), then by x within a row
+      items.sort((a,b) => b.y - a.y || a.x - b.x);
+
+      // Group into rows using a y-tolerance of 3px.
+      // Oracle reports often place columns at y values that differ by 1-2px
+      // even though they visually belong to the same row — strict rounding
+      // splits them into separate "lines", breaking every regex.
+      const Y_TOL = 3;
+      const rowGroups = [];
+      let curGroup = [items[0]];
+      let curY = items[0].y;
+
+      for (let j = 1; j < items.length; j++) {
+        if (Math.abs(items[j].y - curY) <= Y_TOL) {
+          curGroup.push(items[j]);
+        } else {
+          rowGroups.push(curGroup);
+          curGroup = [items[j]];
+          curY = items[j].y;
+        }
+      }
+      rowGroups.push(curGroup);
+
+      const lines = rowGroups
+        .map(g => g.sort((a,b) => a.x - b.x).map(o => o.s).join(' ').replace(/\s+/g,' ').trim())
+        .filter(l => l.length);
+
       pages.push(lines);
     }
     return pages;
@@ -10367,7 +10400,14 @@ function devExportScheduleJSON() {
         alert('Could not read any forecast rows from this PDF.\n\nMake sure it is the Opera "History and Forecast" report.');
         evt.target.value=''; return;
       }
-      const choice = confirm('Parsed '+rows.length+' rows across '+new Set(rows.map(r=>r.hotel)).size+' hotel(s).\n\nOK = merge into existing forecast\nCancel = abort');
+      const choice = confirm(
+        'Parsed ' + rows.length + ' rows across ' +
+        new Set(rows.map(r=>r.hotel)).size + ' hotel(s).\n\n' +
+        [...new Set(rows.map(r=>r.hotel))].map(h =>
+          '• ' + h + ': ' + rows.filter(r=>r.hotel===h).map(r=>r.date).join(', ')
+        ).join('\n') +
+        '\n\nOK = merge into existing forecast\nCancel = abort'
+      );
       if (!choice){ evt.target.value=''; return; }
       const merged = fcMergeImport(rows);
       alert('✅ Imported '+rows.length+' rows from PDF.\nTotal now: '+merged.length+' rows.');
