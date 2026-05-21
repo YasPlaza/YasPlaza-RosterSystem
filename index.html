@@ -10186,6 +10186,7 @@ function devExportScheduleJSON() {
 
       <div class="sx-card">
         <div class="sx-ct">⚙️ Staffing rules</div>
+        <div style="background:#EDE9FE;border-left:3px solid #7C3AED;border-radius:8px;padding:8px 12px;font-size:11px;color:#5B21B6;margin-bottom:12px">📋 <b>Roster-linked:</b> "Rostered" counts are read live from the roster for each date. "Extra Needed" = Required − Rostered. Add casuals when this is &gt; 0.</div>
         <div class="sx-cfg-grid">
           <label>Valet · 1 per (arrivals+departures)<input type="number" id="sxV1" min="1"></label>
           <label>Valet · 1 per (event guests)<input type="number" id="sxV2" min="1"></label>
@@ -10270,6 +10271,58 @@ function devExportScheduleJSON() {
   }
 
   // ─────────────────────────────────────────────────────────────────
+  //  ROSTER READER — counts staff actually scheduled on a given date
+  // ─────────────────────────────────────────────────────────────────
+  // Maps our 3 slot ids to the roster SHIFTS codes
+  const SLOT_CODES = {
+    morning:   ['MOR'],
+    afternoon: ['AFT','M11','M12'],
+    night:     ['EVE']
+  };
+  // Off/absent codes — not counted as working
+  const OFF_CODES = new Set(['OFF','AL','EX','UNP','SICK','ABS','PH','']);
+
+  function rosterCountForDate(hotelId, dateISO, dept){
+    const [y, mo, d] = dateISO.split('-').map(Number);
+    // schedData key uses 0-based month internally: "YYYY-M" where M is 0-indexed
+    const key = y + '-' + (mo - 1);
+    const dayNum = d;
+    const allStaff = (typeof staffList === 'function') ? staffList() : [];
+    const filtered = allStaff.filter(e => {
+      const hotelMatch = hotelId === 'yph' ? true : (e.hotel === hotelId || e.hotel === 'all');
+      const deptMatch  = !dept || e.department === dept;
+      return hotelMatch && deptMatch;
+    });
+    const counts = { morning:0, afternoon:0, night:0 };
+    filtered.forEach(emp => {
+      const sch = (typeof schedData !== 'undefined' && schedData[emp.id] && schedData[emp.id][key])
+                  ? schedData[emp.id][key] : {};
+      const code = (sch[dayNum] || '').toUpperCase();
+      if (OFF_CODES.has(code)) return;
+      // Match by slot codes first
+      let matched = false;
+      for (const [slot, codes] of Object.entries(SLOT_CODES)){
+        if (codes.includes(code)){ counts[slot]++; matched = true; break; }
+      }
+      if (!matched){
+        // Fallback: derive slot from shift start hour
+        const shiftDef = (typeof SHIFTS !== 'undefined') ? SHIFTS[code] : null;
+        if (shiftDef && shiftDef.time && shiftDef.time !== '—' && shiftDef.time !== 'Custom'){
+          const startH = parseInt(shiftDef.time.split(/[:\-–]/)[0], 10);
+          if (!isNaN(startH)){
+            if      (startH >= 6  && startH < 14) counts.morning++;
+            else if (startH >= 14 && startH < 22) counts.afternoon++;
+            else                                   counts.night++;
+          }
+        }
+        // codes like TRN, FLEX, SH, SPL count toward morning by default
+        else if (shiftDef && shiftDef.hours > 0) counts.morning++;
+      }
+    });
+    return counts; // { morning:N, afternoon:N, night:N }
+  }
+
+  // ─────────────────────────────────────────────────────────────────
   //  RECOMMENDATION ENGINE
   // ─────────────────────────────────────────────────────────────────
   function eventsInShift(evs, shift){
@@ -10282,7 +10335,8 @@ function devExportScheduleJSON() {
   function shiftRecommendation(hotelId, dateISO, cfg, fc, evs){
     const fRow = fc.find(r=>r.hotel===hotelId && r.date===dateISO) || {arr:0,dep:0,occ:0};
     const hotelEvs = evs.filter(e=>e.hotel===hotelId && e.date===dateISO);
-    const cur = cfg.currentValet[hotelId] || {};
+    // Read ACTUAL rostered valet count from the roster
+    const rostered = rosterCountForDate(hotelId, dateISO, 'Valet Service');
     return SHIFTS.map(sh=>{
       const arr = Math.round((fRow.arr||0)*ARR_SPLIT[sh.id]);
       const dep = Math.round((fRow.dep||0)*DEP_SPLIT[sh.id]);
@@ -10291,18 +10345,18 @@ function devExportScheduleJSON() {
       const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
       const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
       const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
-      const have = +cur[sh.id]||0;
+      const have = rostered[sh.id] || 0;
       return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
     });
   }
   function hkRecommendation(hotelId, dateISO, cfg, fc, evs){
     const fRow = fc.find(r=>r.hotel===hotelId && r.date===dateISO) || {arr:0,dep:0,occ:0};
-    // HK casuals are based ONLY on forecast arrivals + departures (not events)
-    // Workload = departures (full clean) + arrivals (incoming room prep)
+    // HK casuals based ONLY on forecast arrivals + departures
     const workload = (fRow.dep||0) + (fRow.arr||0);
     const need = Math.ceil(workload / Math.max(1, cfg.hk.roomsPerAttendant));
-    const have = +cfg.currentHK[hotelId]||0;
-    // Still show event info for awareness, but don't add to need
+    // Read ACTUAL rostered housekeeping count from the roster (all shifts combined)
+    const rostered = rosterCountForDate(hotelId, dateISO, 'Housekeeping');
+    const have = rostered.morning + rostered.afternoon + rostered.night;
     const hotelEvs = evs.filter(e=>e.hotel===hotelId && e.date===dateISO);
     const evGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
     return { workload, evGuests, evCount:hotelEvs.length, need, have, extra: Math.max(0, need-have) };
@@ -10397,7 +10451,7 @@ function devExportScheduleJSON() {
 
         <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 4px">🅿 Valet per shift</div>
         <table class="sx-tbl">
-          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
+          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Rostered</th><th>Extra Needed</th></tr></thead>
           <tbody>
             ${recs.map(x=>`
               <tr>
@@ -10407,7 +10461,7 @@ function devExportScheduleJSON() {
                 <td>${x.evCount}</td>
                 <td>${x.evGuests}</td>
                 <td><b style="color:var(--navy)">${x.need}</b></td>
-                <td><input type="number" class="sx-inp" min="0" value="${x.have}" data-h="${h.id}" data-s="${x.shift.id}" data-kind="valet"></td>
+                <td><b style="font-family:'DM Mono',monospace;font-size:13px">${x.have}</b><span style="font-size:9px;color:var(--slate);display:block">from roster</span></td>
                 <td>${pill(x)}</td>
               </tr>`).join('')}
           </tbody>
@@ -10415,13 +10469,13 @@ function devExportScheduleJSON() {
 
         <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals (full day · forecast only)</div>
         <table class="sx-tbl">
-          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Current</th><th>Status</th></tr></thead>
+          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Rostered</th><th>Extra Needed</th></tr></thead>
           <tbody>
             <tr>
               <td>${hk.workload} rooms</td>
               <td>${hk.evCount ? hk.evCount+' event(s), '+hk.evGuests+' pax' : '—'}</td>
               <td><b style="color:var(--navy)">${hk.need}</b></td>
-              <td><input type="number" class="sx-inp" min="0" value="${hk.have}" data-h="${h.id}" data-kind="hk"></td>
+              <td><b style="font-family:'DM Mono',monospace;font-size:13px">${hk.have}</b><span style="font-size:9px;color:var(--slate);display:block">from roster</span></td>
               <td>${pill(hk)}</td>
             </tr>
           </tbody>
@@ -10438,19 +10492,7 @@ function devExportScheduleJSON() {
       </div>`;
     }).join('');
 
-    root.querySelectorAll('input.sx-inp').forEach(inp=>{
-      inp.addEventListener('change', ()=>{
-        const c = loadCfg();
-        const v = Math.max(0, +inp.value||0);
-        if (inp.dataset.kind==='valet'){
-          c.currentValet[inp.dataset.h] = c.currentValet[inp.dataset.h] || {};
-          c.currentValet[inp.dataset.h][inp.dataset.s] = v;
-        } else {
-          c.currentHK[inp.dataset.h] = v;
-        }
-        saveCfg(c); renderStaffing();
-      });
-    });
+    // Roster counts are read-only — no manual input listeners needed
   }
 
   function renderStaffing(){
