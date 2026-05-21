@@ -1455,6 +1455,9 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <!-- Global KPI Cards (across selected hotels) -->
     <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px"></div>
 
+    <!-- All-Hotels Combined Summary Bar -->
+    <div id="fcClusterBar" style="display:none;margin-bottom:14px"></div>
+
     <!-- Suggestions Alert Banner -->
     <div id="fcSuggestionsBox" style="margin-bottom:14px"></div>
 
@@ -8935,6 +8938,32 @@ function devExportScheduleJSON() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(rows)); } catch(e){}
     if (typeof db !== 'undefined' && db) { try { db.ref('forecast_v2').set(rows); } catch(e){} }
   }
+
+  // ── Firebase → localStorage sync: pull forecast on page load and keep in sync ──
+  (function bootstrapForecastSync(){
+    function doSync(){
+      if (typeof db === 'undefined' || !db) return;
+      db.ref('forecast_v2').on('value', snap => {
+        const val = snap ? snap.val() : null;
+        if (!Array.isArray(val) || !val.length) return;
+        // Only update localStorage if Firebase has newer/more rows
+        const local = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
+        if (!Array.isArray(local) || val.length >= local.length) {
+          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(val)); } catch(e){}
+          if (typeof renderForecast === 'function') try { renderForecast(); } catch(e){}
+        }
+      });
+    }
+    // db may not be ready yet — poll until available
+    let attempts = 0;
+    const poll = setInterval(()=>{
+      attempts++;
+      if ((typeof db !== 'undefined' && db) || attempts > 30){
+        clearInterval(poll);
+        if (typeof db !== 'undefined' && db) doSync();
+      }
+    }, 500);
+  })();
   function fmtDate(d){
     const dt = (d instanceof Date) ? d : new Date(d);
     if (isNaN(dt)) return String(d||'');
@@ -9243,6 +9272,7 @@ function devExportScheduleJSON() {
     const root = document.getElementById('fcGlobalKpi'); if (!root) return;
     const allData = loadFC();
     const hotels  = activeHotels();
+    const allHotels = hotelDefs(); // always all hotels for combined row
 
     // Global totals (across visible hotels)
     let gArr=0, gDep=0, occSum=0, occCount=0, peak={occ:0,_date:new Date(),hotel:''};
@@ -9258,12 +9288,43 @@ function devExportScheduleJSON() {
     const avgOcc = occCount ? occSum/occCount : 0;
     const occColor = avgOcc>=CRITICAL_OCC?'#B71C1C':avgOcc>=HIGH_OCC?'#E65C00':'#1B6B3A';
 
+    // Combined totals across ALL hotels (regardless of filter) for the cluster summary
+    let clusterArr=0, clusterDep=0, clusterOccSum=0, clusterOccCount=0, clusterRev=0;
+    allHotels.forEach(h => {
+      getNext10(h.id, allData).forEach(r => {
+        clusterArr += (+r.arr||0); clusterDep += (+r.dep||0);
+        clusterOccSum += (+r.occ||0); clusterOccCount++;
+        clusterRev += (+r.rev||0);
+      });
+    });
+    const clusterAvgOcc = clusterOccCount ? clusterOccSum/clusterOccCount : 0;
+    const hasClusterRev = clusterRev > 0;
+
     root.innerHTML =
       kpiCard('Avg Occupancy', avgOcc.toFixed(1)+'%', `${hotels.length} hotel(s) · 10 days`, occColor) +
       kpiCard('Total Arrivals', gArr,                 'Across visible hotels', '#4527A0') +
       kpiCard('Total Departures', gDep,               'Across visible hotels', '#E65C00') +
       kpiCard('Peak Day', peak.hotel ? (fmtDate(peak._date)+' · '+peak.occ+'%') : '—',
               peak.hotel ? hotelName(peak.hotel) : 'No data', '#C9963A');
+
+    // Cluster summary bar (all hotels combined — shown whenever >1 hotel exists)
+    const clusterBar = document.getElementById('fcClusterBar');
+    if (clusterBar && allHotels.length > 1){
+      clusterBar.style.display = '';
+      clusterBar.innerHTML = `
+        <div style="background:linear-gradient(135deg,#0F1E35,#1B2D4A);border-radius:var(--r);padding:14px 18px;margin-bottom:16px;box-shadow:var(--sh);color:#fff;display:flex;flex-wrap:wrap;gap:18px;align-items:center">
+          <div style="font-family:'Syne';font-weight:800;font-size:13px;color:var(--gold2);flex:0 0 auto">🏨 ALL HOTELS COMBINED <span style="font-size:10px;font-weight:500;color:rgba(255,255,255,.5)">(10-day window)</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:16px;flex:1">
+            <span style="font-size:12px">Avg Occ: <b style="color:${clusterAvgOcc>=CRITICAL_OCC?'#ff6b6b':clusterAvgOcc>=HIGH_OCC?'#FFB300':'#4ADE80'};font-size:15px">${clusterAvgOcc.toFixed(1)}%</b></span>
+            <span style="font-size:12px">Total Arrivals: <b style="color:#B39DDB;font-size:15px">${clusterArr.toLocaleString()}</b></span>
+            <span style="font-size:12px">Total Departures: <b style="color:#FFAB91;font-size:15px">${clusterDep.toLocaleString()}</b></span>
+            ${hasClusterRev ? `<span style="font-size:12px">Total Revenue: <b style="color:#4ADE80;font-size:15px">AED ${Math.round(clusterRev).toLocaleString()}</b></span>` : ''}
+            <span style="font-size:12px">${allHotels.length} hotels tracked</span>
+          </div>
+        </div>`;
+    } else if (clusterBar){
+      clusterBar.style.display = 'none';
+    }
 
     // Per-hotel sections
     const sectionsEl = document.getElementById('fcHotelSections');
@@ -10059,29 +10120,65 @@ function devExportScheduleJSON() {
   // Example: "21.05.26 Thu 41 4 2 0 21 20 20.30% 20,913.48 510.08 1 0 90 83"
   function parseForecastPdf(pages){
     const out = []; let currentHotel = null;
-    // More flexible regex: allow any whitespace between columns, handle comma-formatted numbers
-    const lineRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+[\d,.]+\s+[\d,.]+\s+(\d+)/;
-    // Also try a looser pattern that splits on whitespace tokens
+
+    // Primary: full-row regex (date day totalOcc arr comp house deductIndiv deductGroup occ% rev avgRate dep ...)
+    const lineRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+([\d,]+(?:\.\d+)?)\s+[\d,.]+\s+(\d+)/;
+
+    // Fallback A: date day totalOcc arr ... occ% (dep comes later — capture what we can)
+    const looseRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+\w{3}\s+(\d+)\s+(\d+)\s+[\d\s.]+?([\d.]+)%/;
+
+    // Fallback B: sometimes the PDF text layer places columns on separate y-coordinates
+    // that get merged into a single line without the day-of-week token.
+    // e.g. "21.05.26 41 4 2 0 21 20 20.30% 20,913.48 510.08 1"
+    const noDayRe = /^(\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\s+(\d+)\s+(\d+)\s+\d+\s+\d+\s+\d+\s+\d+\s+([\d.]+)%\s+([\d,]+(?:\.\d+)?)\s+[\d,.]+\s+(\d+)/;
+
+    function pushRow(hotel, dRaw, totalOcc, arr, occ, dep, rev){
+      rev = rev ? parseFloat(String(rev).replace(/,/g,'')) : 0;
+      const parts = dRaw.split(/[.\-\/]/).map(Number);
+      let yyyy, mo, dd;
+      if (parts[2] < 100){
+        // DD.MM.YY
+        dd = parts[0]; mo = parts[1]; yyyy = 2000 + parts[2];
+      } else {
+        // YY.MM.DD (unlikely but guard)
+        yyyy = parts[0]; mo = parts[1]; dd = parts[2];
+      }
+      const dt = new Date(Date.UTC(yyyy, mo-1, dd));
+      if (isNaN(dt)) return;
+      const key = hotel + '|' + dt.toISOString().slice(0,10);
+      // Overwrite only if we now have dep > 0 or no existing entry
+      const existing = out.find(r => r.hotel===hotel && r.date===dt.toISOString().slice(0,10));
+      if (existing) {
+        if (dep > 0 && existing.dep === 0) existing.dep = +dep;
+        if (rev > 0 && !existing.rev) existing.rev = rev;
+        return;
+      }
+      out.push({
+        hotel, date: dt.toISOString().slice(0,10),
+        occ: +occ, arr: +arr, dep: +dep, rev,
+        notes: 'PDF · Total Occ ' + totalOcc
+      });
+    }
+
     pages.forEach(lines => lines.forEach(l => {
       const m = matchHotelTitle(l); if (m){ currentHotel = m; return; }
-      let r = l.match(lineRe);
-      // Fallback: try matching after trimming extra spaces
-      if (!r) {
-        const norm = l.replace(/\s+/g,' ').trim();
-        r = norm.match(lineRe);
-      }
-      if (r && currentHotel){
-        const [_, dRaw, totalOcc, arr, occ, dep] = r;
-        const parts = dRaw.split(/[.\-\/]/).map(Number);
-        // DD MM YY
-        const yyyy = 2000 + parts[2];
-        const dt = new Date(Date.UTC(yyyy, parts[1]-1, parts[0]));
-        if (isNaN(dt)) return;
-        out.push({
-          hotel: currentHotel, date: dt.toISOString().slice(0,10),
-          occ: +occ, arr: +arr, dep: +dep,
-          notes: 'PDF · Total Occ '+totalOcc
-        });
+      if (!currentHotel) return;
+
+      const norm = l.replace(/\s+/g,' ').trim();
+
+      // Try primary pattern
+      let r = norm.match(lineRe);
+      if (r){ pushRow(currentHotel, r[1], r[2], r[3], r[4], r[6], r[5]); return; }
+
+      // Try no-day-of-week variant
+      r = norm.match(noDayRe);
+      if (r){ pushRow(currentHotel, r[1], r[2], r[3], r[4], r[6], r[5]); return; }
+
+      // Try loose pattern (captures date, arr, occ% but not dep)
+      r = norm.match(looseRe);
+      if (r){
+        // Store partial — dep = 0 for now; a later line in same group may have dep
+        pushRow(currentHotel, r[1], r[2], r[3], r[4], 0, 0);
       }
     }));
     return out;
