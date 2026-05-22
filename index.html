@@ -10118,13 +10118,16 @@ function devExportScheduleJSON() {
   const CFG_KEY = 'yph_staffing_cfg_v1';
   const EVT_KEY = 'yph_events_v1';
   const defaultCfg = () => ({
-    valet:{ perArrDep:15, perEventGuests:60, minPerShift:1 },
-    hk:   { roomsPerAttendant:14, eventCasualThreshold:100, eventCasualPerThreshold:1 },
+    // Valet ratios: how many arrivals+deps share one valet, same for event guests
+    valet:{ perArrDep:10, perEventGuests:25, minPerShift:1 },
+    // HK: one attendant handles this many checkout/checkin rooms
+    hk:   { roomsPerAttendant:12, eventCasualThreshold:100, eventCasualPerThreshold:1 },
     propMap: {...DEFAULT_PROP_MAP},
-    // current staffing matrices: { [hotelId]: { morning:N, afternoon:N, night:N } }  /  { [hotelId]: N }
-    currentValet:{}, currentHK:{}
+    currentValet:{}, currentHK:{},
+    // Regular (permanent) valet per hotel — baseline always on duty regardless of occupancy
+    regularValet: {}  // { [hotelId]: number }
   });
-  const loadCfg = () => { try{const v=JSON.parse(localStorage.getItem(CFG_KEY)||'null');return v?{...defaultCfg(),...v,valet:{...defaultCfg().valet,...(v.valet||{})},hk:{...defaultCfg().hk,...(v.hk||{})},propMap:{...DEFAULT_PROP_MAP,...(v.propMap||{})}}:defaultCfg();}catch(e){return defaultCfg();} };
+  const loadCfg = () => { try{const v=JSON.parse(localStorage.getItem(CFG_KEY)||'null');return v?{...defaultCfg(),...v,valet:{...defaultCfg().valet,...(v.valet||{})},hk:{...defaultCfg().hk,...(v.hk||{})},propMap:{...DEFAULT_PROP_MAP,...(v.propMap||{})},regularValet:{...(v.regularValet||{})}}:defaultCfg();}catch(e){return defaultCfg();} };
   const saveCfg = c => { try{localStorage.setItem(CFG_KEY, JSON.stringify(c));}catch(e){} };
   const loadEvents = () => { try{const v=JSON.parse(localStorage.getItem(EVT_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return[];} };
   const saveEvents = evArr => {
@@ -10441,7 +10444,7 @@ function devExportScheduleJSON() {
         </div>
       </div>
 
-      <!-- Per-hotel cards injected here -->
+      <!-- Per-hotel regular valet baseline + cards injected here -->
       <div id="sxHotelBlocks"></div>
     `;
     app.appendChild(pg);
@@ -10616,6 +10619,27 @@ function devExportScheduleJSON() {
     saveValetRoster(r);
   }
 
+  function renderRegularValetTable(cfg, hs){
+    const subHotels = hs.filter(h => h.id !== 'yph' && h.id !== 'all');
+    return `
+    <div style="background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 2px 12px rgba(15,30,53,.07);margin-bottom:16px">
+      <div style="font-size:10px;font-weight:800;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">👥 Regular Valet Staff Per Hotel <span style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0">(permanent staff always on duty — system adds <b>extra casuals</b> on top)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:10px" id="sxRegularValetGrid">
+        ${subHotels.map(h=>`
+          <label style="display:flex;flex-direction:column;gap:5px;font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">
+            <span style="display:flex;align-items:center;gap:5px">
+              <span style="width:10px;height:10px;border-radius:50%;background:${h.color};flex-shrink:0"></span>
+              ${h.name}
+            </span>
+            <input type="number" min="0" class="reg-valet-inp" data-hotel="${h.id}"
+              value="${cfg.regularValet[h.id]||0}"
+              style="padding:7px 10px;border:1.5px solid #d3dbe8;border-radius:8px;font-size:18px;font-family:'DM Mono',monospace;font-weight:700;text-align:center;width:100%;transition:.15s"
+              onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='#d3dbe8'">
+          </label>`).join('')}
+      </div>
+    </div>`;
+  }
+
   function renderHotelBlocks(cfg, dateISO){
     const root = document.getElementById('sxHotelBlocks'); if (!root) return;
     const hs = hotels();
@@ -10624,152 +10648,203 @@ function devExportScheduleJSON() {
     const roster = loadValetRoster();
     const subIds = hs.filter(h => h.id !== 'yph' && h.id !== 'all').map(h => h.id);
 
-    root.innerHTML = hs
-      .filter(h => h.id !== 'all')
-      .map(h => {
-        const isYPH = h.id === 'yph';
-        let fRow;
+    let html = renderRegularValetTable(cfg, hs);
 
-        if (isYPH) {
-          const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); },0);
-          const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); },0);
-          const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); },0)/subIds.length) : 0;
-          fRow = { arr:aggArr, dep:aggDep, occ:aggOcc };
-        } else {
-          fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
-        }
+    html += hs.filter(h => h.id !== 'all').map(h => {
+      const isYPH = h.id === 'yph';
+      let fRow;
 
-        const hotelEvs = isYPH ? evs.filter(e=>e.date===dateISO) : evs.filter(e=>e.hotel===h.id&&e.date===dateISO);
+      if (isYPH) {
+        const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); },0);
+        const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); },0);
+        const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); },0)/subIds.length) : 0;
+        fRow = { arr:aggArr, dep:aggDep, occ:aggOcc };
+      } else {
+        fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+      }
 
-        // ── VALET rows per shift ──
-        const valetRows = SHIFTS.map(sh => {
-          const arr = Math.round((fRow.arr||0) * ARR_SPLIT[sh.id]);
-          const dep = Math.round((fRow.dep||0) * DEP_SPLIT[sh.id]);
-          const evShift = hotelEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
-          const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
-          const evCount  = evShift.length;
-          const base     = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
-          const evAdd    = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
-          const need     = Math.max(cfg.valet.minPerShift||0, base+evAdd);
-          const have     = getValetEntry(roster, h.id, dateISO, sh.id);
-          const extra    = Math.max(0, need-have);
-          return { sh, arr, dep, evCount, evGuests, need, have, extra };
-        });
+      const hotelEvs = isYPH ? evs.filter(e=>e.date===dateISO) : evs.filter(e=>e.hotel===h.id&&e.date===dateISO);
 
-        // ── HK from roster ──
-        const hkRostered = rosterCountForDate(h.id, dateISO, 'Housekeeping');
-        const hkHave = isYPH
-          ? subIds.reduce((s,id)=>{ const r=rosterCountForDate(id,dateISO,'Housekeeping'); return s+r.morning+r.afternoon+r.night; },0)
-          : hkRostered.morning + hkRostered.afternoon + hkRostered.night;
-        const hkWorkload = (fRow.dep||0) + (fRow.arr||0);
-        const hkNeed = Math.ceil(hkWorkload / Math.max(1, cfg.hk.roomsPerAttendant));
-        const hkExtra = Math.max(0, hkNeed - hkHave);
-        const totalEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
+      // Regular permanent valet for this hotel
+      const regularValet = isYPH
+        ? subIds.reduce((s,id)=>s+(+cfg.regularValet[id]||0),0)
+        : (+cfg.regularValet[h.id]||0);
+      // Distribute regular staff across shifts based on typical need
+      const regularByShift = {
+        morning:   Math.round(regularValet * 0.40),
+        afternoon: Math.round(regularValet * 0.40),
+        night:     regularValet - Math.round(regularValet*0.40) - Math.round(regularValet*0.40)
+      };
 
-        const pill = (extra, need) => extra > 0
-          ? `<span class="sx-pill sx-warn">+${extra} needed</span>`
-          : need > 0 ? `<span class="sx-pill sx-ok">✓ covered</span>`
-          : `<span class="sx-pill" style="background:#f0f0f0;color:#888">no data</span>`;
+      // ── VALET rows per shift ──
+      const valetRows = SHIFTS.map(sh => {
+        const arr = Math.round((fRow.arr||0) * ARR_SPLIT[sh.id]);
+        const dep = Math.round((fRow.dep||0) * DEP_SPLIT[sh.id]);
+        const evShift = hotelEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
+        const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
+        const evCount  = evShift.length;
 
-        const occColor = (fRow.occ||0)>=90?'#B71C1C':(fRow.occ||0)>=75?'#E65C00':'#1B6B3A';
+        // Extra from occupancy: 1 extra per N additional arr+dep beyond what regulars handle
+        const fromOcc  = Math.ceil((arr+dep) / Math.max(1, cfg.valet.perArrDep));
+        const fromEvts = Math.ceil(evGuests  / Math.max(1, cfg.valet.perEventGuests));
+        // Total need = max(min, occ-based + event-based)
+        const totalNeed = Math.max(cfg.valet.minPerShift||1, fromOcc + fromEvts);
+        // Extra = what regulars don't cover in this shift
+        const regInShift = regularByShift[sh.id] || 0;
+        const extraNeeded = Math.max(0, totalNeed - regInShift);
 
-        return `
-        <div class="sx-hotel-card" style="border-top:4px solid ${h.color}">
-          <!-- Hotel header -->
-          <div class="sx-hotel-head" style="background:linear-gradient(90deg,${h.color}18,transparent)">
-            <div class="sx-hotel-name">
-              <span class="sx-hotel-dot" style="background:${h.color}"></span>
-              ${h.name}
-              ${isYPH?'<span style="font-size:9px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
-            </div>
-            <div class="sx-hotel-meta">
-              <span>Occ <b style="color:${occColor}">${fRow.occ||0}%</b></span>
-              <span>Arr <b>${fRow.arr||0}</b></span>
-              <span>Dep <b>${fRow.dep||0}</b></span>
-              <span>Events <b>${hotelEvs.length}</b></span>
-              ${totalEvGuests>0?`<span>Event guests <b>${totalEvGuests}</b></span>`:''}
+        // Allow manual override per shift (optional)
+        const manualOverride = getValetEntry(roster, h.id, dateISO, sh.id);
+        const finalExtra = manualOverride > 0 ? Math.max(0, totalNeed - manualOverride) : extraNeeded;
+        const displayHave = manualOverride > 0 ? manualOverride : regInShift;
+
+        return { sh, arr, dep, evCount, evGuests, regInShift, totalNeed, manualOverride, extraNeeded: finalExtra, displayHave };
+      });
+
+      // ── HK from actual roster ──
+      const hkCounts = isYPH
+        ? subIds.reduce((acc,id)=>{ const r=rosterCountForDate(id,dateISO,'Housekeeping'); acc.morning+=r.morning; acc.afternoon+=r.afternoon; acc.night+=r.night; return acc; },{morning:0,afternoon:0,night:0})
+        : rosterCountForDate(h.id, dateISO, 'Housekeeping');
+      const hkRostered = hkCounts.morning + hkCounts.afternoon + hkCounts.night;
+      const hkWorkload = (fRow.dep||0) + (fRow.arr||0);
+      const hkNeed     = Math.ceil(hkWorkload / Math.max(1, cfg.hk.roomsPerAttendant));
+      const hkExtra    = Math.max(0, hkNeed - hkRostered);
+      const totalEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
+
+      const pill = (extra, need) => {
+        if (need === 0) return `<span class="sx-pill" style="background:#f0f4f8;color:#94a3b8;font-size:9px">no data</span>`;
+        if (extra > 0) return `<span class="sx-pill sx-warn">+${extra} extra</span>`;
+        return `<span class="sx-pill sx-ok">✓ covered</span>`;
+      };
+
+      const occColor = (fRow.occ||0)>=90?'#B71C1C':(fRow.occ||0)>=75?'#E65C00':'#1B6B3A';
+      const anyExtra = valetRows.some(x=>x.extraNeeded>0);
+
+      return `
+      <div class="sx-hotel-card" style="border-top:4px solid ${h.color}">
+        <div class="sx-hotel-head" style="background:linear-gradient(90deg,${h.color}18,transparent)">
+          <div class="sx-hotel-name">
+            <span class="sx-hotel-dot" style="background:${h.color}"></span>
+            ${h.name}
+            ${isYPH?'<span style="font-size:9px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
+          </div>
+          <div class="sx-hotel-meta">
+            <span>Occ <b style="color:${occColor}">${fRow.occ||0}%</b></span>
+            <span>Arr <b>${fRow.arr||0}</b></span>
+            <span>Dep <b>${fRow.dep||0}</b></span>
+            <span>Events <b>${hotelEvs.length}</b></span>
+            ${totalEvGuests>0?`<span>Pax <b>${totalEvGuests}</b></span>`:''}
+            ${!isYPH?`<span>Regular Valet <b style="color:var(--gold)">${regularValet}</b></span>`:''}
+          </div>
+        </div>
+
+        <div class="sx-hotel-body">
+          ${hotelEvs.length ? `
+          <div class="sx-sec">📅 Events on ${dateISO}</div>
+          ${hotelEvs.map(e=>`
+            <div class="sx-ev-item">
+              <span class="sx-ev-prop">${e.prop||''}</span>
+              <span class="sx-ev-time">${e.start||''}–${e.end||''}</span>
+              <span class="sx-ev-title">${e.title||''}</span>
+              <span class="sx-ev-pax">${e.guests>0?e.guests+' pax':''}</span>
+            </div>`).join('')}` : ''}
+
+          <!-- VALET -->
+          <div class="sx-sec">🅿 Valet
+            <span style="font-weight:400;font-size:10px;margin-left:6px;color:var(--slate)">
+              Regular: ${regularValet} staff · Extra: 1 per ${cfg.valet.perArrDep} arr+dep · 1 per ${cfg.valet.perEventGuests} event pax
+            </span>
+          </div>
+          <div style="overflow-x:auto">
+            <div class="sx-valet-grid">
+              <div class="sx-vg-head">Shift</div>
+              <div class="sx-vg-head">Arr</div>
+              <div class="sx-vg-head">Dep</div>
+              <div class="sx-vg-head">Events</div>
+              <div class="sx-vg-head">Pax</div>
+              <div class="sx-vg-head">Total Need</div>
+              <div class="sx-vg-head" title="Override if you have a different number rostered today">Override Today</div>
+              <div class="sx-vg-head">Extra Casuals</div>
+              ${valetRows.map(x=>`
+                <div class="sx-vg-cell shift-label" data-label="Shift"><b>${x.sh.label}</b><span>${x.sh.range}</span></div>
+                <div class="sx-vg-cell" data-label="Arr">${x.arr}</div>
+                <div class="sx-vg-cell" data-label="Dep">${x.dep}</div>
+                <div class="sx-vg-cell" data-label="Events">${x.evCount||'—'}</div>
+                <div class="sx-vg-cell" data-label="Pax">${x.evGuests||'—'}</div>
+                <div class="sx-vg-cell" data-label="Total Need">
+                  <span class="sx-need">${x.totalNeed}</span>
+                  <span style="font-size:9px;color:var(--slate);margin-left:4px">(${x.regInShift} reg)</span>
+                </div>
+                <div class="sx-vg-cell" data-label="Override">
+                  <input class="sx-vg-inp valet-inp"
+                    data-hotel="${h.id}" data-date="${dateISO}" data-shift="${x.sh.id}"
+                    type="number" min="0" value="${x.manualOverride||''}"
+                    placeholder="${x.regInShift}"
+                    title="Leave blank to use regular (${x.regInShift}), or type today's actual number">
+                </div>
+                <div class="sx-vg-cell" data-label="Extra">${pill(x.extraNeeded, x.totalNeed)}</div>
+              `).join('')}
             </div>
           </div>
+          ${anyExtra?`
+            <div style="margin-top:8px">
+              ${valetRows.filter(x=>x.extraNeeded>0).map(x=>`
+                <div class="sx-sug">🅿 <b>${x.sh.label}:</b> add <b>+${x.extraNeeded} extra valet</b>
+                  (need ${x.totalNeed} total, have ${x.displayHave} on shift${x.evCount?` · ${x.evCount} event(s), ${x.evGuests} pax`:''})</div>`).join('')}
+            </div>`
+            : `<div class="sx-sug ok" style="margin-top:8px">✅ Regular staff covers all shifts.</div>`}
 
-          <div class="sx-hotel-body">
-
-            <!-- Events on this day -->
-            ${hotelEvs.length ? `
-            <div class="sx-sec">📅 Events on ${dateISO}</div>
-            ${hotelEvs.map(e=>`
-              <div class="sx-ev-item">
-                <span class="sx-ev-prop">${e.prop||''}</span>
-                <span class="sx-ev-time">${e.start||''}–${e.end||''}</span>
-                <span class="sx-ev-title">${e.title||''}</span>
-                <span class="sx-ev-pax">${e.guests>0?e.guests+' pax':''}</span>
-              </div>`).join('')}` : ''}
-
-            <!-- VALET section -->
-            <div class="sx-sec">🅿 Valet — enter your rostered staff per shift</div>
-            <div style="overflow-x:auto">
-              <div class="sx-valet-grid">
-                <div class="sx-vg-head">Shift</div>
-                <div class="sx-vg-head">Arr</div>
-                <div class="sx-vg-head">Dep</div>
-                <div class="sx-vg-head">Events</div>
-                <div class="sx-vg-head">Guests</div>
-                <div class="sx-vg-head">Need</div>
-                <div class="sx-vg-head">Your Roster</div>
-                <div class="sx-vg-head">Extra Needed</div>
-                ${valetRows.map(x=>`
-                  <div class="sx-vg-cell shift-label" data-label="Shift"><b>${x.sh.label}</b><span>${x.sh.range}</span></div>
-                  <div class="sx-vg-cell" data-label="Arr">${x.arr}</div>
-                  <div class="sx-vg-cell" data-label="Dep">${x.dep}</div>
-                  <div class="sx-vg-cell" data-label="Events">${x.evCount}</div>
-                  <div class="sx-vg-cell" data-label="Guests">${x.evGuests||'—'}</div>
-                  <div class="sx-vg-cell" data-label="Need"><span class="sx-need">${x.need}</span></div>
-                  <div class="sx-vg-cell" data-label="Your Roster">
-                    <input class="sx-vg-inp valet-inp"
-                      data-hotel="${h.id}" data-date="${dateISO}" data-shift="${x.sh.id}"
-                      type="number" min="0" value="${x.have}" placeholder="0">
-                  </div>
-                  <div class="sx-vg-cell" data-label="Extra">${pill(x.extra, x.need)}</div>
-                `).join('')}
-              </div>
-            </div>
-            ${valetRows.some(x=>x.extra>0)?`
-              <div style="margin-top:8px">
-                ${valetRows.filter(x=>x.extra>0).map(x=>`
-                  <div class="sx-sug">🅿 <b>${x.sh.label}:</b> add <b>+${x.extra} valet</b>
-                    · ${x.arr} arr, ${x.dep} dep${x.evCount?`, ${x.evCount} event(s) · ${x.evGuests} pax`:''}</div>
-                `).join('')}
-              </div>` : `<div class="sx-sug ok" style="margin-top:8px">✅ Valet staffing looks covered for all shifts.</div>`}
-
-            <!-- HK section -->
-            <div class="sx-sec">🧹 Housekeeping — casuals needed (from roster)</div>
-            <div style="overflow-x:auto">
-              <div class="sx-hk-row">
-                <div class="sx-hk-head">Hotel / Day</div>
-                <div class="sx-hk-head">Arr+Dep</div>
-                <div class="sx-hk-head">Need</div>
-                <div class="sx-hk-head">In Roster</div>
-                <div class="sx-hk-head">Morning</div>
-                <div class="sx-hk-head">Extra Needed</div>
-                <div class="sx-hk-cell" style="font-weight:700;color:var(--navy)">${h.name}</div>
-                <div class="sx-hk-cell">${hkWorkload} rooms</div>
-                <div class="sx-hk-cell"><span class="sx-need">${hkNeed}</span></div>
-                <div class="sx-hk-cell">${hkHave}</div>
-                <div class="sx-hk-cell" style="font-size:10px;color:var(--slate)">${isYPH?'(all hotels)':hkRostered.morning+' M · '+hkRostered.afternoon+' A · '+hkRostered.night+' N'}</div>
-                <div class="sx-hk-cell">${pill(hkExtra, hkNeed)}</div>
-              </div>
-            </div>
-            ${hkExtra>0?`<div class="sx-sug" style="margin-top:8px">🧹 Add <b>+${hkExtra} HK casual(s)</b> · ${hkWorkload} rooms (arr+dep)${hotelEvs.length?` · ${hotelEvs.length} event(s) on site`:''}</div>`
-              :`<div class="sx-sug ok" style="margin-top:8px">✅ HK staffing covered${hkHave===0&&hkNeed>0?' (⚠️ check roster has HK staff entered)':''}</div>`}
-
+          <!-- HK -->
+          <div class="sx-sec">🧹 Housekeeping Casuals
+            <span style="font-weight:400;font-size:10px;margin-left:6px;color:var(--slate)">
+              1 attendant per ${cfg.hk.roomsPerAttendant} checkout/checkin rooms · calculated from roster
+            </span>
           </div>
-        </div>`;
-      }).join('');
+          <div style="overflow-x:auto">
+            <div style="display:grid;grid-template-columns:1fr 80px 80px 120px 120px;gap:0;font-size:11px">
+              <div class="sx-hk-head">Workload</div>
+              <div class="sx-hk-head">Need</div>
+              <div class="sx-hk-head">In Roster</div>
+              <div class="sx-hk-head">Breakdown (M/A/N)</div>
+              <div class="sx-hk-head">Extra Casuals</div>
+              <div class="sx-hk-cell"><b>${hkWorkload}</b> rooms (${fRow.arr||0} arr + ${fRow.dep||0} dep)</div>
+              <div class="sx-hk-cell"><span class="sx-need">${hkNeed}</span></div>
+              <div class="sx-hk-cell"><b>${hkRostered}</b></div>
+              <div class="sx-hk-cell" style="font-size:10px;color:var(--slate)">
+                ${isYPH?'(all hotels combined)':hkCounts.morning+' / '+hkCounts.afternoon+' / '+hkCounts.night}
+              </div>
+              <div class="sx-hk-cell">${pill(hkExtra, hkNeed)}
+                ${hkRostered===0&&hkNeed>0?`<span style="font-size:10px;color:#E65C00;margin-left:6px">⚠️ Add HK to roster first</span>`:''}
+              </div>
+            </div>
+          </div>
+          ${hkExtra>0
+            ?`<div class="sx-sug" style="margin-top:8px">🧹 Add <b>+${hkExtra} HK casual(s)</b> · ${hkWorkload} rooms ÷ ${cfg.hk.roomsPerAttendant} = ${hkNeed} needed, ${hkRostered} rostered</div>`
+            :hkRostered===0&&hkNeed>0
+            ?`<div class="sx-sug" style="margin-top:8px">⚠️ Add HK staff to roster first — system will auto-calculate casuals needed once they are entered.</div>`
+            :`<div class="sx-sug ok" style="margin-top:8px">✅ HK roster covers workload${hkNeed===0?' (no forecast data yet)':''}.</div>`}
+        </div>
+      </div>`;
+    }).join('');
 
-    // Bind valet input listeners — save to Firebase on change
+    root.innerHTML = html;
+
+    // Bind regular valet inputs — save immediately, re-render
+    root.querySelectorAll('.reg-valet-inp').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const c = loadCfg();
+        c.regularValet = c.regularValet || {};
+        c.regularValet[inp.dataset.hotel] = +inp.value||0;
+        saveCfg(c);
+        if (typeof db!=='undefined'&&db){ try{ db.ref('staffing_cfg_v1').set(c); }catch(e){} }
+        renderHotelBlocks(c, dateISO);
+      });
+    });
+
+    // Bind shift override inputs
     root.querySelectorAll('.valet-inp').forEach(inp => {
       inp.addEventListener('change', () => {
         setValetEntry(inp.dataset.hotel, inp.dataset.date, inp.dataset.shift, inp.value);
-        // Re-render only the extra-needed pills without full re-render (for responsiveness)
         renderHotelBlocks(loadCfg(), inp.dataset.date);
       });
     });
@@ -10782,24 +10857,22 @@ function devExportScheduleJSON() {
     if (!dEl.value) dEl.value = new Date().toISOString().slice(0,10);
     renderHotelBlocks(cfg, dEl.value);
   }
-  // Expose for Firebase sync callbacks
   window.renderStaffingAddon = renderStaffing;
 
   function bindStaffing(){
     const cfg = loadCfg();
     const get = id => document.getElementById(id);
     if (!get('sxV1')) return;
-    get('sxV1').value = cfg.valet.perArrDep;
-    get('sxV2').value = cfg.valet.perEventGuests;
-    get('sxH1').value = cfg.hk.roomsPerAttendant;
+    get('sxV1').value = cfg.valet.perArrDep   || 10;
+    get('sxV2').value = cfg.valet.perEventGuests || 25;
+    get('sxH1').value = cfg.hk.roomsPerAttendant || 12;
     const onChg = ()=>{
       const c = loadCfg();
-      c.valet.perArrDep      = +get('sxV1').value||1;
-      c.valet.perEventGuests = +get('sxV2').value||1;
-      c.hk.roomsPerAttendant = +get('sxH1').value||1;
+      c.valet.perArrDep        = Math.max(1, +get('sxV1').value||10);
+      c.valet.perEventGuests   = Math.max(1, +get('sxV2').value||25);
+      c.hk.roomsPerAttendant   = Math.max(1, +get('sxH1').value||12);
       saveCfg(c);
-      // Sync config to Firebase too
-      if (typeof db!=='undefined' && db){ try{ db.ref('staffing_cfg_v1').set(c); }catch(e){} }
+      if (typeof db!=='undefined'&&db){ try{ db.ref('staffing_cfg_v1').set(c); }catch(e){} }
       renderStaffing();
     };
     ['sxV1','sxV2','sxH1'].forEach(id => { const el=get(id); if(el) el.addEventListener('change', onChg); });
