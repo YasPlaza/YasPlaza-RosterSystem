@@ -3790,18 +3790,27 @@ function _switchPageOriginal(name) {
   const pageEl = document.getElementById("page-"+name);
   if (!pageEl) return;
   pageEl.classList.add("active");
-  // Always start at top — prevents "blank space, must scroll down" when a page
-  // was previously left scrolled or starts off-screen.
+  // Scroll every possible container to top immediately + after render
   const resetScroll = () => {
     pageEl.scrollTop = 0;
     window.scrollTo(0, 0);
     document.documentElement.scrollTop = 0;
     document.body.scrollTop = 0;
+    // Also scroll the #app wrapper and any overflow parent
+    const appEl = document.getElementById('app');
+    if (appEl) appEl.scrollTop = 0;
+    // Walk up from pageEl and reset any overflow:auto/scroll parent
+    let el = pageEl.parentElement;
+    while (el && el !== document.body) {
+      const ov = getComputedStyle(el).overflowY;
+      if (ov === 'auto' || ov === 'scroll') el.scrollTop = 0;
+      el = el.parentElement;
+    }
   };
   resetScroll();
   requestAnimationFrame(()=>{ resetScroll(); });
   setTimeout(resetScroll, 50);
-  setTimeout(resetScroll, 150);
+  setTimeout(resetScroll, 200);
   const tabEl = document.querySelector(`[data-p="${name}"]`);
   if (tabEl) tabEl.classList.add("active");
   if(name==="roster")   renderRoster();
@@ -8940,17 +8949,50 @@ function devExportScheduleJSON() {
   (function bootstrapForecastSync(){
     function doSync(){
       if (typeof db === 'undefined' || !db) return;
+
+      // ── Forecast sync ──────────────────────────────────────────
       db.ref('forecast_v2').on('value', snap => {
         const val = snap ? snap.val() : null;
         if (!Array.isArray(val) || !val.length) return;
-        // Only update localStorage if Firebase has newer/more rows
-        const local = JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]');
-        if (!Array.isArray(local) || val.length >= local.length) {
-          try { localStorage.setItem(STORAGE_KEY, JSON.stringify(val)); } catch(e){}
-          if (typeof renderForecast === 'function') try { renderForecast(); } catch(e){}
-        }
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(val)); } catch(e){}
+        if (typeof renderForecast === 'function') try { renderForecast(); } catch(e){}
+        // Also refresh staffing page if open
+        try {
+          const sp = document.getElementById('page-staffing');
+          if (sp && sp.classList.contains('active') && typeof renderStaffingAddon === 'function') renderStaffingAddon();
+        } catch(e){}
+      });
+
+      // ── Events sync ────────────────────────────────────────────
+      db.ref('events_v1').on('value', snap => {
+        const val = snap ? snap.val() : null;
+        if (!Array.isArray(val) || !val.length) return;
+        try { localStorage.setItem('yph_events_v1', JSON.stringify(val)); } catch(e){}
+        try {
+          const sp = document.getElementById('page-staffing');
+          if (sp && sp.classList.contains('active') && typeof renderStaffingAddon === 'function') renderStaffingAddon();
+        } catch(e){}
+      });
+
+      // ── Staffing config + manual valet inputs sync ─────────────
+      db.ref('staffing_cfg_v1').on('value', snap => {
+        const val = snap ? snap.val() : null;
+        if (!val) return;
+        try { localStorage.setItem('yph_sx_cfg', JSON.stringify(val)); } catch(e){}
+      });
+
+      // ── Manual valet roster entries sync ──────────────────────
+      db.ref('valet_roster_v1').on('value', snap => {
+        const val = snap ? snap.val() : null;
+        if (!val) return;
+        try { localStorage.setItem('yph_valet_roster_v1', JSON.stringify(val)); } catch(e){}
+        try {
+          const sp = document.getElementById('page-staffing');
+          if (sp && sp.classList.contains('active') && typeof renderStaffingAddon === 'function') renderStaffingAddon();
+        } catch(e){}
       });
     }
+
     // db may not be ready yet — poll until available
     let attempts = 0;
     const poll = setInterval(()=>{
@@ -10085,7 +10127,10 @@ function devExportScheduleJSON() {
   const loadCfg = () => { try{const v=JSON.parse(localStorage.getItem(CFG_KEY)||'null');return v?{...defaultCfg(),...v,valet:{...defaultCfg().valet,...(v.valet||{})},hk:{...defaultCfg().hk,...(v.hk||{})},propMap:{...DEFAULT_PROP_MAP,...(v.propMap||{})}}:defaultCfg();}catch(e){return defaultCfg();} };
   const saveCfg = c => { try{localStorage.setItem(CFG_KEY, JSON.stringify(c));}catch(e){} };
   const loadEvents = () => { try{const v=JSON.parse(localStorage.getItem(EVT_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return[];} };
-  const saveEvents = e => { try{localStorage.setItem(EVT_KEY, JSON.stringify(e));}catch(e){} };
+  const saveEvents = evArr => {
+    try{localStorage.setItem(EVT_KEY, JSON.stringify(evArr));}catch(e){}
+    if (typeof db!=='undefined' && db){ try{ db.ref('events_v1').set(evArr); }catch(e){} }
+  };
 
   function hotels(){
     const src = (typeof HOTELS_DATA!=='undefined' && HOTELS_DATA) ? HOTELS_DATA : (typeof HOTELS!=='undefined'?HOTELS:[]);
@@ -10276,32 +10321,64 @@ function devExportScheduleJSON() {
     if (document.getElementById('staffAddonCss')) return;
     const css = document.createElement('style'); css.id='staffAddonCss';
     css.textContent = `
-      #page-staffing{padding:18px 22px}
+      #page-staffing{padding:18px 22px;background:var(--ice2)}
       .sx-h{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)}
       .sx-sub{font-size:11px;color:var(--slate);margin-top:3px}
-      .sx-card{background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:14px}
-      .sx-ct{font-family:'Syne';font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px}
-      .sx-tbl{width:100%;border-collapse:collapse;font-size:12px}
-      .sx-tbl th{background:var(--navy);color:#fff;padding:8px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.5px}
-      .sx-tbl td{padding:7px 8px;border-bottom:1px solid #eef2f7;vertical-align:middle}
-      .sx-inp{width:62px;padding:5px 7px;border:1px solid #d3dbe8;border-radius:6px;font-size:12px;text-align:center;font-family:'DM Mono',monospace}
-      .sx-pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700}
+
+      /* Hotel card */
+      .sx-hotel-card{background:#fff;border-radius:14px;box-shadow:0 2px 16px rgba(15,30,53,.08);margin-bottom:16px;overflow:hidden}
+      .sx-hotel-head{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;flex-wrap:wrap;gap:8px}
+      .sx-hotel-name{font-family:'Syne';font-weight:800;font-size:15px;display:flex;align-items:center;gap:8px}
+      .sx-hotel-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+      .sx-hotel-meta{font-size:11px;color:var(--slate);display:flex;gap:14px;flex-wrap:wrap}
+      .sx-hotel-meta b{color:var(--navy)}
+      .sx-hotel-body{padding:0 18px 16px}
+
+      /* Section label */
+      .sx-sec{font-size:10px;font-weight:800;color:var(--slate);text-transform:uppercase;letter-spacing:.6px;padding:10px 0 6px;border-top:1px solid var(--ice);margin-top:10px}
+      .sx-sec:first-child{border-top:none;margin-top:0}
+
+      /* Valet grid — one row per shift */
+      .sx-valet-grid{display:grid;grid-template-columns:120px 60px 60px 60px 80px 90px 90px 110px;gap:0;font-size:11px}
+      .sx-vg-head{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:rgba(255,255,255,.7);background:var(--navy);padding:6px 8px}
+      .sx-vg-cell{padding:7px 8px;border-bottom:1px solid #eef2f7;vertical-align:middle;display:flex;align-items:center}
+      .sx-vg-cell.shift-label{flex-direction:column;align-items:flex-start;gap:1px}
+      .sx-vg-cell.shift-label b{font-size:12px;color:var(--navy)}
+      .sx-vg-cell.shift-label span{font-size:9px;color:var(--slate)}
+      .sx-vg-inp{width:54px;padding:4px 6px;border:1.5px solid #d3dbe8;border-radius:6px;font-size:13px;text-align:center;font-family:'DM Mono',monospace;transition:.15s}
+      .sx-vg-inp:focus{border-color:var(--gold);outline:none;box-shadow:0 0 0 2px rgba(201,150,58,.15)}
+      .sx-need{font-family:'Syne';font-size:15px;font-weight:800;color:var(--navy)}
+      .sx-pill{display:inline-flex;align-items:center;padding:3px 9px;border-radius:99px;font-size:10px;font-weight:700;gap:4px}
       .sx-ok{background:#D4EDDA;color:#1B6B3A}
       .sx-warn{background:#FFF3E0;color:#E65C00}
       .sx-bad{background:#FDECEA;color:#B71C1C}
-      .sx-cfg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
-      .sx-cfg-grid label{display:flex;flex-direction:column;font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:600;gap:4px}
-      .sx-cfg-grid input{padding:7px 10px;border:1px solid #d3dbe8;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace}
-      .sx-hotel-hdr{font-family:'Syne';font-weight:800;font-size:14px;margin:6px 0 8px;display:flex;align-items:center;gap:8px}
-      .sx-hotel-dot{width:11px;height:11px;border-radius:50%}
-      .sx-rec{padding:9px 11px;border-radius:9px;margin:5px 0;font-size:12px;display:flex;justify-content:space-between;gap:10px;align-items:center}
-      .sx-rec.add{background:#FFF3E0;border-left:3px solid var(--amber)}
-      .sx-rec.okrec{background:#D4EDDA;border-left:3px solid var(--green)}
-      .sx-evlist{max-height:180px;overflow:auto;font-size:11px}
-      .sx-evlist .row{display:flex;gap:8px;padding:5px 0;border-bottom:1px dashed #eef2f7}
-      .sx-evlist .pcode{font-family:'DM Mono';font-weight:700;color:var(--gold);width:54px;flex-shrink:0}
-      .sx-evlist .ttl{flex:1;color:var(--navy)}
-      .sx-evlist .g{font-family:'DM Mono';font-weight:700;width:50px;text-align:right;color:var(--navy3)}
+
+      /* HK section */
+      .sx-hk-row{display:grid;grid-template-columns:1fr 80px 80px 80px 80px 110px;gap:0;font-size:11px}
+      .sx-hk-head{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:rgba(255,255,255,.7);background:#0F766E;padding:6px 8px}
+      .sx-hk-cell{padding:7px 8px;border-bottom:1px solid #eef2f7;display:flex;align-items:center}
+
+      /* Suggestion bar */
+      .sx-sug{background:#FFF3E0;border-left:3px solid #E65C00;border-radius:0 8px 8px 0;padding:8px 12px;margin:4px 0;font-size:11px;color:#7A3700}
+      .sx-sug.ok{background:#D4EDDA;border-color:#1B6B3A;color:#1B5E20}
+
+      /* Events mini list */
+      .sx-ev-item{display:flex;align-items:center;gap:8px;padding:4px 0;border-bottom:1px dashed #eef2f7;font-size:11px}
+      .sx-ev-prop{font-family:'DM Mono';font-size:10px;font-weight:700;color:var(--gold);width:50px;flex-shrink:0}
+      .sx-ev-time{font-family:'DM Mono';font-size:10px;color:var(--slate);width:95px;flex-shrink:0}
+      .sx-ev-title{flex:1;color:var(--navy)}
+      .sx-ev-pax{font-family:'DM Mono';font-size:10px;font-weight:700;color:var(--navy3);text-align:right}
+
+      @media(max-width:768px){
+        .sx-valet-grid{grid-template-columns:100px 50px 50px 50px 70px 80px 80px 100px;font-size:10px}
+        .sx-hk-row{grid-template-columns:1fr 70px 70px 70px 70px 90px}
+      }
+      @media(max-width:560px){
+        .sx-valet-grid,.sx-hk-row{grid-template-columns:1fr}
+        .sx-vg-head,.sx-hk-head{display:none}
+        .sx-vg-cell,.sx-hk-cell{border:1px solid #eef2f7;border-radius:6px;margin:2px 0;justify-content:space-between}
+        .sx-vg-cell::before{content:attr(data-label);font-size:9px;font-weight:700;color:var(--slate);text-transform:uppercase}
+      }
     `;
     document.head.appendChild(css);
   }
@@ -10323,53 +10400,48 @@ function devExportScheduleJSON() {
     const pg = document.createElement('div');
     pg.className='page'; pg.id='page-staffing';
     pg.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:16px">
         <div>
-          <div class="sx-h">🅿 Valet &amp; 🧹 Housekeeping Staffing</div>
-          <div class="sx-sub">Enter current valet per shift and housekeeping per hotel. System uses forecast + events to suggest extras.</div>
+          <div class="sx-h">🅿 Valet &amp; 🧹 Housekeeping Planner</div>
+          <div class="sx-sub">Enter your rostered valet per hotel per shift. Numbers auto-calculate from Forecast + Events.</div>
         </div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            📄 Import Event List PDF
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <label style="font-size:11px;color:var(--slate);font-weight:600">📅 Date</label>
+          <input type="date" id="sxDate" style="padding:7px 11px;border:1.5px solid #d3dbe8;border-radius:8px;font-size:12px">
+          <label class="btn btn-primary btn-sm" style="cursor:pointer;gap:6px">
+            📄 Import Events PDF
             <input type="file" id="sxEvFile" accept=".pdf" style="display:none">
           </label>
-          <label class="btn btn-primary btn-sm" id="sxFcBtnStaff" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;background:#1B6B3A">
+          <label class="btn btn-primary btn-sm" style="cursor:pointer;gap:6px;background:#1B6B3A">
             📊 Import Forecast PDF
             <input type="file" id="sxFcFileStaff" accept=".pdf" style="display:none">
           </label>
-          <button class="btn btn-ghost btn-sm" id="sxEvClear" style="color:var(--red)">🗑 Clear events</button>
-        </div>
-      </div>
-
-      <div class="sx-card">
-        <div class="sx-ct">⚙️ Staffing rules</div>
-        <div style="background:#EDE9FE;border-left:3px solid #7C3AED;border-radius:8px;padding:8px 12px;font-size:11px;color:#5B21B6;margin-bottom:12px">📋 <b>Valet:</b> "Rostered" is a manual count you enter per hotel per shift. <b>Housekeeping:</b> "Rostered" is read live from the HK roster. Both use forecast (arr+dep, occupancy) + events to compute "Need" and suggest "Extra".</div>
-        <div class="sx-cfg-grid">
-          <label>Valet · 1 per (arrivals+departures)<input type="number" id="sxV1" min="1"></label>
-          <label>Valet · 1 per (event guests)<input type="number" id="sxV2" min="1"></label>
-          <label>Valet · minimum per shift<input type="number" id="sxV3" min="0"></label>
-          <label>HK Casual · rooms per attendant (arr+dep)<input type="number" id="sxH1" min="1"></label>
-          <label style="display:none"><input type="number" id="sxH2" min="1"></label>
-          <label style="display:none"><input type="number" id="sxH3" min="0" step="0.5"></label>
-        </div>
-        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-          <label style="font-size:11px;color:var(--slate);font-weight:600">Date</label>
-          <input type="date" id="sxDate" style="padding:6px 9px;border:1px solid #d3dbe8;border-radius:7px;font-size:12px">
-          <button class="btn btn-gold btn-sm" id="sxRecalc">🔄 Recalculate</button>
+          <button class="btn btn-ghost btn-sm" id="sxEvClear" style="color:var(--red)">🗑 Events</button>
+          <button class="btn btn-gold btn-sm" id="sxRecalc">🔄 Recalc</button>
           <span id="sxStatus" style="font-size:11px;color:var(--slate)"></span>
         </div>
       </div>
 
-      <div class="sx-card">
-        <div class="sx-ct">🏨 Hotel ↔ PDF property-code mapping</div>
-        <div id="sxPropMap" class="sx-cfg-grid"></div>
+      <!-- Staffing ratio settings -->
+      <div style="background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 2px 12px rgba(15,30,53,.07);margin-bottom:16px">
+        <div style="font-size:10px;font-weight:800;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">⚙️ Calculation Rules</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">
+            🅿 Valet: 1 per N arrivals+deps
+            <input type="number" id="sxV1" min="1" style="padding:6px 10px;border:1.5px solid #d3dbe8;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">
+            🅿 Valet: 1 per N event guests
+            <input type="number" id="sxV2" min="1" style="padding:6px 10px;border:1.5px solid #d3dbe8;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;color:var(--slate);text-transform:uppercase;letter-spacing:.4px">
+            🧹 HK: 1 attendant per N rooms (arr+dep)
+            <input type="number" id="sxH1" min="1" style="padding:6px 10px;border:1.5px solid #d3dbe8;border-radius:7px;font-size:13px;font-family:'DM Mono',monospace">
+          </label>
+        </div>
       </div>
 
-      <div class="sx-card">
-        <div class="sx-ct">📅 Events on selected date</div>
-        <div id="sxEvBox" class="sx-evlist"></div>
-      </div>
-
+      <!-- Per-hotel cards injected here -->
       <div id="sxHotelBlocks"></div>
     `;
     app.appendChild(pg);
@@ -10529,35 +10601,19 @@ function devExportScheduleJSON() {
   // ─────────────────────────────────────────────────────────────────
   //  RENDERING
   // ─────────────────────────────────────────────────────────────────
-  function renderPropMap(cfg){
-    const root = document.getElementById('sxPropMap'); if (!root) return;
-    const hs = hotels();
-    const opts = '<option value="">— none —</option>' + hs.map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
-    root.innerHTML = Object.keys(cfg.propMap).concat(Object.keys(DEFAULT_PROP_MAP))
-      .filter((v,i,a)=>a.indexOf(v)===i)
-      .map(code=>`
-        <label>PDF code <b style="color:var(--gold)">${code}</b>
-          <select data-prop="${code}" style="padding:7px 10px;border:1px solid #d3dbe8;border-radius:7px;font-size:12px">
-            ${opts.replace('value="'+(cfg.propMap[code]||'')+'"','value="'+(cfg.propMap[code]||'')+'" selected')}
-          </select>
-        </label>`).join('');
-    root.querySelectorAll('select').forEach(sel=>{
-      sel.addEventListener('change', ()=>{
-        const c = loadCfg(); c.propMap[sel.dataset.prop] = sel.value; saveCfg(c); renderStaffing();
-      });
-    });
+  // ── Valet roster storage (manual inputs, synced to Firebase) ──
+  const VR_KEY = 'yph_valet_roster_v1';
+  function loadValetRoster(){ try{return JSON.parse(localStorage.getItem(VR_KEY)||'{}')||{};}catch(e){return{};} }
+  function saveValetRoster(obj){
+    try{localStorage.setItem(VR_KEY, JSON.stringify(obj));}catch(e){}
+    if (typeof db!=='undefined' && db){ try{ db.ref('valet_roster_v1').set(obj); }catch(e){} }
   }
-
-  function renderEventList(cfg, dateISO){
-    const root = document.getElementById('sxEvBox'); if (!root) return;
-    const evs = loadEvents().filter(e=>e.date===dateISO);
-    if (!evs.length){ root.innerHTML = '<div style="color:var(--slate);padding:10px 4px">No events for '+dateISO+'. Import the Event List PDF above.</div>'; return; }
-    root.innerHTML = evs.map(e=>`
-      <div class="row" title="${e.title}">
-        <div class="pcode">${e.prop}</div>
-        <div class="ttl">${e.title} <span style="color:var(--slate)">· ${e.start}-${e.end}</span></div>
-        <div class="g">${e.guests||0} pax</div>
-      </div>`).join('');
+  // key: "hotelId|YYYY-MM-DD|shiftId"  value: number
+  function getValetEntry(roster, hotelId, dateISO, shiftId){ return +(roster[hotelId+'|'+dateISO+'|'+shiftId]||0); }
+  function setValetEntry(hotelId, dateISO, shiftId, val){
+    const r = loadValetRoster();
+    r[hotelId+'|'+dateISO+'|'+shiftId] = +val||0;
+    saveValetRoster(r);
   }
 
   function renderHotelBlocks(cfg, dateISO){
@@ -10565,122 +10621,156 @@ function devExportScheduleJSON() {
     const hs = hotels();
     const fc = fcLoad();
     const evs = loadEvents();
+    const roster = loadValetRoster();
+    const subIds = hs.filter(h => h.id !== 'yph' && h.id !== 'all').map(h => h.id);
 
-    const subIds = hs.filter(h => h.id !== 'yph').map(h => h.id);
+    root.innerHTML = hs
+      .filter(h => h.id !== 'all')
+      .map(h => {
+        const isYPH = h.id === 'yph';
+        let fRow;
 
-    root.innerHTML = hs.map(h=>{
-      let recs, hk, fRow, hotelEvs;
+        if (isYPH) {
+          const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); },0);
+          const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); },0);
+          const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); },0)/subIds.length) : 0;
+          fRow = { arr:aggArr, dep:aggDep, occ:aggOcc };
+        } else {
+          fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+        }
 
-      if (h.id === 'yph') {
-        const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); }, 0);
-        const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); }, 0);
-        const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); }, 0) / subIds.length) : 0;
-        fRow = { arr: aggArr, dep: aggDep, occ: aggOcc };
-        hotelEvs = evs.filter(e => e.date === dateISO);
-        const cur = cfg.currentValet[h.id] || {};
-        recs = SHIFTS.map(sh=>{
-          const arr = Math.round(aggArr * ARR_SPLIT[sh.id]);
-          const dep = Math.round(aggDep * DEP_SPLIT[sh.id]);
+        const hotelEvs = isYPH ? evs.filter(e=>e.date===dateISO) : evs.filter(e=>e.hotel===h.id&&e.date===dateISO);
+
+        // ── VALET rows per shift ──
+        const valetRows = SHIFTS.map(sh => {
+          const arr = Math.round((fRow.arr||0) * ARR_SPLIT[sh.id]);
+          const dep = Math.round((fRow.dep||0) * DEP_SPLIT[sh.id]);
           const evShift = hotelEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
           const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
-          const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
-          const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
-          const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
-          const have = +cur[sh.id]||0;
-          return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
+          const evCount  = evShift.length;
+          const base     = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
+          const evAdd    = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
+          const need     = Math.max(cfg.valet.minPerShift||0, base+evAdd);
+          const have     = getValetEntry(roster, h.id, dateISO, sh.id);
+          const extra    = Math.max(0, need-have);
+          return { sh, arr, dep, evCount, evGuests, need, have, extra };
         });
-        const workload = aggDep + aggArr;
-        const need = Math.ceil(workload / Math.max(1, cfg.hk.roomsPerAttendant));
-        const rostered = rosterCountForDate(h.id, dateISO, 'Housekeeping');
-        const have = rostered.morning + rostered.afternoon + rostered.night;
-        const allEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
-        hk = { workload, evGuests: allEvGuests, evCount: hotelEvs.length, need, have, extra: Math.max(0, need-have) };
-      } else {
-        hotelEvs = evs.filter(e=>e.hotel===h.id && e.date===dateISO);
-        fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
-        // VALET — manual rostered from cfg.currentValet[hotelId][shiftId]
-        const cur = cfg.currentValet[h.id] || {};
-        recs = SHIFTS.map(sh=>{
-          const arr = Math.round((fRow.arr||0)*ARR_SPLIT[sh.id]);
-          const dep = Math.round((fRow.dep||0)*DEP_SPLIT[sh.id]);
-          const evShift = eventsInShift(hotelEvs, sh);
-          const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
-          const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
-          const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
-          const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
-          const have = +cur[sh.id]||0;
-          return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
-        });
-        // HK — rostered from actual HK roster, need from forecast arr+dep
-        hk = hkRecommendation(h.id, dateISO, cfg, fc, evs);
-      }
 
-      const evTotalGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
-      const pill = (x)=> x.extra>0 ? `<span class="sx-pill sx-warn">+${x.extra} needed</span>` : `<span class="sx-pill sx-ok">covered</span>`;
+        // ── HK from roster ──
+        const hkRostered = rosterCountForDate(h.id, dateISO, 'Housekeeping');
+        const hkHave = isYPH
+          ? subIds.reduce((s,id)=>{ const r=rosterCountForDate(id,dateISO,'Housekeeping'); return s+r.morning+r.afternoon+r.night; },0)
+          : hkRostered.morning + hkRostered.afternoon + hkRostered.night;
+        const hkWorkload = (fRow.dep||0) + (fRow.arr||0);
+        const hkNeed = Math.ceil(hkWorkload / Math.max(1, cfg.hk.roomsPerAttendant));
+        const hkExtra = Math.max(0, hkNeed - hkHave);
+        const totalEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
 
-      return `
-      <div class="sx-card">
-        <div class="sx-hotel-hdr"><span class="sx-hotel-dot" style="background:${h.color}"></span>${h.name}${h.id==='yph'?' <span style="font-size:10px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
-          <span style="font-size:11px;font-weight:500;color:var(--slate);margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <span title="From Forecast PDF">📊 Occ <b style="color:var(--navy)">${fRow.occ||0}%</b></span>
-            <span title="From Forecast PDF">🛬 Arr <b style="color:var(--navy)">${fRow.arr||0}</b></span>
-            <span title="From Forecast PDF">🛫 Dep <b style="color:var(--navy)">${fRow.dep||0}</b></span>
-            <span title="From Event List PDF" style="padding-left:8px;border-left:1px solid #d3dbe8">🎉 Events <b style="color:var(--navy)">${hotelEvs.length}</b> · ${evTotalGuests} pax</span>
-          </span>
-        </div>
+        const pill = (extra, need) => extra > 0
+          ? `<span class="sx-pill sx-warn">+${extra} needed</span>`
+          : need > 0 ? `<span class="sx-pill sx-ok">✓ covered</span>`
+          : `<span class="sx-pill" style="background:#f0f0f0;color:#888">no data</span>`;
 
-        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 4px">🅿 Valet per shift <span style="text-transform:none;font-weight:500;color:var(--gold)">· type your scheduled valet count in each "Rostered" cell — extras are auto-suggested from forecast + events</span></div>
-        <table class="sx-tbl">
-          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Rostered (manual)</th><th>Extra Needed</th></tr></thead>
-          <tbody>
-            ${recs.map(x=>`
-              <tr>
-                <td><b>${x.shift.label}</b><div style="font-size:10px;color:var(--slate)">${x.shift.range}</div></td>
-                <td>${x.arr}</td>
-                <td>${x.dep}</td>
-                <td>${x.evCount}</td>
-                <td>${x.evGuests}</td>
-                <td><b style="color:var(--navy)">${x.need}</b></td>
-                <td><input type="number" min="0" class="sx-inp sx-valet-inp" data-hotel="${h.id}" data-shift="${x.shift.id}" value="${x.have}"></td>
-                <td>${pill(x)}</td>
-              </tr>`).join('')}
-          </tbody>
-        </table>
+        const occColor = (fRow.occ||0)>=90?'#B71C1C':(fRow.occ||0)>=75?'#E65C00':'#1B6B3A';
 
-        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals <span style="text-transform:none;font-weight:500;color:var(--slate)">· rostered count is read live from the HK roster; need = (arrivals + departures) ÷ rooms-per-attendant</span></div>
-        <table class="sx-tbl">
-          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Rostered (from HK roster)</th><th>Extra Needed</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>${hk.workload} rooms</td>
-              <td>${hk.evCount ? hk.evCount+' event(s), '+hk.evGuests+' pax' : '—'}</td>
-              <td><b style="color:var(--navy)">${hk.need}</b></td>
-              <td><b style="font-family:'DM Mono',monospace;font-size:13px">${hk.have}</b><span style="font-size:9px;color:var(--slate);display:block">live from roster</span></td>
-              <td>${pill(hk)}</td>
-            </tr>
-          </tbody>
-        </table>
+        return `
+        <div class="sx-hotel-card" style="border-top:4px solid ${h.color}">
+          <!-- Hotel header -->
+          <div class="sx-hotel-head" style="background:linear-gradient(90deg,${h.color}18,transparent)">
+            <div class="sx-hotel-name">
+              <span class="sx-hotel-dot" style="background:${h.color}"></span>
+              ${h.name}
+              ${isYPH?'<span style="font-size:9px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
+            </div>
+            <div class="sx-hotel-meta">
+              <span>Occ <b style="color:${occColor}">${fRow.occ||0}%</b></span>
+              <span>Arr <b>${fRow.arr||0}</b></span>
+              <span>Dep <b>${fRow.dep||0}</b></span>
+              <span>Events <b>${hotelEvs.length}</b></span>
+              ${totalEvGuests>0?`<span>Event guests <b>${totalEvGuests}</b></span>`:''}
+            </div>
+          </div>
 
-        ${(recs.some(r=>r.extra>0) || hk.extra>0) ? `
-          <div style="margin-top:10px">
-            ${recs.filter(r=>r.extra>0).map(r=>`
-              <div class="sx-rec add">
-                <div>🅿 <b>${r.shift.label}</b> shift: add <b>+${r.extra} valet</b> · arrivals ${r.arr}, departures ${r.dep}${r.evCount?`, ${r.evCount} event(s) (${r.evGuests} pax)`:''}</div>
-              </div>`).join('')}
-            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ${hk.workload} rooms (arrivals ${fRow.arr||0} + departures ${fRow.dep||0})${hk.evCount?` · ${hk.evCount} event(s) on-site (${hk.evGuests} pax, info only)`:''}</div>`:''}
-          </div>` : '<div class="sx-rec okrec">✅ Staffing is sufficient for this day.</div>'}
-      </div>`;
-    }).join('');
+          <div class="sx-hotel-body">
 
-    // Bind manual valet inputs
-    root.querySelectorAll('input.sx-valet-inp').forEach(inp=>{
-      inp.addEventListener('change', ()=>{
-        const c = loadCfg();
-        const hid = inp.dataset.hotel, sid = inp.dataset.shift;
-        c.currentValet[hid] = c.currentValet[hid] || {};
-        c.currentValet[hid][sid] = Math.max(0, +inp.value||0);
-        saveCfg(c);
-        renderStaffing();
+            <!-- Events on this day -->
+            ${hotelEvs.length ? `
+            <div class="sx-sec">📅 Events on ${dateISO}</div>
+            ${hotelEvs.map(e=>`
+              <div class="sx-ev-item">
+                <span class="sx-ev-prop">${e.prop||''}</span>
+                <span class="sx-ev-time">${e.start||''}–${e.end||''}</span>
+                <span class="sx-ev-title">${e.title||''}</span>
+                <span class="sx-ev-pax">${e.guests>0?e.guests+' pax':''}</span>
+              </div>`).join('')}` : ''}
+
+            <!-- VALET section -->
+            <div class="sx-sec">🅿 Valet — enter your rostered staff per shift</div>
+            <div style="overflow-x:auto">
+              <div class="sx-valet-grid">
+                <div class="sx-vg-head">Shift</div>
+                <div class="sx-vg-head">Arr</div>
+                <div class="sx-vg-head">Dep</div>
+                <div class="sx-vg-head">Events</div>
+                <div class="sx-vg-head">Guests</div>
+                <div class="sx-vg-head">Need</div>
+                <div class="sx-vg-head">Your Roster</div>
+                <div class="sx-vg-head">Extra Needed</div>
+                ${valetRows.map(x=>`
+                  <div class="sx-vg-cell shift-label" data-label="Shift"><b>${x.sh.label}</b><span>${x.sh.range}</span></div>
+                  <div class="sx-vg-cell" data-label="Arr">${x.arr}</div>
+                  <div class="sx-vg-cell" data-label="Dep">${x.dep}</div>
+                  <div class="sx-vg-cell" data-label="Events">${x.evCount}</div>
+                  <div class="sx-vg-cell" data-label="Guests">${x.evGuests||'—'}</div>
+                  <div class="sx-vg-cell" data-label="Need"><span class="sx-need">${x.need}</span></div>
+                  <div class="sx-vg-cell" data-label="Your Roster">
+                    <input class="sx-vg-inp valet-inp"
+                      data-hotel="${h.id}" data-date="${dateISO}" data-shift="${x.sh.id}"
+                      type="number" min="0" value="${x.have}" placeholder="0">
+                  </div>
+                  <div class="sx-vg-cell" data-label="Extra">${pill(x.extra, x.need)}</div>
+                `).join('')}
+              </div>
+            </div>
+            ${valetRows.some(x=>x.extra>0)?`
+              <div style="margin-top:8px">
+                ${valetRows.filter(x=>x.extra>0).map(x=>`
+                  <div class="sx-sug">🅿 <b>${x.sh.label}:</b> add <b>+${x.extra} valet</b>
+                    · ${x.arr} arr, ${x.dep} dep${x.evCount?`, ${x.evCount} event(s) · ${x.evGuests} pax`:''}</div>
+                `).join('')}
+              </div>` : `<div class="sx-sug ok" style="margin-top:8px">✅ Valet staffing looks covered for all shifts.</div>`}
+
+            <!-- HK section -->
+            <div class="sx-sec">🧹 Housekeeping — casuals needed (from roster)</div>
+            <div style="overflow-x:auto">
+              <div class="sx-hk-row">
+                <div class="sx-hk-head">Hotel / Day</div>
+                <div class="sx-hk-head">Arr+Dep</div>
+                <div class="sx-hk-head">Need</div>
+                <div class="sx-hk-head">In Roster</div>
+                <div class="sx-hk-head">Morning</div>
+                <div class="sx-hk-head">Extra Needed</div>
+                <div class="sx-hk-cell" style="font-weight:700;color:var(--navy)">${h.name}</div>
+                <div class="sx-hk-cell">${hkWorkload} rooms</div>
+                <div class="sx-hk-cell"><span class="sx-need">${hkNeed}</span></div>
+                <div class="sx-hk-cell">${hkHave}</div>
+                <div class="sx-hk-cell" style="font-size:10px;color:var(--slate)">${isYPH?'(all hotels)':hkRostered.morning+' M · '+hkRostered.afternoon+' A · '+hkRostered.night+' N'}</div>
+                <div class="sx-hk-cell">${pill(hkExtra, hkNeed)}</div>
+              </div>
+            </div>
+            ${hkExtra>0?`<div class="sx-sug" style="margin-top:8px">🧹 Add <b>+${hkExtra} HK casual(s)</b> · ${hkWorkload} rooms (arr+dep)${hotelEvs.length?` · ${hotelEvs.length} event(s) on site`:''}</div>`
+              :`<div class="sx-sug ok" style="margin-top:8px">✅ HK staffing covered${hkHave===0&&hkNeed>0?' (⚠️ check roster has HK staff entered)':''}</div>`}
+
+          </div>
+        </div>`;
+      }).join('');
+
+    // Bind valet input listeners — save to Firebase on change
+    root.querySelectorAll('.valet-inp').forEach(inp => {
+      inp.addEventListener('change', () => {
+        setValetEntry(inp.dataset.hotel, inp.dataset.date, inp.dataset.shift, inp.value);
+        // Re-render only the extra-needed pills without full re-render (for responsiveness)
+        renderHotelBlocks(loadCfg(), inp.dataset.date);
       });
     });
   }
@@ -10690,10 +10780,10 @@ function devExportScheduleJSON() {
     const dEl = document.getElementById('sxDate');
     if (!dEl) return;
     if (!dEl.value) dEl.value = new Date().toISOString().slice(0,10);
-    renderPropMap(cfg);
-    renderEventList(cfg, dEl.value);
     renderHotelBlocks(cfg, dEl.value);
   }
+  // Expose for Firebase sync callbacks
+  window.renderStaffingAddon = renderStaffing;
 
   function bindStaffing(){
     const cfg = loadCfg();
@@ -10701,21 +10791,18 @@ function devExportScheduleJSON() {
     if (!get('sxV1')) return;
     get('sxV1').value = cfg.valet.perArrDep;
     get('sxV2').value = cfg.valet.perEventGuests;
-    get('sxV3').value = cfg.valet.minPerShift;
     get('sxH1').value = cfg.hk.roomsPerAttendant;
-    get('sxH2').value = cfg.hk.eventCasualThreshold;
-    get('sxH3').value = cfg.hk.eventCasualPerThreshold;
     const onChg = ()=>{
       const c = loadCfg();
-      c.valet.perArrDep            = +get('sxV1').value||15;
-      c.valet.perEventGuests       = +get('sxV2').value||60;
-      c.valet.minPerShift          = +get('sxV3').value||0;
-      c.hk.roomsPerAttendant       = +get('sxH1').value||14;
-      c.hk.eventCasualThreshold    = +get('sxH2').value||100;
-      c.hk.eventCasualPerThreshold = +get('sxH3').value||1;
-      saveCfg(c); renderStaffing();
+      c.valet.perArrDep      = +get('sxV1').value||1;
+      c.valet.perEventGuests = +get('sxV2').value||1;
+      c.hk.roomsPerAttendant = +get('sxH1').value||1;
+      saveCfg(c);
+      // Sync config to Firebase too
+      if (typeof db!=='undefined' && db){ try{ db.ref('staffing_cfg_v1').set(c); }catch(e){} }
+      renderStaffing();
     };
-    ['sxV1','sxV2','sxV3','sxH1','sxH2','sxH3'].forEach(id => get(id).addEventListener('change', onChg));
+    ['sxV1','sxV2','sxH1'].forEach(id => { const el=get(id); if(el) el.addEventListener('change', onChg); });
     get('sxDate').addEventListener('change', renderStaffing);
     get('sxRecalc').addEventListener('click', renderStaffing);
     get('sxEvFile').addEventListener('change', onEventsPdf);
