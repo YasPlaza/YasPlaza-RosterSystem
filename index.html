@@ -9006,7 +9006,7 @@ function devExportScheduleJSON() {
   function fmtDate(d){
     const dt = (d instanceof Date) ? d : new Date(d);
     if (isNaN(dt)) return String(d||'');
-    return dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+    return dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'UTC'});
   }
   function parseDateCell(v){
     if (v==null||v==='') return null;
@@ -9146,6 +9146,8 @@ function devExportScheduleJSON() {
 
         merged.sort((a,b)=> a.hotel.localeCompare(b.hotel) || a.date.localeCompare(b.date));
         saveFC(merged); renderForecast();
+        try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
+        if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
         if (typeof renderLiveDashboard === 'function') renderLiveDashboard();
         alert('✅ Done. '+out.length+' rows imported · total now '+merged.length+
               ' rows across '+new Set(merged.map(r=>r.hotel)).size+' hotel(s).'+
@@ -9218,7 +9220,10 @@ function devExportScheduleJSON() {
 
   // ─── Build next-10 days for one hotel ───
   function getNext10(hotelId, allData){
-    const today = new Date(); today.setHours(0,0,0,0);
+    const nowAD2 = new Date(new Date().getTime() + 4*3600000);
+    const todayStr2 = nowAD2.toISOString().slice(0,10);
+    const [ty2,tm2,td2] = todayStr2.split('-').map(Number);
+    const today = new Date(Date.UTC(ty2,tm2-1,td2));
     const out = [];
     for (let i=0;i<10;i++){
       const d = new Date(today.getTime()+i*86400000);
@@ -9258,7 +9263,10 @@ function devExportScheduleJSON() {
       const allData = loadFC();
       const subHotels = hotelDefs().filter(x => x.id !== 'yph');
       // Build combined 10-day rows
-      const today = new Date(); today.setHours(0,0,0,0);
+      const nowAD3 = new Date(new Date().getTime() + 4*3600000);
+      const todayStr3 = nowAD3.toISOString().slice(0,10);
+      const [ty3,tm3,td3] = todayStr3.split('-').map(Number);
+      const today = new Date(Date.UTC(ty3,tm3-1,td3));
       const combinedRows = [];
       for (let i = 0; i < 10; i++) {
         const d = new Date(today.getTime() + i * 86400000);
@@ -9479,8 +9487,10 @@ function devExportScheduleJSON() {
     return TOTAL_YPH_ROOMS;
   }
   function fmtDay(ds){
-    const d = new Date(ds);
-    return isNaN(d) ? ds : d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
+    // Parse as UTC to avoid timezone shifting (GMT+4 Abu Dhabi)
+    const [y,m,d] = ds.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m-1, d));
+    return isNaN(dt) ? ds : dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'UTC'});
   }
   function dayKey(d){ return d.toISOString().slice(0,10); }
 
@@ -9491,7 +9501,11 @@ function devExportScheduleJSON() {
     const hf = sel ? sel.value : 'all';
     const filtered = (!hf||hf==='all') ? data : data.filter(r => r.hotel===hf);
 
-    const today = new Date(); today.setHours(0,0,0,0);
+    // Use UTC date that matches Abu Dhabi (GMT+4) calendar date
+    const nowAD = new Date(new Date().getTime() + 4*3600000);
+    const todayStr = nowAD.toISOString().slice(0,10);
+    const [ty,tm,td] = todayStr.split('-').map(Number);
+    const today = new Date(Date.UTC(ty,tm-1,td));
     const out = [];
     for (let i=0;i<days;i++){
       const d = new Date(today.getTime()+i*86400000);
@@ -10227,11 +10241,17 @@ function devExportScheduleJSON() {
       const dt = new Date(Date.UTC(yyyy, mo-1, dd));
       if (isNaN(dt)) return;
       const key = hotel + '|' + dt.toISOString().slice(0,10);
-      // Overwrite only if we now have dep > 0 or no existing entry
-      const existing = out.find(r => r.hotel===hotel && r.date===dt.toISOString().slice(0,10));
-      if (existing) {
-        if (dep > 0 && existing.dep === 0) existing.dep = +dep;
-        if (rev > 0 && !existing.rev) existing.rev = rev;
+      const dateKey = dt.toISOString().slice(0,10);
+      const existIdx = out.findIndex(r => r.hotel===hotel && r.date===dateKey);
+      if (existIdx >= 0) {
+        const ex = out[existIdx];
+        // Always update with better data: prefer the row with higher arr (more complete)
+        if (+arr > ex.arr || (+dep > 0 && ex.dep === 0)) {
+          out[existIdx] = { hotel, date: dateKey, occ: +occ, arr: +arr, dep: +dep, rev: rev||ex.rev, notes: 'PDF · Total Occ ' + totalOcc };
+        } else {
+          if (dep > 0 && ex.dep === 0) ex.dep = +dep;
+          if (rev > 0 && !ex.rev) ex.rev = rev;
+        }
         return;
       }
       out.push({
@@ -10286,14 +10306,14 @@ function devExportScheduleJSON() {
         // tail = "Doorcard FuncRoom EXP [GTD] [ACT] Setup..."
         const nums = (tail.match(/(?<![\w.])\d{1,4}(?![\w.])/g) || []).map(Number);
         const guests = nums.length ? Math.max(...nums) : 0;
-        // Outside Catering events are held off-site — exclude from valet calculation
-        const isOutsideCatering = /outside\s*catering/i.test(tail) || /outside\s*catering/i.test(title);
+        // Off-site events — exclude from valet count
+        const isOC = /outside\s*catering/i.test(tail) || /outside\s*catering/i.test(title);
         out.push({
           date: currentDate, prop,
           hotel: propMap[prop] || null,
           title: title.trim(), evid, status,
           start, end, guests,
-          outsideCatering: isOutsideCatering
+          outsideCatering: isOC
         });
       }
     }));
@@ -10422,7 +10442,7 @@ function devExportScheduleJSON() {
             📊 Import Forecast PDF
             <input type="file" id="sxFcFileStaff" accept=".pdf" style="display:none">
           </label>
-          <button class="btn btn-sm" id="sxEvClear" style="background:#FFF0F0;color:#B71C1C;border:1.5px solid #FFCDD2;font-weight:700">🗑 Clear Events</button>
+          <button class="btn btn-sm" id="sxEvClear" title="Clear all imported events and upload a new file" style="background:#FFF0F0;color:#B71C1C;border:1.5px solid #FFCDD2;font-weight:700">🗑 Clear Events</button>
           <button class="btn btn-gold btn-sm" id="sxRecalc">🔄 Recalc</button>
           <span id="sxStatus" style="font-size:11px;color:var(--slate)"></span>
         </div>
@@ -10488,12 +10508,15 @@ function devExportScheduleJSON() {
       );
       if (!choice){ evt.target.value=''; return; }
       const merged = fcMergeImport(rows);
-      // Auto-set the staffing date picker to the earliest date found in this PDF
-      const dates = rows.map(r=>r.date).filter(Boolean).sort();
-      if (dates.length){
+      // Auto-set the staffing date picker to the earliest date from this PDF
+      const importedDates = rows.map(r=>r.date).filter(Boolean).sort();
+      if (importedDates.length){
         const dEl = document.getElementById('sxDate');
-        if (dEl) { dEl.value = dates[0]; }
+        if (dEl){ dEl.value = importedDates[0]; }
       }
+      // Stamp the import time for expiry tracking
+      try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
+      if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
       alert('✅ Imported '+rows.length+' rows from PDF.\nTotal now: '+merged.length+' rows.');
     }catch(err){ console.error(err); alert('PDF import failed: '+err.message); }
     evt.target.value='';
@@ -10510,6 +10533,8 @@ function devExportScheduleJSON() {
         alert('Could not read any events from this PDF.'); evt.target.value=''; return;
       }
       saveEvents(events);
+      try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
+      if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
       document.getElementById('sxStatus').textContent =
         '✅ '+events.length+' events imported across '+
         new Set(events.map(e=>e.date)).size+' day(s).';
@@ -10575,7 +10600,7 @@ function devExportScheduleJSON() {
   // ─────────────────────────────────────────────────────────────────
   function eventsInShift(evs, shift){
     return evs.filter(e=>{
-      if (e.outsideCatering) return false; // Off-site — no valet needed
+      if (e.outsideCatering) return false; // Off-site — no valet required
       const h = parseInt((e.start||'0:0').split(':')[0],10);
       if (shift.id==='night') return h>=22 || h<6;
       return h>=shift.from && h<shift.to;
@@ -10719,7 +10744,7 @@ function devExportScheduleJSON() {
       const hkWorkload = (fRow.dep||0) + (fRow.arr||0);
       const hkNeed     = Math.ceil(hkWorkload / Math.max(1, cfg.hk.roomsPerAttendant));
       const hkExtra    = Math.max(0, hkNeed - hkRostered);
-      // Outside Catering events are off-site — show them but exclude from valet pax
+      // Exclude Outside Catering from valet pax (off-site events)
       const valetEvs = hotelEvs.filter(e=>!e.outsideCatering);
       const totalEvGuests = valetEvs.reduce((s,e)=>s+(e.guests||0),0);
 
@@ -10759,7 +10784,7 @@ function devExportScheduleJSON() {
               <span class="sx-ev-time">${e.start||''}–${e.end||''}</span>
               <span class="sx-ev-title">${e.title||''}</span>
               <span class="sx-ev-pax">${e.guests>0?e.guests+' pax':''}</span>
-              ${e.outsideCatering?'<span style="font-size:9px;background:#FFF3E0;color:#E65C00;padding:1px 5px;border-radius:99px;font-weight:700;margin-left:4px">Off-site · no valet</span>':''}
+              ${e.outsideCatering?'<span style="font-size:9px;background:#FFF3E0;color:#E65C00;padding:1px 5px;border-radius:99px;font-weight:700;flex-shrink:0">Off-site · no valet</span>':''}
             </div>`).join('')}` : ''}
 
           <!-- VALET -->
@@ -10923,6 +10948,107 @@ function devExportScheduleJSON() {
     setTimeout(boot, 400);
   }
   window.addEventListener('load', ()=> { setTimeout(boot, 800); setTimeout(boot, 1800); });
+})();
+</script>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// FORECAST & EVENTS AUTO-EXPIRY + UPDATE REQUEST BANNER
+// Forecasts and events auto-clear after 12 hours.
+// A persistent banner warns the team 30 min before and after expiry.
+// ════════════════════════════════════════════════════════════════
+(function(){
+  const FC_KEY   = 'yph_forecast_v2';
+  const EVT_KEY  = 'yph_events_v1';
+  const TS_KEY   = 'yph_fc_import_ts';
+  const EXPIRY_MS = 12 * 60 * 60 * 1000;   // 12 hours
+  const WARN_MS   = 30 * 60 * 1000;         // warn 30 min before
+
+  function getImportAge(){
+    try{
+      const ts = parseInt(localStorage.getItem(TS_KEY)||'0',10);
+      if (!ts) return null;
+      return Date.now() - ts;
+    }catch(e){ return null; }
+  }
+
+  function clearExpiredData(){
+    try{ localStorage.removeItem(FC_KEY); }catch(e){}
+    try{ localStorage.removeItem(EVT_KEY); }catch(e){}
+    try{ localStorage.removeItem(TS_KEY); }catch(e){}
+    if (typeof renderForecast==='function') try{ renderForecast(); }catch(e){}
+    if (typeof renderLiveDashboard==='function') try{ renderLiveDashboard(); }catch(e){}
+    if (typeof window.renderStaffingAddon==='function') try{ window.renderStaffingAddon(); }catch(e){}
+  }
+
+  function minutesLeft(ageMs){
+    return Math.max(0, Math.round((EXPIRY_MS - ageMs) / 60000));
+  }
+
+  function ensureBanner(){
+    let bar = document.getElementById('fcExpiryBar');
+    if (!bar){
+      bar = document.createElement('div');
+      bar.id = 'fcExpiryBar';
+      bar.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:9990;padding:0;display:none;';
+      document.body.appendChild(bar);
+    }
+    return bar;
+  }
+
+  function renderBanner(state, minLeft){
+    const bar = ensureBanner();
+    if (state === 'ok'){ bar.style.display='none'; return; }
+    const isExpired = state==='expired';
+    const bg    = isExpired ? '#B71C1C' : '#E65C00';
+    const icon  = isExpired ? '\u{1F534}' : '\u26A0\uFE0F';
+    const title = isExpired ? 'FORECAST EXPIRED — Data has been cleared'
+                            : 'FORECAST EXPIRING in ' + minLeft + ' min';
+    const msg   = isExpired
+      ? 'The 12-hour data window has passed. Upload a new Forecast PDF and Events PDF to keep staffing accurate.'
+      : 'Forecast data expires in <b>' + minLeft + ' minutes</b>. Ask revenue to export and upload a fresh report.';
+    bar.style.display = 'block';
+    bar.innerHTML =
+      '<div style="background:' + bg + ';color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(0,0,0,.3)">' +
+        '<span style="font-size:18px">' + icon + '</span>' +
+        '<div style="flex:1;min-width:200px">' +
+          '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:13px">' + title + '</div>' +
+          '<div style="font-size:11px;opacity:.9;margin-top:2px">' + msg + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">' +
+          '<button onclick="var el=document.getElementById(\'sxFcFileStaff\')||document.getElementById(\'sxFcFile\');if(el)el.click();" ' +
+            'style="background:#fff;color:' + bg + ';border:none;border-radius:8px;padding:8px 16px;font-weight:800;font-size:12px;cursor:pointer">' +
+            '\uD83D\uDCCA Upload New Forecast' +
+          '</button>' +
+          '<button onclick="var el2=document.getElementById(\'sxEvFile\');if(el2)el2.click();" ' +
+            'style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer">' +
+            '\uD83D\uDCC5 Upload New Events' +
+          '</button>' +
+          (isExpired ? '' : '<button onclick="document.getElementById(\'fcExpiryBar\').style.display=\'none\';" style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:11px;cursor:pointer">Dismiss</button>') +
+        '</div>' +
+        '<div style="font-size:10px;opacity:.65;white-space:nowrap">' +
+          (isExpired ? 'Data cleared' : 'Auto-clears in ' + minLeft + ' min') +
+        '</div>' +
+      '</div>';
+  }
+
+    function tick(){
+    const age = getImportAge();
+    if (age === null){ renderBanner('ok',0); return; }
+    if (age >= EXPIRY_MS){ renderBanner('expired',0); clearExpiredData(); return; }
+    if (age >= EXPIRY_MS - WARN_MS){ renderBanner('expiring', minutesLeft(age)); }
+    else { renderBanner('ok',0); }
+  }
+
+  function init(){ tick(); setInterval(tick, 60000); }
+
+  if (document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(init,800); });
+  } else {
+    setTimeout(init, 800);
+  }
+  window.addEventListener('load', function(){ setTimeout(tick,1200); });
+  window.fcExpiryTick = tick;
 })();
 </script>
 </body>
