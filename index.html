@@ -747,7 +747,15 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   pointer-events: none;
 }
 
-/* ════ HANDOVER ════ */
+/* ════ FORECAST BOOK LAYOUT ════ */
+#page-forecast.active{display:flex;flex-direction:column;overflow:hidden;padding:0;height:calc(100vh - 56px)}
+.fc-book-tab{padding:10px 18px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);cursor:pointer;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap;user-select:none}
+.fc-book-tab:hover{color:rgba(255,255,255,.85)}
+.fc-book-tab.fct-active{color:var(--gold2);border-bottom-color:var(--gold2);background:rgba(201,150,58,.08)}
+.fc-book-panel{display:none}
+.fc-book-panel.fcp-active{display:block}
+
+/* ════ DEV PANEL BOOK LAYOUT ════ */
 .ho-card{background:#fff;border:1.5px solid var(--ice);border-radius:var(--r);padding:16px;margin-bottom:10px;transition:.2s;box-shadow:var(--sh)}
 .ho-card:hover{border-color:var(--gold);box-shadow:0 4px 20px rgba(201,150,58,.12)}
 .ho-card-dark{background:rgba(255,255,255,.04);border:1.5px solid rgba(255,255,255,.1);border-radius:12px;padding:14px;margin-bottom:10px}
@@ -1611,11 +1619,13 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
 
   <!-- ══ FORECAST PAGE ══ -->
-  <div class="page" id="page-forecast" style="padding:18px 22px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:14px">
+  <div class="page" id="page-forecast">
+
+    <!-- TOP BAR -->
+    <div id="fc-topbar" style="flex-shrink:0;padding:12px 18px;background:var(--ice2);border-bottom:1.5px solid var(--ice);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
-        <div style="font-size:11px;color:var(--slate);margin-top:3px">Per-hotel occupancy, arrivals & departures. Upload Excel/CSV with columns: <b>Hotel, Date, Occupancy %, Arrivals, Departures, Notes</b>.</div>
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
+        <div style="font-size:11px;color:var(--slate);margin-top:2px">Upload Excel/CSV: <b>Hotel, Date, Occupancy %, Arrivals, Departures, Notes</b></div>
       </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <label class="btn btn-primary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
@@ -1628,27 +1638,41 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       </div>
     </div>
 
-    <!-- Global KPI Cards (across selected hotels) -->
-    <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px"></div>
-
-    <!-- Suggestions Alert Banner -->
-    <div id="fcSuggestionsBox" style="margin-bottom:14px"></div>
-
-    <!-- Per-hotel sections (Occupancy + Arrivals + Departures each) -->
-    <div id="fcHotelSections" style="display:flex;flex-direction:column;gap:14px;margin-bottom:14px"></div>
-
-    <!-- Department Recommendations -->
-    <div class="card" style="background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:18px">
-      <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">💡 Smart Staffing Recommendations</div>
-      <div id="fcRecsBox"></div>
+    <!-- KPI BAR -->
+    <div style="flex-shrink:0;padding:10px 18px;background:#fff;border-bottom:1px solid var(--ice)">
+      <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px"></div>
     </div>
+
+    <!-- BOOK TABS -->
+    <div id="fc-book-tabs" style="flex-shrink:0;display:flex;background:var(--navy);border-bottom:2px solid var(--gold);overflow-x:auto">
+      <div class="fc-book-tab fct-active" id="fctab-alerts" onclick="fcBookTab('alerts')">⚠️ Alerts</div>
+      <div class="fc-book-tab" id="fctab-hotels" onclick="fcBookTab('hotels')">🏨 Hotels</div>
+      <div class="fc-book-tab" id="fctab-recs" onclick="fcBookTab('recs')">💡 Recommendations</div>
+    </div>
+
+    <!-- BOOK BODY (scrolls internally) -->
+    <div id="fc-book-body" style="flex:1;overflow-y:auto;overflow-x:hidden;background:var(--ice2)">
+      <div class="fc-book-panel fcp-active" id="fcpanel-alerts" style="padding:16px 18px">
+        <div id="fcSuggestionsBox"></div>
+      </div>
+      <div class="fc-book-panel" id="fcpanel-hotels" style="padding:16px 18px">
+        <div id="fcHotelSections" style="display:flex;flex-direction:column;gap:14px"></div>
+      </div>
+      <div class="fc-book-panel" id="fcpanel-recs" style="padding:16px 18px">
+        <div class="card" style="background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh)">
+          <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">💡 Smart Staffing Recommendations</div>
+          <div id="fcRecsBox"></div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
 
 <div class="page" id="page-settings">
 <style>
 #page-settings{padding:0}
-#page-settings.active{padding:0;height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden}
+#page-settings.active{padding:0;height:calc(100vh - 56px);display:flex !important;flex-direction:column;overflow:hidden}
 #cp-outer{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 14px 0}
 #cp-topbar-area{flex-shrink:0}
 .cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;overflow:hidden;min-height:0;padding-bottom:14px}
@@ -8839,49 +8863,7 @@ function cpAutoLoadUAEHolidays() {
   cpToast(count > 0 ? `✅ ${count} UAE holiday(s) marked in roster` : '⚠️ No UAE holidays in current month');
 }
 
-// Inject UAE Holidays tab into control panel
-(function injectHolidaysTab(){
-  const tryInject = () => {
-    const cpNav = document.querySelector('.cp-nav');
-    const cpBody = document.querySelector('.cp-body');
-    if (!cpNav || !cpBody || document.getElementById('cpHolidayTab')) return;
-    // Add nav item
-    const navItem = document.createElement('div');
-    navItem.className = 'cp-nav-item';
-    navItem.onclick = function() { cpTab('holidays'); };
-    navItem.setAttribute('onclick', "cpTab('holidays')");
-    navItem.textContent = '🇦🇪 Holidays';
-    cpNav.appendChild(navItem);
-    // Add tab content
-    const tab = document.createElement('div');
-    tab.id = 'cpt-holidays';
-    tab.style.display = 'none';
-    tab.innerHTML = `
-      <div class="cp-stitle">🇦🇪 UAE Public Holidays Management</div>
-      <div class="cp-infobox">Manage UAE public holidays. Use "Mark in Roster" to automatically block them in the current month's roster view.</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
-        <div><label class="cp-lbl2">Date</label><input class="cp-inp2" type="date" id="cpHolDate"></div>
-        <div><label class="cp-lbl2">Holiday Name</label><input class="cp-inp2" id="cpHolName" placeholder="e.g. Eid Al Fitr"></div>
-        <button class="bgold" onclick="cpAddHoliday()" style="white-space:nowrap">+ Add Holiday</button>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="bx bxg" onclick="cpAutoLoadUAEHolidays()">🇦🇪 Mark Holidays in Current Month Roster</button>
-        <button class="bx bxn" onclick="cpRenderHolidays()">🔄 Refresh</button>
-      </div>
-      <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>`;
-    cpBody.appendChild(tab);
-    // Hook into cpTab
-    const _origCpTab = window.cpTab;
-    if (_origCpTab) {
-      window.cpTab = function(id) {
-        _origCpTab(id);
-        document.getElementById('cpt-holidays').style.display = (id === 'holidays') ? 'block' : 'none';
-        if (id === 'holidays') cpRenderHolidays();
-      };
-    }
-  };
-  setInterval(tryInject, 1500);
-})();
+// UAE Holidays tab is mounted by mountAll() — duplicate injector removed.
 
 // ════════════════════════════════════════════════
 // DEVELOPER: THEME SYSTEM — AUTO UAE EVENT THEMES
@@ -9436,7 +9418,7 @@ function devExportScheduleJSON() {
     tries++;
     if (mountAll() || tries > 40) clearInterval(iv);
   }, 500);
-  document.addEventListener('click', function(){ mountAll(); }, true);
+  // mountAll handled by interval above — click listener removed to prevent re-injection
 
   // ---------- 3. Lock LIVE dept filter to user's department ----------
   const _origOpenLive = typeof openLiveDashForEmployee === 'function' ? openLiveDashForEmployee : null;
@@ -11652,6 +11634,15 @@ function cpRenderPassStrength(val){
   if(typeof secRenderStrengthBar !== 'undefined'){
     secRenderStrengthBar('cpPassStrengthBar', val);
   }
+}
+// ── Forecast book tab switcher ──
+function fcBookTab(name){
+  document.querySelectorAll('.fc-book-tab').forEach(t=>t.classList.remove('fct-active'));
+  document.querySelectorAll('.fc-book-panel').forEach(p=>p.classList.remove('fcp-active'));
+  const tab=document.getElementById('fctab-'+name);
+  const panel=document.getElementById('fcpanel-'+name);
+  if(tab) tab.classList.add('fct-active');
+  if(panel) panel.classList.add('fcp-active');
 }
 </script>
 </body>
