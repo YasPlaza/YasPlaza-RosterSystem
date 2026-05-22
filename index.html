@@ -10343,7 +10343,7 @@ function devExportScheduleJSON() {
 
       <div class="sx-card">
         <div class="sx-ct">⚙️ Staffing rules</div>
-        <div style="background:#EDE9FE;border-left:3px solid #7C3AED;border-radius:8px;padding:8px 12px;font-size:11px;color:#5B21B6;margin-bottom:12px">📋 <b>Roster-linked:</b> "Rostered" counts are read live from the roster for each date. "Extra Needed" = Required − Rostered. Add casuals when this is &gt; 0.</div>
+        <div style="background:#EDE9FE;border-left:3px solid #7C3AED;border-radius:8px;padding:8px 12px;font-size:11px;color:#5B21B6;margin-bottom:12px">📋 <b>Valet:</b> "Rostered" is a manual count you enter per hotel per shift. <b>Housekeeping:</b> "Rostered" is read live from the HK roster. Both use forecast (arr+dep, occupancy) + events to compute "Need" and suggest "Extra".</div>
         <div class="sx-cfg-grid">
           <label>Valet · 1 per (arrivals+departures)<input type="number" id="sxV1" min="1"></label>
           <label>Valet · 1 per (event guests)<input type="number" id="sxV2" min="1"></label>
@@ -10566,26 +10566,22 @@ function devExportScheduleJSON() {
     const fc = fcLoad();
     const evs = loadEvents();
 
-    // Sub-hotel IDs (everything except 'all' and 'yph')
     const subIds = hs.filter(h => h.id !== 'yph').map(h => h.id);
 
     root.innerHTML = hs.map(h=>{
-      let recs, hk, fRow;
+      let recs, hk, fRow, hotelEvs;
 
       if (h.id === 'yph') {
-        // YPH = cluster: aggregate all sub-hotels
         const aggArr = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.arr||0); }, 0);
         const aggDep = subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.dep||0); }, 0);
         const aggOcc = subIds.length ? Math.round(subIds.reduce((s,id)=>{ const r=fc.find(r=>r.hotel===id&&r.date===dateISO)||{}; return s+(+r.occ||0); }, 0) / subIds.length) : 0;
         fRow = { arr: aggArr, dep: aggDep, occ: aggOcc };
-
-        // Aggregate events across all sub-hotels
-        const allEvs = evs.filter(e => e.date === dateISO); // all hotels
+        hotelEvs = evs.filter(e => e.date === dateISO);
         const cur = cfg.currentValet[h.id] || {};
         recs = SHIFTS.map(sh=>{
           const arr = Math.round(aggArr * ARR_SPLIT[sh.id]);
           const dep = Math.round(aggDep * DEP_SPLIT[sh.id]);
-          const evShift = allEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
+          const evShift = hotelEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
           const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
           const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
           const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
@@ -10595,27 +10591,47 @@ function devExportScheduleJSON() {
         });
         const workload = aggDep + aggArr;
         const need = Math.ceil(workload / Math.max(1, cfg.hk.roomsPerAttendant));
-        const have = +cfg.currentHK[h.id]||0;
-        const allEvGuests = allEvs.reduce((s,e)=>s+(e.guests||0),0);
-        hk = { workload, evGuests: allEvGuests, evCount: allEvs.length, need, have, extra: Math.max(0, need-have) };
+        const rostered = rosterCountForDate(h.id, dateISO, 'Housekeeping');
+        const have = rostered.morning + rostered.afternoon + rostered.night;
+        const allEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
+        hk = { workload, evGuests: allEvGuests, evCount: hotelEvs.length, need, have, extra: Math.max(0, need-have) };
       } else {
-        recs = shiftRecommendation(h.id, dateISO, cfg, fc, evs);
-        hk   = hkRecommendation(h.id, dateISO, cfg, fc, evs);
+        hotelEvs = evs.filter(e=>e.hotel===h.id && e.date===dateISO);
         fRow = fc.find(r=>r.hotel===h.id && r.date===dateISO) || {arr:0,dep:0,occ:0};
+        // VALET — manual rostered from cfg.currentValet[hotelId][shiftId]
+        const cur = cfg.currentValet[h.id] || {};
+        recs = SHIFTS.map(sh=>{
+          const arr = Math.round((fRow.arr||0)*ARR_SPLIT[sh.id]);
+          const dep = Math.round((fRow.dep||0)*DEP_SPLIT[sh.id]);
+          const evShift = eventsInShift(hotelEvs, sh);
+          const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
+          const base = Math.ceil((arr+dep)/Math.max(1,cfg.valet.perArrDep));
+          const evAdd = Math.ceil(evGuests/Math.max(1,cfg.valet.perEventGuests));
+          const need = Math.max(cfg.valet.minPerShift||0, base+evAdd);
+          const have = +cur[sh.id]||0;
+          return { shift:sh, arr, dep, evGuests, evCount:evShift.length, need, have, extra: Math.max(0, need-have) };
+        });
+        // HK — rostered from actual HK roster, need from forecast arr+dep
+        hk = hkRecommendation(h.id, dateISO, cfg, fc, evs);
       }
 
+      const evTotalGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
       const pill = (x)=> x.extra>0 ? `<span class="sx-pill sx-warn">+${x.extra} needed</span>` : `<span class="sx-pill sx-ok">covered</span>`;
+
       return `
       <div class="sx-card">
         <div class="sx-hotel-hdr"><span class="sx-hotel-dot" style="background:${h.color}"></span>${h.name}${h.id==='yph'?' <span style="font-size:10px;background:#EDE7F6;color:#5B21B6;padding:2px 7px;border-radius:99px;font-weight:700">CLUSTER · ALL HOTELS</span>':''}
-          <span style="font-size:11px;font-weight:500;color:var(--slate);margin-left:auto">
-            Occ ${fRow.occ||0}% · Arr ${fRow.arr||0} · Dep ${fRow.dep||0}
+          <span style="font-size:11px;font-weight:500;color:var(--slate);margin-left:auto;display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <span title="From Forecast PDF">📊 Occ <b style="color:var(--navy)">${fRow.occ||0}%</b></span>
+            <span title="From Forecast PDF">🛬 Arr <b style="color:var(--navy)">${fRow.arr||0}</b></span>
+            <span title="From Forecast PDF">🛫 Dep <b style="color:var(--navy)">${fRow.dep||0}</b></span>
+            <span title="From Event List PDF" style="padding-left:8px;border-left:1px solid #d3dbe8">🎉 Events <b style="color:var(--navy)">${hotelEvs.length}</b> · ${evTotalGuests} pax</span>
           </span>
         </div>
 
-        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 4px">🅿 Valet per shift</div>
+        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:8px 0 4px">🅿 Valet per shift <span style="text-transform:none;font-weight:500;color:var(--gold)">· type your scheduled valet count in each "Rostered" cell — extras are auto-suggested from forecast + events</span></div>
         <table class="sx-tbl">
-          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Rostered</th><th>Extra Needed</th></tr></thead>
+          <thead><tr><th>Shift</th><th>Arr</th><th>Dep</th><th>Events</th><th>Guests</th><th>Need</th><th>Rostered (manual)</th><th>Extra Needed</th></tr></thead>
           <tbody>
             ${recs.map(x=>`
               <tr>
@@ -10625,21 +10641,21 @@ function devExportScheduleJSON() {
                 <td>${x.evCount}</td>
                 <td>${x.evGuests}</td>
                 <td><b style="color:var(--navy)">${x.need}</b></td>
-                <td><b style="font-family:'DM Mono',monospace;font-size:13px">${x.have}</b><span style="font-size:9px;color:var(--slate);display:block">from roster</span></td>
+                <td><input type="number" min="0" class="sx-inp sx-valet-inp" data-hotel="${h.id}" data-shift="${x.shift.id}" value="${x.have}"></td>
                 <td>${pill(x)}</td>
               </tr>`).join('')}
           </tbody>
         </table>
 
-        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals (full day · forecast only)</div>
+        <div style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin:14px 0 4px">🧹 Housekeeping casuals <span style="text-transform:none;font-weight:500;color:var(--slate)">· rostered count is read live from the HK roster; need = (arrivals + departures) ÷ rooms-per-attendant</span></div>
         <table class="sx-tbl">
-          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Rostered</th><th>Extra Needed</th></tr></thead>
+          <thead><tr><th>Arr+Dep workload</th><th>Events today (info)</th><th>Need</th><th>Rostered (from HK roster)</th><th>Extra Needed</th></tr></thead>
           <tbody>
             <tr>
               <td>${hk.workload} rooms</td>
               <td>${hk.evCount ? hk.evCount+' event(s), '+hk.evGuests+' pax' : '—'}</td>
               <td><b style="color:var(--navy)">${hk.need}</b></td>
-              <td><b style="font-family:'DM Mono',monospace;font-size:13px">${hk.have}</b><span style="font-size:9px;color:var(--slate);display:block">from roster</span></td>
+              <td><b style="font-family:'DM Mono',monospace;font-size:13px">${hk.have}</b><span style="font-size:9px;color:var(--slate);display:block">live from roster</span></td>
               <td>${pill(hk)}</td>
             </tr>
           </tbody>
@@ -10651,12 +10667,22 @@ function devExportScheduleJSON() {
               <div class="sx-rec add">
                 <div>🅿 <b>${r.shift.label}</b> shift: add <b>+${r.extra} valet</b> · arrivals ${r.arr}, departures ${r.dep}${r.evCount?`, ${r.evCount} event(s) (${r.evGuests} pax)`:''}</div>
               </div>`).join('')}
-            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ${hk.workload} rooms (arr+dep forecast)${hk.evCount?` · ${hk.evCount} event(s) on-site (${hk.evGuests} pax, info only)`:''}</div>`:''}
+            ${hk.extra>0 ? `<div class="sx-rec add">🧹 Housekeeping: add <b>+${hk.extra} casual(s)</b> · ${hk.workload} rooms (arrivals ${fRow.arr||0} + departures ${fRow.dep||0})${hk.evCount?` · ${hk.evCount} event(s) on-site (${hk.evGuests} pax, info only)`:''}</div>`:''}
           </div>` : '<div class="sx-rec okrec">✅ Staffing is sufficient for this day.</div>'}
       </div>`;
     }).join('');
 
-    // Roster counts are read-only — no manual input listeners needed
+    // Bind manual valet inputs
+    root.querySelectorAll('input.sx-valet-inp').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        const c = loadCfg();
+        const hid = inp.dataset.hotel, sid = inp.dataset.shift;
+        c.currentValet[hid] = c.currentValet[hid] || {};
+        c.currentValet[hid][sid] = Math.max(0, +inp.value||0);
+        saveCfg(c);
+        renderStaffing();
+      });
+    });
   }
 
   function renderStaffing(){
