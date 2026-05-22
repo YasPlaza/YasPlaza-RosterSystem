@@ -30,6 +30,188 @@
   --sh:0 4px 24px rgba(15,30,53,.1);
   --sh-lg:0 16px 56px rgba(15,30,53,.18);
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ENHANCED ROSTER INPUT — Tab navigation, live validation, avatar
+// ═══════════════════════════════════════════════════════════════
+let _empCurrentTab = 1;
+const EMP_TABS = 4;
+
+function empSwitchTab(n, skipValidation) {
+  // Validate current tab before moving forward (unless forced)
+  if (!skipValidation && n > _empCurrentTab) {
+    if (!empValidateCurrentTab()) return;
+  }
+  _empCurrentTab = n;
+  for (let i = 1; i <= EMP_TABS; i++) {
+    const panel = document.getElementById('empPanel' + i);
+    const tab   = document.getElementById('empTab'   + i);
+    const dot   = document.getElementById('empDot'   + i);
+    if (panel) panel.classList.toggle('active', i === n);
+    if (tab)   tab.classList.toggle('emp-tab-active', i === n);
+    if (dot)   dot.classList.toggle('emp-dot-active', i === n);
+  }
+  const prev = document.getElementById('empBtnPrev');
+  const next = document.getElementById('empBtnNext');
+  const saveMore = document.getElementById('empBtnSaveMore');
+  const save = document.getElementById('empBtnSave');
+  const sub = document.getElementById('empFormSubtitle');
+  if (prev) prev.style.display = n > 1 ? '' : 'none';
+  if (next) next.style.display = n < EMP_TABS ? '' : 'none';
+  if (saveMore) saveMore.style.display = n === EMP_TABS ? '' : 'none';
+  if (save)     save.style.display     = n === EMP_TABS ? '' : 'none';
+  if (sub) {
+    const labels = ['', 'Basic identity information', 'Department & hotel assignment', 'Shift & schedule settings', 'Leave balance & additional notes'];
+    sub.textContent = 'Step ' + n + ' of ' + EMP_TABS + ' — ' + labels[n];
+  }
+  const errEl = document.getElementById('empFormErr');
+  if (errEl) errEl.textContent = '';
+  // Refresh shift preview on tab 3
+  if (n === 3) empUpdateShiftPreview();
+  // Refresh AL remaining on tab 4
+  if (n === 4) empUpdateALRemaining();
+}
+
+function empNextTab() {
+  if (_empCurrentTab < EMP_TABS) empSwitchTab(_empCurrentTab + 1);
+}
+function empPrevTab() {
+  if (_empCurrentTab > 1) empSwitchTab(_empCurrentTab - 1, true);
+}
+
+function empValidateCurrentTab() {
+  const errEl = document.getElementById('empFormErr');
+  if (_empCurrentTab === 1) {
+    const name = (document.getElementById('f-name')?.value || '').trim();
+    const id   = (document.getElementById('f-id')?.value   || '').trim();
+    if (!name) {
+      if (errEl) errEl.textContent = '⚠️ Full name is required.';
+      document.getElementById('f-name')?.classList.add('inp-err');
+      document.getElementById('f-name')?.focus();
+      return false;
+    }
+    if (!id) {
+      if (errEl) errEl.textContent = '⚠️ Employee ID is required.';
+      document.getElementById('f-id')?.classList.add('inp-err');
+      document.getElementById('f-id')?.focus();
+      return false;
+    }
+  }
+  if (_empCurrentTab === 2) {
+    const hotel = (document.getElementById('f-hotel')?.value || '').trim();
+    if (!hotel || hotel === 'all') {
+      if (errEl) errEl.textContent = '⚠️ Please select a specific hotel.';
+      document.getElementById('f-hotel')?.classList.add('inp-err');
+      return false;
+    }
+  }
+  if (errEl) errEl.textContent = '';
+  return true;
+}
+
+function empValidateField(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const val = el.value.trim();
+  el.classList.remove('inp-err', 'inp-ok');
+  if (!val) { el.classList.add('inp-err'); return false; }
+  el.classList.add('inp-ok');
+  return true;
+}
+
+function empValidateId(val) {
+  const hint = document.getElementById('f-id-hint');
+  const el   = document.getElementById('f-id');
+  if (!hint || !el) return;
+  if (!val) { hint.textContent = ''; el.classList.remove('inp-err','inp-ok'); return; }
+  // Check duplicate
+  const exists = staffList().some(s => s.id === val);
+  const isEdit = document.getElementById('staffMTitle')?.textContent.startsWith('✏️');
+  if (exists && !isEdit) {
+    hint.style.color = '#EF4444';
+    hint.textContent = '⚠️ This ID already exists in the roster.';
+    el.classList.add('inp-err'); el.classList.remove('inp-ok');
+  } else {
+    hint.style.color = '#10B981';
+    hint.textContent = exists ? '' : '✓ ID available';
+    el.classList.remove('inp-err'); el.classList.add('inp-ok');
+  }
+}
+
+function empNameUpdate(val) {
+  const avatar = document.getElementById('empAvatarCircle');
+  const hint   = document.getElementById('f-name-hint');
+  const el     = document.getElementById('f-name');
+  if (!avatar) return;
+  const words = val.trim().split(/\s+/).filter(Boolean);
+  const initials = words.length >= 2
+    ? (words[0][0] + words[words.length-1][0]).toUpperCase()
+    : (words[0]?.[0] || '?').toUpperCase();
+  avatar.textContent = initials;
+  if (el) { el.classList.remove('inp-err'); if (val.trim()) el.classList.add('inp-ok'); }
+  if (hint) {
+    const wordCount = words.length;
+    hint.style.color = wordCount < 2 ? '#F59E0B' : '#10B981';
+    hint.textContent = wordCount < 2 ? '⚠️ Full name recommended (first + last)' : '✓ Good — ' + wordCount + ' words';
+  }
+}
+
+function empUpdateShiftPreview() {
+  const sel = document.getElementById('f-shift');
+  const box = document.getElementById('shiftPreviewContent');
+  if (!sel || !box || typeof SHIFTS === 'undefined') return;
+  const code = sel.value;
+  const sh = SHIFTS[code];
+  if (!sh) { box.innerHTML = '<span style="color:#94A3B8">Select a shift above…</span>'; return; }
+  const from = sh.from != null ? sh.from : (sh.time ? parseInt(sh.time.split('-')[0]) : null);
+  const to   = sh.to   != null ? sh.to   : (sh.time ? parseInt(sh.time.split('-')[1]) : null);
+  const fmtH = h => { if (h==null) return '—'; const ampm = h<12?'AM':'PM'; const hh=h===0?12:h>12?h-12:h; return hh+':00 '+ampm; };
+  box.innerHTML = `
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="background:${sh.bg||'#eee'};color:${sh.color||'#333'};border:1.5px solid ${sh.border||'#ccc'};border-radius:7px;padding:4px 12px;font-size:13px;font-weight:800">${code}</span>
+        <span style="font-size:13px;font-weight:700;color:#1B2D4A">${sh.label||code}</span>
+      </div>
+      <div style="font-size:12px;color:#475569;display:flex;gap:14px;align-items:center">
+        <span>🕐 ${fmtH(from)} – ${fmtH(to)}</span>
+        <span>⏱ ${sh.hours||9} hours</span>
+      </div>
+    </div>`;
+}
+
+function empUpdateALRemaining() {
+  const bal  = parseInt(document.getElementById('f-al')?.value || '21', 10);
+  const used = parseInt(document.getElementById('f-alused')?.value || '0', 10);
+  const rem  = Math.max(0, bal - used);
+  const el   = document.getElementById('f-al-remaining');
+  if (!el) return;
+  el.textContent = rem + ' days';
+  el.style.color = rem > 10 ? '#10B981' : rem > 5 ? '#F59E0B' : '#EF4444';
+  el.style.background = rem > 10 ? '#f0fdf4' : rem > 5 ? '#fffbeb' : '#fef2f2';
+}
+
+// Reset tabs when modal opens
+const _origOpenAddStaff = typeof openAddStaff !== 'undefined' ? openAddStaff : null;
+function _empResetTabs() {
+  _empCurrentTab = 1;
+  empSwitchTab(1, true);
+  // Reset avatar
+  const av = document.getElementById('empAvatarCircle');
+  if (av) av.textContent = '?';
+  // Reset validation classes
+  ['f-name','f-id','f-hotel'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('inp-err','inp-ok');
+  });
+  // Clear hints
+  ['f-name-hint','f-id-hint','empFormErr'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '';
+  });
+  empUpdateALRemaining();
+}
+
+
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-height:100vh}
 ::-webkit-scrollbar{width:5px;height:5px}
@@ -688,7 +870,11 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 }
 
 </style>
-</head>
+<style>
+.cp-ni-icon{display:inline-block;width:22px;text-align:center;margin-right:4px}
+.cp-nav-item{display:flex;align-items:center}
+#cpPassStrengthBar{min-height:18px}
+</style></head>
 <body>
 
 <!-- Developer Broadcast Banner -->
@@ -876,6 +1062,9 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <option value="EVE">🌙 Evening/Night</option>
       <option value="all">📋 All Shifts</option>
     </select>
+    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="">📍 All Sections</option>
+    </select>
     <input id="liveSearchInp" oninput="renderLiveDash()" placeholder="🔍 Search staff..." style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px;font-size:11px;color:#fff;outline:none;width:180px" onmouseover="" />
     <div style="margin-left:auto;display:flex;gap:8px">
       <button onclick="renderLiveDash()" style="background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);color:var(--gold2);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer">🔄 Refresh</button>
@@ -892,25 +1081,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   <div class="el" id="empLoginForm">
     <div style="font-size:34px;margin-bottom:12px">🪪</div>
     <h2>My Roster</h2>
-<div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap; padding:0 12px;">
-  <div style="flex:1; min-width:150px;">
-    <label style="font-size:11px; color:var(--slate2); display:block; margin-bottom:4px;">Section</label>
-    <select id="liveSectionFilter" onchange="applyLiveFilters()" style="width:100%; padding:8px; border:1px solid rgba(201,150,58,.25); border-radius:8px; background:#1B2D4A; color:#fff; font-size:12px;">
-      <option value="">All Sections</option>
-      <option value="Front Desk">Front Desk</option>
-      <option value="Concierge Plaza">Concierge Plaza</option>
-      <option value="Valet Service">Valet Service</option>
-    </select>
-  </div>
-  <div style="flex:1; min-width:150px;">
-    <label style="font-size:11px; color:var(--slate2); display:block; margin-bottom:4px;">Hotel</label>
-    <select id="liveHotelFilter" onchange="applyLiveFilters()" style="width:100%; padding:8px; border:1px solid rgba(201,150,58,.25); border-radius:8px; background:#1B2D4A; color:#fff; font-size:12px;">
-      <option value="">All Hotels</option>
-      <option value="Yas Hotel">Yas Hotel</option>
-      <option value="Yas Island">Yas Island</option>
-    </select>
-  </div>
-</div>
 
     <p>Enter your Employee ID to view your schedule, hotel assignment, and leave balance. Updates from your manager appear instantly.</p>
     <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);border-radius:8px;font-size:11px;color:var(--gold2)">
@@ -952,7 +1122,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('schedule')" id="btnTabSchedule">📅 Schedule</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('swap')" id="btnTabSwap">🔄 Swap Board</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('leave')" id="btnTabLeave">📨 Requests</button>
-      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('handover')" id="btnTabHandover">📝 Handover</button>
+      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('break')" id="btnTabBreak">☕ Break</button>
     </div>
 
     <!-- SCHEDULE TAB -->
@@ -1036,17 +1206,23 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div style="text-align:center;margin-top:8px"><button class="link-btn" onclick="logoutEmp()">← Back to Login</button></div>
 
     <!-- HANDOVER TAB -->
-    <div id="empTabHandover" style="display:none">
-      <!-- Write -->
+    <div id="empTabBreak" style="display:none">
+      <!-- Break In/Out -->
       <div class="esmbox" style="background:rgba(201,150,58,.08);border-color:rgba(201,150,58,.25);margin-bottom:10px">
-        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold2);margin-bottom:10px">✍️ Write Handover Note</div>
-        <textarea class="inp" id="empHoNote" rows="4" placeholder="What does the next shift need to know? Guests, pending tasks, incidents…" style="background:rgba(255,255,255,.07);border-color:rgba(201,150,58,.25);color:#fff;resize:vertical;margin-bottom:10px"></textarea>
-        <button class="elb" style="padding:10px;font-size:12px;background:linear-gradient(135deg,var(--gold),var(--gold2))" onclick="submitEmpHandover()">📤 Submit to Next Shift</button>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--gold2);margin-bottom:10px">☕ Break Tracker</div>
+        <div id="breakStatusBox" style="margin-bottom:10px;font-size:13px;font-weight:700;color:#fff;padding:10px;background:rgba(255,255,255,.05);border-radius:10px;text-align:center">
+          — Not on break —
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="elb" id="btnBreakIn" style="flex:1;padding:10px;font-size:12px;background:linear-gradient(135deg,#1B6B3A,#2EAA5A);box-shadow:none" onclick="empBreakIn()">🟢 Start Break</button>
+          <button class="elb" id="btnBreakOut" style="flex:1;padding:10px;font-size:12px;background:linear-gradient(135deg,#B71C1C,#C62828);box-shadow:none;display:none" onclick="empBreakOut()">🔴 End Break</button>
+        </div>
       </div>
-      <!-- Read -->
+      <!-- Break History -->
       <div class="esmbox">
-        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">📋 Handover Feed</div>
-        <div id="empHoList"></div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">📊 Today's Break History</div>
+        <div id="empBreakList" style="font-size:12px;color:rgba(255,255,255,.6)">No breaks recorded today.</div>
+        <div id="empBreakTotal" style="margin-top:8px;font-size:11px;font-weight:700;color:var(--gold2)"></div>
       </div>
     </div>
 
@@ -1063,7 +1239,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <button class="tab"        data-p="coverage" onclick="switchPage('coverage')">⚠️ Coverage</button>
       <button class="tab"        data-p="requests" onclick="switchPage('requests')">📋 Requests</button>
       <button class="tab"        data-p="archives" onclick="switchPage('archives')">🗄️ Archives</button>
-      <button class="tab"        data-p="handover" onclick="switchPage('handover')">📝 Handover</button>
+
       <button class="tab"        data-p="sections" onclick="switchPage('sections')">📍 Sections</button>
       <button class="tab"        data-p="dash"     onclick="switchPage('dash')">📈 Summary</button>
       <button class="tab"        data-p="forecast" onclick="switchPage('forecast')">🏨 Forecast</button>
@@ -1557,14 +1733,26 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 <!-- TOP BAR -->
 <div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:12px 18px;margin-bottom:14px">
   <div style="display:flex;align-items:center;gap:10px">
-    <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:9px;font-weight:700;padding:3px 9px;border-radius:5px;letter-spacing:1px">DEV MODE</div>
-    <div style="font-size:17px;font-weight:800;color:#fff">⚙️ Developer <span style="color:#C9963A">Control Panel</span></div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:9px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:1px">DEV</div>
+      <div style="font-size:17px;font-weight:800;color:#fff">⚙️ Developer <span style="color:#C9963A">Control Panel</span></div>
+    </div>
   </div>
   <div style="display:flex;align-items:center;gap:9px">
+    <!-- Quick search -->
+    <div style="position:relative">
+      <input id="cpSearch" placeholder="🔍 Search panel…" oninput="cpSearchPanel(this.value)"
+        style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:6px 12px;font-size:11px;width:170px;outline:none;transition:.2s"
+        onfocus="this.style.borderColor='rgba(201,150,58,.6)';this.style.background='rgba(255,255,255,.11)'"
+        onblur="this.style.borderColor='rgba(255,255,255,.12)';this.style.background='rgba(255,255,255,.07)'">
+      <div id="cpSearchResults" style="position:absolute;top:calc(100% + 6px);right:0;background:#0F2240;border:1px solid rgba(201,150,58,.3);border-radius:10px;min-width:200px;z-index:999;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>
+    </div>
     <div style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:5px 12px;font-size:11px;color:#10B981;font-weight:600">
-      <div style="width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5);animation:pulse 2s infinite"></div>All Systems OK
+      <div style="width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5);animation:pulse 2s infinite"></div>
+      <span id="cpSystemStatus">All Systems OK</span>
     </div>
     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#C9963A;background:rgba(201,150,58,.1);border:1px solid rgba(201,150,58,.2);border-radius:7px;padding:5px 10px" id="cpClock">--:--:--</div>
+    <button onclick="backToLanding()" title="Exit to landing" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.12)'">✕ Exit</button>
   </div>
 </div>
 
@@ -1580,18 +1768,21 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 <div class="cp-wrap">
   <!-- SIDEBAR -->
   <div class="cp-sidebar">
-    <div class="cp-nav">
-      <div class="cp-nav-hdr">⚙️ Navigation</div>
-      <div class="cp-nav-item cpa" onclick="cpTab('modules')">🧩 Feature Modules</div>
-      <div class="cp-nav-item" onclick="cpTab('hotels')">🏨 Hotels</div>
-      <div class="cp-nav-item" onclick="cpTab('departments')">🏢 Departments & Positions</div>
-      <div class="cp-nav-item" onclick="cpTab('shifts')">⏰ Shifts</div>
-      <div class="cp-nav-item" onclick="cpTab('access')">🔑 Access & Passwords</div>
-      <div class="cp-nav-item" onclick="cpTab('live')">🟢 LIVE</div>
-      <div class="cp-nav-item" onclick="cpTab('notifications')">🔔 Notifications</div>
-      <div class="cp-nav-item" onclick="cpTab('firebase')">🔥 Firebase Config</div>
-      <div class="cp-nav-item" onclick="cpTab('logs')">📋 Activity Logs</div>
-      <div class="cp-nav-item" onclick="cpTab('danger')" style="color:rgba(239,68,68,.7)">⚠️ Danger Zone</div>
+    <div class="cp-nav" id="cpNav">
+      <div class="cp-nav-hdr" style="display:flex;align-items:center;justify-content:space-between">
+        <span>⚙️ Navigation</span>
+        <span id="cpNavBadge" style="font-size:9px;font-weight:700;background:rgba(201,150,58,.2);color:#C9963A;border:1px solid rgba(201,150,58,.3);border-radius:99px;padding:1px 7px">DEV</span>
+      </div>
+      <div class="cp-nav-item cpa" id="cpni-modules" onclick="cpTab('modules')"><span class="cp-ni-icon">🧩</span>Feature Modules</div>
+      <div class="cp-nav-item" id="cpni-hotels"      onclick="cpTab('hotels')"><span class="cp-ni-icon">🏨</span>Hotels</div>
+      <div class="cp-nav-item" id="cpni-departments"  onclick="cpTab('departments')"><span class="cp-ni-icon">🏢</span>Departments & Positions</div>
+      <div class="cp-nav-item" id="cpni-shifts"       onclick="cpTab('shifts')"><span class="cp-ni-icon">⏰</span>Shifts</div>
+      <div class="cp-nav-item" id="cpni-access"       onclick="cpTab('access')"><span class="cp-ni-icon">🔑</span>Access & Passwords</div>
+      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Dashboard</div>
+      <div class="cp-nav-item" id="cpni-notifications" onclick="cpTab('notifications')"><span class="cp-ni-icon">🔔</span>Notifications</div>
+      <div class="cp-nav-item" id="cpni-firebase"     onclick="cpTab('firebase')"><span class="cp-ni-icon">🔥</span>Firebase Config</div>
+      <div class="cp-nav-item" id="cpni-logs"         onclick="cpTab('logs')"><span class="cp-ni-icon">📋</span>Activity Logs</div>
+      <div class="cp-nav-item" id="cpni-danger"       onclick="cpTab('danger')" style="color:rgba(239,68,68,.7)"><span class="cp-ni-icon">⚠️</span>Danger Zone</div>
     </div>
     <div class="cp-panel">
       <div style="padding:13px">
@@ -1659,11 +1850,16 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-ph"><div class="cp-pt">🔑 Access & Passwords <span class="cp-badge">Developer Only</span></div></div>
       <div class="cp-body">
         <div class="cp-stitle">Developer Password</div>
-        <div class="cp-g2" style="margin-bottom:12px">
+        <div class="cp-infobox" style="margin-bottom:10px">🔐 Minimum 8 characters recommended. Use upper/lowercase, numbers and symbols for a strong password.</div>
+        <div class="cp-g2" style="margin-bottom:8px">
           <div><label class="cp-lbl2">Current Password</label><input class="cp-inp2" type="password" id="cpCurP" placeholder="Current password"></div>
-          <div><label class="cp-lbl2">New Password</label><input class="cp-inp2" type="password" id="cpNewP" placeholder="New (min 4 chars)"></div>
+          <div>
+            <label class="cp-lbl2">New Password</label>
+            <input class="cp-inp2" type="password" id="cpNewP" placeholder="Min 8 chars recommended" oninput="if(typeof secRenderStrengthBar==='function')secRenderStrengthBar('cpPassStrengthBar',this.value)">
+            <div id="cpPassStrengthBar" style="margin-top:4px"></div>
+          </div>
         </div>
-        <button class="bgold" onclick="cpChangeDevPass()" style="margin-bottom:16px">Update Developer Password</button>
+        <button class="bgold" onclick="cpChangeDevPass()" style="margin-bottom:16px">🔐 Update Developer Password</button>
         <div class="cp-stitle">Department Passwords</div>
         <div id="cpDeptPassList" style="margin-bottom:12px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px">
@@ -1812,60 +2008,182 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 </div><!-- /cp-outer -->
 </div>
 
-<!-- Staff Modal -->
+<!-- Staff Modal — Enhanced Roster Input v6 -->
 <div class="mover" id="staffModal" style="display:none" onclick="if(event.target===this)closeModal('staffModal')">
-  <div class="modal">
-    <h3 id="staffMTitle">➕ Add Employee</h3>
-    <div class="fg">
-      <div class="ff"><label class="lbl">Full Name *</label><input class="inp" id="f-name" placeholder="Full Name"></div>
-      <div><label class="lbl">Employee ID *</label><input class="inp" id="f-id" placeholder="E001" style="font-family:'DM Mono',monospace;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()"></div>
-      <div><label class="lbl">Department *</label>
-        <select class="inp" id="f-dept" onchange="fillPosForDept()">
-          <option>Front Office</option><option>Housekeeping</option><option>Recreation</option>
-        </select>
+  <div class="modal" style="width:min(700px,95vw);padding:0;border-radius:18px;overflow:hidden;background:#fff;max-height:92vh;display:flex;flex-direction:column">
+    <style>
+      .emp-tab{flex:1;padding:11px 6px;font-size:11px;font-weight:700;border:none;background:transparent;cursor:pointer;color:#64748B;border-bottom:2.5px solid transparent;transition:.2s;letter-spacing:.2px;white-space:nowrap}
+      .emp-tab.emp-tab-active{color:#0B1A2E;border-bottom-color:#C9963A;background:#fff}
+      .emp-tab:hover:not(.emp-tab-active){background:#f0f2f8;color:#0B1A2E}
+      .emp-fld{display:flex;flex-direction:column;gap:0}
+      .emp-fld label{font-size:10px;font-weight:800;color:#64748B;text-transform:uppercase;letter-spacing:.8px;margin-bottom:5px}
+      .emp-fld .inp{font-size:13px;padding:10px 12px;border:1.5px solid #dde3f0;border-radius:10px;width:100%;box-sizing:border-box;transition:.2s;background:#fff;color:#0B1A2E}
+      .emp-fld .inp:focus{border-color:#C9963A;outline:none;box-shadow:0 0 0 3px rgba(201,150,58,.1)}
+      .emp-fld .inp.inp-err{border-color:#EF4444 !important;box-shadow:0 0 0 3px rgba(239,68,68,.1)}
+      .emp-fld .inp.inp-ok{border-color:#10B981}
+      .emp-hint{font-size:10px;color:#94A3B8;margin-top:3px;min-height:14px}
+      .emp-tab-panel{display:none;padding:20px 24px;overflow-y:auto;flex:1}
+      .emp-tab-panel.active{display:block}
+      .emp-row{display:grid;gap:14px;margin-bottom:14px}
+      .emp-row-2{grid-template-columns:1fr 1fr}
+      .emp-row-3{grid-template-columns:1fr 1fr 1fr}
+      .emp-row-1{grid-template-columns:1fr}
+      @media(max-width:520px){.emp-row-2,.emp-row-3{grid-template-columns:1fr}}
+    </style>
+
+    <!-- Header -->
+    <div style="background:linear-gradient(135deg,#0B1A2E,#1B2D4A);padding:18px 22px;display:flex;align-items:center;gap:14px;flex-shrink:0">
+      <div id="empAvatarCircle" style="width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#C9963A,#E8B84B);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#fff;flex-shrink:0;border:2px solid rgba(255,255,255,.2);transition:.3s;letter-spacing:-1px">?</div>
+      <div style="flex:1;min-width:0">
+        <div id="staffMTitle" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">➕ Add Employee</div>
+        <div id="empFormSubtitle" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">4 quick steps to add to the roster</div>
       </div>
-      <div><label class="lbl">Position *</label>
-        <div style="display:flex;gap:6px">
-          <select class="inp" id="f-pos" style="flex:1"></select>
-          <input class="inp" id="f-pos-new" placeholder="+ New position…" style="flex:1;display:none;font-size:11px" onkeydown="if(event.key==='Enter')addNewPosition()">
-          <button type="button" class="btn btn-ghost btn-xs" id="btnTogglePos" onclick="toggleNewPos()" title="Add new position">+</button>
+      <button onclick="closeModal('staffModal')" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.6);border-radius:10px;padding:5px 10px;font-size:17px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;border-bottom:1px solid #eef0f5;background:#f9fafc;flex-shrink:0">
+      <button id="empTab1" class="emp-tab emp-tab-active" onclick="empSwitchTab(1)">👤 Identity</button>
+      <button id="empTab2" class="emp-tab" onclick="empSwitchTab(2)">🏨 Assignment</button>
+      <button id="empTab3" class="emp-tab" onclick="empSwitchTab(3)">⏰ Schedule</button>
+      <button id="empTab4" class="emp-tab" onclick="empSwitchTab(4)">📋 Leave & Notes</button>
+    </div>
+
+    <!-- TAB 1: Identity -->
+    <div id="empPanel1" class="emp-tab-panel active">
+      <div class="emp-row emp-row-1">
+        <div class="emp-fld">
+          <label>Full Name *</label>
+          <input class="inp" id="f-name" placeholder="e.g. Ahmed Al Mansouri" autocomplete="off"
+            oninput="empNameUpdate(this.value)" onblur="empValidateField('f-name')">
+          <div class="emp-hint" id="f-name-hint"></div>
         </div>
       </div>
-      <div><label class="lbl">Hotel *</label><select class="inp" id="f-hotel"></select></div>
-      <div class="ff"><label class="lbl">📍 Section / Area <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--slate2)">(e.g. Front Desk, Room Service, Pool Bar…)</span></label>
-        <select class="inp" id="f-section">
-          <option value="">— Not Assigned —</option>
-        </select>
+      <div class="emp-row emp-row-2">
+        <div class="emp-fld">
+          <label>Employee ID *</label>
+          <input class="inp" id="f-id" placeholder="E001" maxlength="12" autocomplete="off"
+            style="font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:2px;font-size:15px"
+            oninput="this.value=this.value.toUpperCase();empValidateId(this.value)"
+            onblur="empValidateField('f-id')">
+          <div class="emp-hint" id="f-id-hint"></div>
+        </div>
+        <div class="emp-fld">
+          <label>Gender</label>
+          <select class="inp" id="f-gender">
+            <option value="">— Not Set —</option>
+            <option value="male">👨 Male</option>
+            <option value="female">👩 Female</option>
+          </select>
+        </div>
       </div>
-      <div><label class="lbl">Default Shift</label><select class="inp" id="f-shift"></select></div>
-      <div><label class="lbl">Shift Hours</label>
-        <select class="inp" id="f-hrs">
-          <option value="8">8 hours</option>
-          <option value="9" selected>9 hours</option>
-          <option value="10">10 hours</option>
-          <option value="12">12 hours</option>
-        </select>
-      </div>
-      <div><label class="lbl">Off Days / Month</label><input class="inp" id="f-off" type="number" min="0" max="20" value="4"></div>
-      <div><label class="lbl">Annual Leave Balance</label><input class="inp" id="f-al" type="number" min="0" value="21"></div>
-      <div><label class="lbl">AL Used</label><input class="inp" id="f-alused" type="number" min="0" value="0"></div>
-      <div><label class="lbl">Gender</label>
-        <select class="inp" id="f-gender">
-          <option value="">— Not Set —</option>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-      </div>
-      <div class="ff"><label class="lbl">Notes</label><input class="inp" id="f-notes" placeholder="Optional…"></div>
     </div>
-    <div class="mf">
-      <button class="btn btn-ghost" onclick="closeModal('staffModal')">Cancel</button>
-      <button class="btn btn-ghost" onclick="saveStaff(true)" style="background:#E8F5E9;color:var(--green);border:1.5px solid var(--green)">✅ Save & Add Another</button>
-      <button class="btn btn-primary" onclick="saveStaff(false)">Save & Close</button>
+
+    <!-- TAB 2: Assignment -->
+    <div id="empPanel2" class="emp-tab-panel">
+      <div class="emp-row emp-row-2">
+        <div class="emp-fld">
+          <label>Department *</label>
+          <select class="inp" id="f-dept" onchange="fillPosForDept()">
+            <option>Front Office</option><option>Housekeeping</option><option>Recreation</option>
+          </select>
+        </div>
+        <div class="emp-fld">
+          <label>Position *</label>
+          <div style="display:flex;gap:6px">
+            <select class="inp" id="f-pos" style="flex:1"></select>
+            <input class="inp" id="f-pos-new" placeholder="New position…" style="flex:1;display:none;font-size:11px" onkeydown="if(event.key==='Enter')addNewPosition()">
+            <button type="button" id="btnTogglePos" onclick="toggleNewPos()" title="Add new position"
+              style="padding:0 12px;border:1.5px solid #C9963A;border-radius:10px;background:rgba(201,150,58,.08);color:#C9963A;font-size:18px;cursor:pointer;flex-shrink:0;height:42px">+</button>
+          </div>
+        </div>
+      </div>
+      <div class="emp-row emp-row-2">
+        <div class="emp-fld">
+          <label>Hotel *</label>
+          <select class="inp" id="f-hotel"></select>
+        </div>
+        <div class="emp-fld">
+          <label>📍 Section / Area</label>
+          <select class="inp" id="f-section">
+            <option value="">— Not Assigned —</option>
+          </select>
+          <div class="emp-hint">e.g. Front Desk, Pool Bar, Room Service</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Schedule -->
+    <div id="empPanel3" class="emp-tab-panel">
+      <div class="emp-row emp-row-3">
+        <div class="emp-fld">
+          <label>Default Shift</label>
+          <select class="inp" id="f-shift" onchange="empUpdateShiftPreview()"></select>
+        </div>
+        <div class="emp-fld">
+          <label>Shift Hours</label>
+          <select class="inp" id="f-hrs">
+            <option value="8">8 hours</option>
+            <option value="9" selected>9 hours</option>
+            <option value="10">10 hours</option>
+            <option value="12">12 hours</option>
+          </select>
+        </div>
+        <div class="emp-fld">
+          <label>Off Days / Month</label>
+          <input class="inp" id="f-off" type="number" min="0" max="20" value="4">
+        </div>
+      </div>
+      <div id="shiftPreviewBox" style="background:#f9fafc;border:1.5px solid #eef0f5;border-radius:12px;padding:14px">
+        <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#94A3B8;margin-bottom:8px">⏰ Shift Preview</div>
+        <div id="shiftPreviewContent" style="font-size:12px;color:#475569">Select a shift to preview hours…</div>
+      </div>
+    </div>
+
+    <!-- TAB 4: Leave & Notes -->
+    <div id="empPanel4" class="emp-tab-panel">
+      <div class="emp-row emp-row-3">
+        <div class="emp-fld">
+          <label>AL Balance (days)</label>
+          <input class="inp" id="f-al" type="number" min="0" value="21" oninput="empUpdateALRemaining()">
+        </div>
+        <div class="emp-fld">
+          <label>AL Used (days)</label>
+          <input class="inp" id="f-alused" type="number" min="0" value="0" oninput="empUpdateALRemaining()">
+        </div>
+        <div class="emp-fld">
+          <label>AL Remaining</label>
+          <div class="inp" id="f-al-remaining" style="background:#f0fdf4;color:#10B981;font-weight:800;font-size:15px;text-align:center">21 days</div>
+        </div>
+      </div>
+      <div class="emp-row emp-row-1">
+        <div class="emp-fld">
+          <label>Notes <span style="font-weight:400;text-transform:none;letter-spacing:0;color:#94A3B8">(optional)</span></label>
+          <textarea class="inp" id="f-notes" placeholder="Any additional notes about this employee (training, special requirements, etc.)…" style="min-height:90px;resize:vertical;font-family:inherit"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div style="padding:14px 22px;border-top:1px solid #eef0f5;display:flex;align-items:center;gap:10px;background:#f9fafc;flex-shrink:0">
+      <div id="empFormErr" style="flex:1;font-size:11px;color:#EF4444;font-weight:600;min-height:16px"></div>
+      <!-- Step indicator -->
+      <div id="empStepDots" style="display:flex;gap:5px;margin-right:8px">
+        <div class="emp-dot emp-dot-active" id="empDot1"></div>
+        <div class="emp-dot" id="empDot2"></div>
+        <div class="emp-dot" id="empDot3"></div>
+        <div class="emp-dot" id="empDot4"></div>
+      </div>
+      <style>.emp-dot{width:7px;height:7px;border-radius:50%;background:#dde3f0;transition:.2s}.emp-dot.emp-dot-active{background:#C9963A;transform:scale(1.3)}</style>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost btn-sm" onclick="empPrevTab()" id="empBtnPrev" style="display:none">← Back</button>
+        <button class="btn btn-ghost btn-sm" onclick="empNextTab()" id="empBtnNext">Next →</button>
+        <button class="btn btn-ghost btn-sm" onclick="saveStaff(true)" id="empBtnSaveMore" style="display:none;background:#E8F5E9;color:var(--green);border:1.5px solid var(--green)">✅ Save & Add Another</button>
+        <button class="btn btn-primary btn-sm" onclick="saveStaff(false)" id="empBtnSave" style="display:none">💾 Save Employee</button>
+      </div>
     </div>
   </div>
 </div>
-
 <!-- Bulk Fill Modal -->
 <div class="mover" id="bulkModal" style="display:none" onclick="if(event.target===this)closeModal('bulkModal')">
   <div class="modal">
@@ -2350,14 +2668,110 @@ function tryAutoConnect() {
 // ═══════════════════════════════════════════════════
 
 function showEmpTab(tab) {
-  ["schedule","swap","leave","handover"].forEach(t => {
+  ["schedule","swap","leave","break"].forEach(t => {
     document.getElementById("empTab" + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t===tab ? "block" : "none";
     document.getElementById("btnTab" + t.charAt(0).toUpperCase() + t.slice(1)).style.background = t===tab ? "linear-gradient(135deg,var(--gold),var(--gold2))" : "rgba(255,255,255,.08)";
   });
-  if (tab === "swap")     { populateSwapForm(); renderSwapList(); }
-  if (tab === "leave")    { populateLeaveForm(); renderLeaveList(); }
-  if (tab === "handover") { renderEmpHandovers(); }
+  if (tab === "swap")  { populateSwapForm(); renderSwapList(); }
+  if (tab === "leave") { populateLeaveForm(); renderLeaveList(); }
+  if (tab === "break") { renderEmpBreakTab(); }
 }
+
+// ═══════════════════════════════════════════════════
+// BREAK TRACKING SYSTEM
+// ═══════════════════════════════════════════════════
+// breakLogs: { empId: [ {in: ISO, out: ISO|null} ] } stored per day
+let breakLogs = {};
+function breakKey(empId) {
+  return 'yph_breaks_' + empId + '_' + new Date().toISOString().slice(0,10);
+}
+function loadBreaks(empId) {
+  try { return JSON.parse(localStorage.getItem(breakKey(empId)) || '[]'); } catch(e) { return []; }
+}
+function saveBreaks(empId, logs) {
+  try { localStorage.setItem(breakKey(empId), JSON.stringify(logs)); } catch(e) {}
+  // Sync to Firebase
+  if (typeof db !== 'undefined' && db) {
+    const key = 'breaks/' + empId + '/' + new Date().toISOString().slice(0,10).replace(/-/g,'_');
+    try { db.ref(key).set(logs); } catch(e) {}
+  }
+}
+function isOnBreak(empId) {
+  const logs = loadBreaks(empId);
+  return logs.length > 0 && !logs[logs.length - 1].out;
+}
+function empBreakIn() {
+  if (!currentEmpId) return;
+  if (isOnBreak(currentEmpId)) { renderEmpBreakTab(); return; }
+  const logs = loadBreaks(currentEmpId);
+  logs.push({ in: new Date().toISOString(), out: null });
+  saveBreaks(currentEmpId, logs);
+  renderEmpBreakTab();
+  // Trigger LIVE re-render to show "On Break" badge
+  if (typeof renderLiveDash === 'function') try { renderLiveDash(); } catch(e) {}
+}
+function empBreakOut() {
+  if (!currentEmpId) return;
+  const logs = loadBreaks(currentEmpId);
+  if (!logs.length || logs[logs.length - 1].out) { renderEmpBreakTab(); return; }
+  logs[logs.length - 1].out = new Date().toISOString();
+  saveBreaks(currentEmpId, logs);
+  renderEmpBreakTab();
+  if (typeof renderLiveDash === 'function') try { renderLiveDash(); } catch(e) {}
+}
+function renderEmpBreakTab() {
+  if (!currentEmpId) return;
+  const logs = loadBreaks(currentEmpId);
+  const onBreak = logs.length > 0 && !logs[logs.length - 1].out;
+  // Status box
+  const statusBox = document.getElementById('breakStatusBox');
+  const btnIn  = document.getElementById('btnBreakIn');
+  const btnOut = document.getElementById('btnBreakOut');
+  if (statusBox) {
+    if (onBreak) {
+      const startT = new Date(logs[logs.length - 1].in);
+      const elapsed = Math.floor((Date.now() - startT) / 60000);
+      statusBox.innerHTML = `<span style="color:#FBBF24">☕ ON BREAK</span><br><span style="font-size:11px;color:rgba(255,255,255,.5)">Started at ${startT.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})} · ${elapsed} min ago</span>`;
+      statusBox.style.background = 'rgba(251,191,36,.12)';
+      statusBox.style.border = '1px solid rgba(251,191,36,.3)';
+    } else {
+      statusBox.innerHTML = '— Not on break —';
+      statusBox.style.background = 'rgba(255,255,255,.05)';
+      statusBox.style.border = '';
+    }
+  }
+  if (btnIn)  btnIn.style.display  = onBreak ? 'none' : '';
+  if (btnOut) btnOut.style.display = onBreak ? '' : 'none';
+  // History
+  const listEl = document.getElementById('empBreakList');
+  const totalEl = document.getElementById('empBreakTotal');
+  if (!listEl) return;
+  if (!logs.length) { listEl.innerHTML = '<div style="color:rgba(255,255,255,.35);font-size:11px">No breaks recorded today.</div>'; if(totalEl) totalEl.textContent = ''; return; }
+  let totalMins = 0;
+  listEl.innerHTML = logs.map((b, i) => {
+    const inT = new Date(b.in);
+    const outT = b.out ? new Date(b.out) : null;
+    const mins = outT ? Math.round((outT - inT) / 60000) : null;
+    if (mins !== null) totalMins += mins;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 10px;background:rgba(255,255,255,.04);border-radius:8px;margin-bottom:5px;font-size:11px">
+      <span style="font-family:'DM Mono',monospace;color:var(--gold2)">#${i+1}</span>
+      <span style="color:#fff">🟢 ${inT.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span>
+      ${outT ? `<span style="color:rgba(255,255,255,.4)">→</span><span style="color:#F87171">🔴 ${outT.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</span><span style="color:#4ADE80;font-weight:700">${mins} min</span>` : '<span style="color:#FBBF24;font-weight:700;animation:blink 1.5s infinite">● ACTIVE</span>'}
+    </div>`;
+  }).join('');
+  if (totalEl) {
+    const completed = logs.filter(b => b.out).length;
+    totalEl.innerHTML = completed > 0
+      ? `Total break time: <strong>${totalMins} minutes</strong> across ${completed} break${completed>1?'s':''}`
+      : '';
+  }
+}
+// Refresh break tab timer every 30 seconds if it's open
+setInterval(() => {
+  if (document.getElementById('empTabBreak')?.style.display !== 'none' && currentEmpId) {
+    renderEmpBreakTab();
+  }
+}, 30000);
 
 function reqTypeLabel(type) {
   return {AL:"🏖 Annual Leave", EX:"✨ Extra Off", UNP:"💸 Unpaid", TRN:"🎓 Training", SICK:"🤒 Sick Leave", ABS:"⛔ Absent"}[type] || type;
@@ -3532,19 +3946,32 @@ function onDeptSelectChange() {
 }
 
 function checkPass() {
-  const input = document.getElementById("passInp").value;
-  console.log("[YPH] checkPass called, role:", ADMIN_ROLE, "input length:", input.length);
+  const errEl = document.getElementById("passErr");
+  const inp   = document.getElementById("passInp");
+  const input = inp ? inp.value : "";
+
+  // ── Rate-limit / lockout check ──
+  if (typeof secIsLocked === "function" && secIsLocked()) {
+    const mins = typeof secLockoutRemaining === "function" ? secLockoutRemaining() : "?";
+    if (errEl) errEl.innerHTML = "🔒 Too many failed attempts. Locked for <strong>" + mins + " min</strong>.";
+    if (inp) inp.value = "";
+    return;
+  }
+
+  const remaining = typeof secRemainingAttempts === "function" ? secRemainingAttempts() : 5;
 
   if (ADMIN_ROLE === "developer") {
-    console.log("[YPH] Checking developer password");
     if (input === developerPass || input === adminPass) {
-      console.log("[YPH] Developer login success");
-      CURRENT_DEPT = "all"; // developer sees everything
+      if (typeof secRecordAttempt === "function") secRecordAttempt(true);
+      if (typeof logAccess === "function") logAccess("s", "Developer login success");
+      CURRENT_DEPT = "all";
       enterAdmin();
     } else {
-      console.log("[YPH] Developer login failed");
-      document.getElementById("passErr").textContent = "❌ Incorrect Developer password.";
-      document.getElementById("passInp").value="";
+      if (typeof secRecordAttempt === "function") secRecordAttempt(false);
+      if (typeof logAccess === "function") logAccess("s", "Developer login FAILED — wrong password");
+      const left = typeof secRemainingAttempts === "function" ? secRemainingAttempts() : "?";
+      if (errEl) errEl.innerHTML = "❌ Incorrect password. <strong>" + left + " attempt" + (left===1?"":"s") + " remaining</strong> before lockout.";
+      if (inp) inp.value = "";
     }
     return;
   }
@@ -3552,22 +3979,24 @@ function checkPass() {
   // Department access
   const dept = document.getElementById("deptPassSelect")?.value;
   if (!dept) {
-    document.getElementById("passErr").textContent = "❌ Please select a department.";
+    if (errEl) errEl.textContent = "❌ Please select a department.";
     return;
   }
   if (!deptPasswords[dept]) {
-    document.getElementById("passErr").textContent = "❌ No password set for " + dept + ". Contact Developer.";
+    if (errEl) errEl.textContent = "❌ No password set for " + dept + ". Contact Developer.";
     return;
   }
   if (input === deptPasswords[dept]) {
+    if (typeof secRecordAttempt === "function") secRecordAttempt(true);
+    if (typeof logAccess === "function") logAccess("s", "Department login: " + dept);
     CURRENT_DEPT = dept;
     document.getElementById("passModal").classList.remove("show");
-    // Department users go straight to the Roster admin view.
-    // LIVE access is reserved for specific staff IDs the Developer authorizes.
     enterAdmin();
   } else {
-    document.getElementById("passErr").textContent = "❌ Incorrect password for " + dept + ".";
-    document.getElementById("passInp").value="";
+    if (typeof secRecordAttempt === "function") secRecordAttempt(false);
+    const left = typeof secRemainingAttempts === "function" ? secRemainingAttempts() : "?";
+    if (errEl) errEl.innerHTML = "❌ Incorrect password for <strong>" + dept + "</strong>. " + left + " attempt" + (left===1?"":"s") + " remaining.";
+    if (inp) inp.value = "";
   }
 }
 
@@ -5660,7 +6089,7 @@ function openAddStaff() {
   document.getElementById("staffMTitle").textContent = "➕ Add Employee";
   resetStaffForm();
   document.getElementById("staffModal").style.display = "flex";
-  setTimeout(() => { document.getElementById("f-name").focus(); }, 150);
+  setTimeout(() => { _empResetTabs(); document.getElementById("f-name").focus(); }, 100);
 }
 function openEditStaff(id) {
   const emp=staffData[id]; if(!emp)return;
@@ -5668,7 +6097,7 @@ function openEditStaff(id) {
   if(document.getElementById("f-pos")) document.getElementById("f-pos").style.display="block";
   if(document.getElementById("f-pos-new")) document.getElementById("f-pos-new").style.display="none";
   if(document.getElementById("btnTogglePos")) document.getElementById("btnTogglePos").textContent="+";
-  document.getElementById("staffMTitle").textContent="✏️ Edit Employee";
+  document.getElementById("staffMTitle").textContent="✏️ Edit Employee"; setTimeout(()=>{ _empResetTabs(); empNameUpdate(emp.name); empSwitchTab(1,true); },80);
   document.getElementById("f-name").value=emp.name;
   document.getElementById("f-id").value=emp.id;
   document.getElementById("f-dept").value=emp.department||"Front Office";
@@ -6893,9 +7322,15 @@ function cpTab(id){
     const el=document.getElementById('cpt-'+t);
     if(el) el.style.display=(t===id)?'block':'none';
   });
-  document.querySelectorAll('.cp-nav-item').forEach(el=>{
-    el.classList.toggle('cpa', el.getAttribute('onclick')===`cpTab('${id}')`);
-  });
+  // Highlight active nav item using id-based approach for reliability
+  document.querySelectorAll('.cp-nav-item').forEach(el=>el.classList.remove('cpa'));
+  const niById = document.getElementById('cpni-'+id);
+  if(niById){ niById.classList.add('cpa'); }
+  else {
+    document.querySelectorAll('.cp-nav-item').forEach(el=>{
+      if(el.getAttribute('onclick')===`cpTab('${id}')`) el.classList.add('cpa');
+    });
+  }
   const renders={modules:cpRenderModules,hotels:cpRenderHotels,departments:cpRenderDepts,
     shifts:cpRenderShifts,access:cpRenderAccess,live:cpRenderLive,
     notifications:cpRenderNotifications,logs:cpRenderLogs};
@@ -7955,6 +8390,16 @@ function renderLiveDash() {
   const hr = today.getHours();
   const key = today.getFullYear() + '-' + today.getMonth();
 
+  // Populate section filter dropdown dynamically
+  const secSel = document.getElementById('liveSectionFilter');
+  if (secSel) {
+    const allSections = [...new Set(Object.values(staffData || {}).map(e => e.section || '').filter(Boolean))].sort();
+    const curSecVal = secSel.value;
+    secSel.innerHTML = '<option value="">📍 All Sections</option>' +
+      allSections.map(s => `<option value="${s}">${s}</option>`).join('');
+    secSel.value = curSecVal;
+  }
+
   // Determine active shifts by time
   let activeShifts;
   const shiftFilter = document.getElementById('liveShiftFilter')?.value || 'auto';
@@ -7970,29 +8415,38 @@ function renderLiveDash() {
 
   const deptF = document.getElementById('liveDeptFilter')?.value || 'all';
   const hotelF = document.getElementById('liveHotelFilter')?.value || 'all';
+  const secF = document.getElementById('liveSectionFilter')?.value || '';
   const srch = (document.getElementById('liveSearchInp')?.value || '').toLowerCase();
-  // Position & section filters set by authorized staff selector
+  // Position filter set by authorized staff selector
   const posF = window._authLivePosFilter || '';
-  const secF = window._authLiveSecFilter || '';
 
   let staff = Object.values(staffData || {});
   if (deptF !== 'all') staff = staff.filter(e => e.department === deptF);
   if (hotelF !== 'all') staff = staff.filter(e => e.hotel === hotelF || e.hotel === 'all');
+  if (secF) staff = staff.filter(e => (e.section || '') === secF);
   if (srch) staff = staff.filter(e => e.name.toLowerCase().includes(srch) || e.id.toLowerCase().includes(srch));
   if (posF) staff = staff.filter(e => e.position === posF);
-  if (secF) staff = staff.filter(e => e.section === secF);
 
-  const onDuty = [], offDuty = [], onLeave = [], sick = [], absent = [];
+  const onDuty = [], offDuty = [], onLeave = [], sick = [], absent = [], onBreak = [];
   staff.forEach(emp => {
     const sch = (schedData[emp.id] && schedData[emp.id][key]) || {};
     const code = sch[day] || '';
     const sh = typeof SHIFTS !== 'undefined' ? SHIFTS[code] : null;
-    const entry = { emp, code, sh };
+    // Check break status
+    const empOnBreak = (function(){
+      try {
+        const bkey = 'yph_breaks_' + emp.id + '_' + today.toISOString().slice(0,10);
+        const logs = JSON.parse(localStorage.getItem(bkey) || '[]');
+        return logs.length > 0 && !logs[logs.length-1].out;
+      } catch(e) { return false; }
+    })();
+    const entry = { emp, code, sh, onBreak: empOnBreak };
     if (!code) { offDuty.push(entry); return; }
     if (['AL','EX','UNP'].includes(code)) { onLeave.push(entry); return; }
     if (code === 'SICK') { sick.push(entry); return; }
     if (code === 'ABS') { absent.push(entry); return; }
     if (code === 'OFF') { offDuty.push(entry); return; }
+    if (empOnBreak) { onBreak.push(entry); return; }
     if (activeShifts.includes(code)) { onDuty.push(entry); }
     else { offDuty.push(entry); }
   });
@@ -8010,6 +8464,7 @@ function renderLiveDash() {
       </div>`;
     statsEl.innerHTML =
       stat('On Duty', onDuty.length, '#4ADE80', '🟢') +
+      stat('On Break', onBreak.length, '#FBBF24', '☕') +
       stat('Off Today', offDuty.length, '#94A3B8', '⚫') +
       stat('On Leave', onLeave.length, '#FBBF24', '🏖') +
       stat('Sick', sick.length, '#F87171', '🤒') +
@@ -8028,6 +8483,10 @@ function renderLiveDash() {
     const initial = emp.name ? emp.name.charAt(0).toUpperCase() : '?';
     const shiftTime = sh ? (sh.time || sh.label || code) : (code || '—');
     const section = emp.section || '';
+    // Break info
+    const breakBadge = entry.onBreak
+      ? `<div style="display:inline-flex;align-items:center;gap:4px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.4);border-radius:100px;padding:2px 7px;font-size:9px;font-weight:700;color:#FBBF24;margin-top:4px">☕ On Break</div>`
+      : '';
     return `<div style="background:rgba(255,255,255,.04);border:1px solid ${glowColor}33;border-radius:16px;padding:16px;position:relative;transition:.2s;box-shadow:0 4px 20px ${glowColor}11"
         onmouseover="this.style.borderColor='${glowColor}66';this.style.transform='translateY(-2px)'"
         onmouseout="this.style.borderColor='${glowColor}33';this.style.transform=''">
@@ -8046,12 +8505,18 @@ function renderLiveDash() {
         </div>` : ''}
         ${hotel ? `<div style="font-size:9px;color:${hotel.color};font-weight:600">🏨 ${hotel.name}</div>` : ''}
         ${section ? `<div style="font-size:9px;color:#5EEAD4">📍 ${section}</div>` : ''}
+        ${breakBadge}
         <div style="font-size:9px;color:rgba(255,255,255,.3);font-family:'DM Mono',monospace">${emp.id}</div>
       </div>
     </div>`;
   };
 
   let html = '';
+  if (onBreak.length) {
+    html += `<div style="grid-column:1/-1;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#FBBF24;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;padding:6px 0">
+      <div style="width:6px;height:6px;border-radius:50%;background:#FBBF24;animation:blink 1.5s infinite"></div> On Break — ${onBreak.length} staff</div>`;
+    html += onBreak.map(e => renderCard(e, '☕ BREAK', '#FBBF24', '#FBBF24')).join('');
+  }
   if (onDuty.length) {
     html += `<div style="grid-column:1/-1;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:#4ADE80;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;gap:8px;padding:6px 0">
       <div style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:blink 1.5s infinite"></div> On Duty — ${onDuty.length} staff</div>`;
@@ -8222,24 +8687,62 @@ if (_origCpRenderLive) {
 // ════════════════════════════════════════════════
 // DEVELOPER: UAE HOLIDAYS MANAGEMENT
 // ════════════════════════════════════════════════
-let UAE_HOLIDAYS = JSON.parse(localStorage.getItem('uaeHolidays_v1') || 'null') || [
-  // ── UAE Public Holidays 2026 (official, updated — main days only) ──
-  {date:'2026-01-01', name:'New Year\'s Day'},
-  {date:'2026-03-20', name:'Eid Al Fitr'},
-  {date:'2026-05-26', name:'Arafat (Haj) Day'},
-  {date:'2026-05-27', name:'Eid Al Adha'},
-  {date:'2026-06-16', name:'Islamic New Year'},
-  {date:'2026-08-25', name:'Prophet\'s Birthday'},
-  {date:'2026-12-01', name:'Commemoration Day'},
-  {date:'2026-12-02', name:'UAE National Day'},
-];
-// Clean any previously-cached list: drop 2025 entries and "Holiday" filler days
+// ════════════════════════════════════════════════
+// UAE PUBLIC HOLIDAYS — AUTO-CALCULATED
+// Covers current year and next year automatically.
+// Based on official UAE government announcements pattern.
+// ════════════════════════════════════════════════
+function autoGenerateUAEHolidays() {
+  const yr = new Date().getFullYear();
+  const holidays = [];
+  // Fixed Gregorian holidays (same date every year)
+  [yr, yr + 1].forEach(y => {
+    holidays.push({date: `${y}-01-01`, name: "New Year's Day"});
+    holidays.push({date: `${y}-12-01`, name: "Commemoration Day"});
+    holidays.push({date: `${y}-12-02`, name: "UAE National Day"});
+    holidays.push({date: `${y}-12-03`, name: "UAE National Day Holiday"});
+  });
+  // Islamic lunar holidays (approximate — these shift ~11 days earlier each Gregorian year)
+  // Using 2026 as base reference and applying known year offsets
+  const islamicHols2026 = [
+    {md: '03-20', name: 'Eid Al Fitr'},
+    {md: '03-21', name: 'Eid Al Fitr Holiday'},
+    {md: '03-22', name: 'Eid Al Fitr Holiday'},
+    {md: '05-26', name: 'Arafat (Haj) Day'},
+    {md: '05-27', name: 'Eid Al Adha'},
+    {md: '05-28', name: 'Eid Al Adha Holiday'},
+    {md: '05-29', name: 'Eid Al Adha Holiday'},
+    {md: '06-16', name: 'Islamic New Year'},
+    {md: '08-25', name: "Prophet's Birthday"},
+  ];
+  islamicHols2026.forEach(h => {
+    holidays.push({date: `2026-${h.md}`, name: h.name});
+    // Approximate shift for 2027 (~11 days earlier)
+    const [mm, dd] = h.md.split('-').map(Number);
+    const d27 = new Date(2026, mm - 1, dd - 11);
+    const yy = d27.getFullYear() < 2027 ? 2027 : d27.getFullYear();
+    holidays.push({
+      date: `${yy}-${String(d27.getMonth()+1).padStart(2,'0')}-${String(d27.getDate()).padStart(2,'0')}`,
+      name: h.name
+    });
+  });
+  // De-duplicate
+  const seen = new Set();
+  return holidays.filter(h => {
+    if (seen.has(h.date + h.name)) return false;
+    seen.add(h.date + h.name); return true;
+  }).sort((a,b) => a.date.localeCompare(b.date));
+}
+
+let UAE_HOLIDAYS = JSON.parse(localStorage.getItem('uaeHolidays_v1') || 'null') || autoGenerateUAEHolidays();
+// Refresh auto-holidays if stored list is stale (only has old years)
 try {
   const _stored = JSON.parse(localStorage.getItem('uaeHolidays_v1')||'null');
+  const curYear = new Date().getFullYear();
   if (Array.isArray(_stored)) {
-    const cleaned = _stored.filter(h => h && h.date && h.date.startsWith('2026') && !/\bHoliday$/i.test(h.name||''));
-    if (cleaned.length !== _stored.length) {
-      UAE_HOLIDAYS = cleaned.length ? cleaned : UAE_HOLIDAYS;
+    const hasCurrentYear = _stored.some(h => h && h.date && h.date.startsWith(String(curYear)));
+    if (!hasCurrentYear) {
+      UAE_HOLIDAYS = autoGenerateUAEHolidays();
       localStorage.setItem('uaeHolidays_v1', JSON.stringify(UAE_HOLIDAYS));
     }
   }
@@ -8257,8 +8760,14 @@ function getHolidayForDate(y, m, d) {
 function cpRenderHolidays() {
   const container = document.getElementById('cpHolidayList');
   if (!container) return;
+  // Show auto-generate notice at top
+  const curYear = new Date().getFullYear();
+  const autoNote = `<div style="background:rgba(74,222,128,.07);border:1px solid rgba(74,222,128,.2);border-radius:8px;padding:9px 12px;margin-bottom:10px;font-size:11px;color:#4ADE80">
+    🤖 <strong>Auto-managed:</strong> UAE holidays for ${curYear} and ${curYear+1} are pre-loaded automatically. 
+    <button class="bx bxg" style="margin-left:8px;font-size:10px;padding:3px 8px" onclick="cpAutoRefreshHolidays()">↺ Reset to Auto</button>
+  </div>`;
   const sorted = [...UAE_HOLIDAYS].sort((a,b) => a.date.localeCompare(b.date));
-  container.innerHTML = sorted.length
+  container.innerHTML = autoNote + (sorted.length
     ? sorted.map((h, i) => {
         const d = new Date(h.date + 'T00:00:00');
         const label = d.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'long', year:'numeric'});
@@ -8272,7 +8781,7 @@ function cpRenderHolidays() {
           <button class="bx bxr" onclick="cpDelHoliday(${UAE_HOLIDAYS.indexOf(h)})">Del</button>
         </div>`;
       }).join('')
-    : '<div style="font-size:11px;color:#64748B;padding:8px">No holidays added yet.</div>';
+    : '<div style="font-size:11px;color:#64748B;padding:8px">No holidays added yet.</div>');
 }
 function cpAddHoliday() {
   const date = document.getElementById('cpHolDate')?.value;
@@ -8303,6 +8812,12 @@ function cpEditHoliday(i) {
   saveUAEHolidays();
   cpRenderHolidays();
   cpToast('✅ Updated');
+}
+function cpAutoRefreshHolidays() {
+  UAE_HOLIDAYS = autoGenerateUAEHolidays();
+  saveUAEHolidays();
+  cpRenderHolidays();
+  cpToast('✅ Holidays reset to auto-generated list!');
 }
 function cpAutoLoadUAEHolidays() {
   // Mark holidays as block days in current month
@@ -8369,17 +8884,56 @@ function cpAutoLoadUAEHolidays() {
 })();
 
 // ════════════════════════════════════════════════
-// DEVELOPER: THEME SYSTEM FOR SPECIAL EVENTS
+// DEVELOPER: THEME SYSTEM — AUTO UAE EVENT THEMES
 // ════════════════════════════════════════════════
-const THEMES = {
-  default: { name: 'Default', navy:'#0F1E35', navy2:'#1B2D4A', gold:'#C9963A', gold2:'#E8B04A', bg:'#0B1525', accent:'#C9963A' },
-  uaeNational: { name: '🇦🇪 UAE National Day', navy:'#006600', navy2:'#004D00', gold:'#FF0000', gold2:'#FF3333', bg:'#001A00', accent:'#FFFFFF' },
-  eid: { name: '🌙 Eid Celebration', navy:'#1A0A2E', navy2:'#2D1454', gold:'#D4AF37', gold2:'#FFD700', bg:'#0D0520', accent:'#D4AF37' },
-  ramadan: { name: '🌙 Ramadan', navy:'#0A1A2E', navy2:'#102240', gold:'#C0A050', gold2:'#E8C060', bg:'#060E1A', accent:'#C0A050' },
-  newYear: { name: '🎆 New Year', navy:'#0A0A1A', navy2:'#151530', gold:'#FF6B6B', gold2:'#FFD700', bg:'#050510', accent:'#FF6B6B' },
-  corporate: { name: '🏢 Corporate Blue', navy:'#0A2240', navy2:'#0D2D55', gold:'#1E90FF', gold2:'#4FAFFF', bg:'#051525', accent:'#1E90FF' },
-};
+function buildAutoUAEThemes() {
+  return {
+    default:     { name: 'Default',               navy:'#0F1E35', navy2:'#1B2D4A', gold:'#C9963A', gold2:'#E8B04A', bg:'#0B1525', accent:'#C9963A' },
+    uaeNational: { name: '🇦🇪 UAE National Day',   navy:'#006600', navy2:'#004D00', gold:'#FF0000', gold2:'#FF3333', bg:'#001A00', accent:'#FFFFFF' },
+    eid:         { name: '🌙 Eid Celebration',      navy:'#1A0A2E', navy2:'#2D1454', gold:'#D4AF37', gold2:'#FFD700', bg:'#0D0520', accent:'#D4AF37' },
+    ramadan:     { name: '🌙 Ramadan',              navy:'#0A1A2E', navy2:'#102240', gold:'#C0A050', gold2:'#E8C060', bg:'#060E1A', accent:'#C0A050' },
+    newYear:     { name: '🎆 New Year',             navy:'#0A0A1A', navy2:'#151530', gold:'#FF6B6B', gold2:'#FFD700', bg:'#050510', accent:'#FF6B6B' },
+    islamicNew:  { name: '☪️ Islamic New Year',     navy:'#0D1A2E', navy2:'#112236', gold:'#9DC3C1', gold2:'#C5E8E6', bg:'#070F1C', accent:'#9DC3C1' },
+    prophet:     { name: '🌟 Prophet\'s Birthday',  navy:'#112218', navy2:'#1A3324', gold:'#8BC34A', gold2:'#CDDC39', bg:'#080F0A', accent:'#8BC34A' },
+    commemor:    { name: '🕊️ Commemoration Day',    navy:'#1A1A1A', navy2:'#2A2A2A', gold:'#CFD8DC', gold2:'#ECEFF1', bg:'#0F0F0F', accent:'#CFD8DC' },
+    corporate:   { name: '🏢 Corporate Blue',       navy:'#0A2240', navy2:'#0D2D55', gold:'#1E90FF', gold2:'#4FAFFF', bg:'#051525', accent:'#1E90FF' },
+  };
+}
+const THEMES = buildAutoUAEThemes();
 let activeTheme = localStorage.getItem('activeTheme_v1') || 'default';
+// Auto-theme: detect upcoming/current UAE events and suggest theme
+function autoSelectUAETheme() {
+  const today = new Date();
+  const todayISO = today.toISOString().slice(0,10);
+  const eventToTheme = {
+    "New Year's Day": 'newYear',
+    "Eid Al Fitr": 'eid', "Eid Al Fitr Holiday": 'eid',
+    "Eid Al Adha": 'eid', "Eid Al Adha Holiday": 'eid',
+    "Arafat (Haj) Day": 'eid',
+    "Islamic New Year": 'islamicNew',
+    "Prophet's Birthday": 'prophet',
+    "Commemoration Day": 'commemor',
+    "UAE National Day": 'uaeNational', "UAE National Day Holiday": 'uaeNational',
+  };
+  // Check if today or yesterday is a UAE holiday
+  for (const h of (typeof UAE_HOLIDAYS !== 'undefined' ? UAE_HOLIDAYS : [])) {
+    if (!h || !h.date) continue;
+    const diff = (new Date(h.date) - today) / 86400000;
+    if (diff >= -1 && diff <= 1) {
+      const themeKey = eventToTheme[h.name];
+      if (themeKey && THEMES[themeKey]) return themeKey;
+    }
+  }
+  return null;
+}
+// Apply auto-theme only if user hasn't manually set one
+(function(){
+  const stored = localStorage.getItem('activeTheme_v1');
+  if (!stored || stored === 'default') {
+    const auto = autoSelectUAETheme();
+    if (auto) { activeTheme = auto; }
+  }
+})();
 // Load custom image themes from localStorage
 try {
   const savedImgs = JSON.parse(localStorage.getItem('customImageThemes_v1')||'{}');
@@ -9006,7 +9560,7 @@ function devExportScheduleJSON() {
   function fmtDate(d){
     const dt = (d instanceof Date) ? d : new Date(d);
     if (isNaN(dt)) return String(d||'');
-    return dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'UTC'});
+    return dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
   }
   function parseDateCell(v){
     if (v==null||v==='') return null;
@@ -9146,8 +9700,6 @@ function devExportScheduleJSON() {
 
         merged.sort((a,b)=> a.hotel.localeCompare(b.hotel) || a.date.localeCompare(b.date));
         saveFC(merged); renderForecast();
-        try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
-        if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
         if (typeof renderLiveDashboard === 'function') renderLiveDashboard();
         alert('✅ Done. '+out.length+' rows imported · total now '+merged.length+
               ' rows across '+new Set(merged.map(r=>r.hotel)).size+' hotel(s).'+
@@ -9220,10 +9772,7 @@ function devExportScheduleJSON() {
 
   // ─── Build next-10 days for one hotel ───
   function getNext10(hotelId, allData){
-    const nowAD2 = new Date(new Date().getTime() + 4*3600000);
-    const todayStr2 = nowAD2.toISOString().slice(0,10);
-    const [ty2,tm2,td2] = todayStr2.split('-').map(Number);
-    const today = new Date(Date.UTC(ty2,tm2-1,td2));
+    const today = new Date(); today.setHours(0,0,0,0);
     const out = [];
     for (let i=0;i<10;i++){
       const d = new Date(today.getTime()+i*86400000);
@@ -9263,10 +9812,7 @@ function devExportScheduleJSON() {
       const allData = loadFC();
       const subHotels = hotelDefs().filter(x => x.id !== 'yph');
       // Build combined 10-day rows
-      const nowAD3 = new Date(new Date().getTime() + 4*3600000);
-      const todayStr3 = nowAD3.toISOString().slice(0,10);
-      const [ty3,tm3,td3] = todayStr3.split('-').map(Number);
-      const today = new Date(Date.UTC(ty3,tm3-1,td3));
+      const today = new Date(); today.setHours(0,0,0,0);
       const combinedRows = [];
       for (let i = 0; i < 10; i++) {
         const d = new Date(today.getTime() + i * 86400000);
@@ -9487,10 +10033,8 @@ function devExportScheduleJSON() {
     return TOTAL_YPH_ROOMS;
   }
   function fmtDay(ds){
-    // Parse as UTC to avoid timezone shifting (GMT+4 Abu Dhabi)
-    const [y,m,d] = ds.split('-').map(Number);
-    const dt = new Date(Date.UTC(y, m-1, d));
-    return isNaN(dt) ? ds : dt.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',timeZone:'UTC'});
+    const d = new Date(ds);
+    return isNaN(d) ? ds : d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
   }
   function dayKey(d){ return d.toISOString().slice(0,10); }
 
@@ -9501,11 +10045,7 @@ function devExportScheduleJSON() {
     const hf = sel ? sel.value : 'all';
     const filtered = (!hf||hf==='all') ? data : data.filter(r => r.hotel===hf);
 
-    // Use UTC date that matches Abu Dhabi (GMT+4) calendar date
-    const nowAD = new Date(new Date().getTime() + 4*3600000);
-    const todayStr = nowAD.toISOString().slice(0,10);
-    const [ty,tm,td] = todayStr.split('-').map(Number);
-    const today = new Date(Date.UTC(ty,tm-1,td));
+    const today = new Date(); today.setHours(0,0,0,0);
     const out = [];
     for (let i=0;i<days;i++){
       const d = new Date(today.getTime()+i*86400000);
@@ -10241,17 +10781,11 @@ function devExportScheduleJSON() {
       const dt = new Date(Date.UTC(yyyy, mo-1, dd));
       if (isNaN(dt)) return;
       const key = hotel + '|' + dt.toISOString().slice(0,10);
-      const dateKey = dt.toISOString().slice(0,10);
-      const existIdx = out.findIndex(r => r.hotel===hotel && r.date===dateKey);
-      if (existIdx >= 0) {
-        const ex = out[existIdx];
-        // Always update with better data: prefer the row with higher arr (more complete)
-        if (+arr > ex.arr || (+dep > 0 && ex.dep === 0)) {
-          out[existIdx] = { hotel, date: dateKey, occ: +occ, arr: +arr, dep: +dep, rev: rev||ex.rev, notes: 'PDF · Total Occ ' + totalOcc };
-        } else {
-          if (dep > 0 && ex.dep === 0) ex.dep = +dep;
-          if (rev > 0 && !ex.rev) ex.rev = rev;
-        }
+      // Overwrite only if we now have dep > 0 or no existing entry
+      const existing = out.find(r => r.hotel===hotel && r.date===dt.toISOString().slice(0,10));
+      if (existing) {
+        if (dep > 0 && existing.dep === 0) existing.dep = +dep;
+        if (rev > 0 && !existing.rev) existing.rev = rev;
         return;
       }
       out.push({
@@ -10306,14 +10840,11 @@ function devExportScheduleJSON() {
         // tail = "Doorcard FuncRoom EXP [GTD] [ACT] Setup..."
         const nums = (tail.match(/(?<![\w.])\d{1,4}(?![\w.])/g) || []).map(Number);
         const guests = nums.length ? Math.max(...nums) : 0;
-        // Off-site events — exclude from valet count
-        const isOC = /outside\s*catering/i.test(tail) || /outside\s*catering/i.test(title);
         out.push({
           date: currentDate, prop,
           hotel: propMap[prop] || null,
           title: title.trim(), evid, status,
-          start, end, guests,
-          outsideCatering: isOC
+          start, end, guests
         });
       }
     }));
@@ -10442,7 +10973,7 @@ function devExportScheduleJSON() {
             📊 Import Forecast PDF
             <input type="file" id="sxFcFileStaff" accept=".pdf" style="display:none">
           </label>
-          <button class="btn btn-sm" id="sxEvClear" title="Clear all imported events and upload a new file" style="background:#FFF0F0;color:#B71C1C;border:1.5px solid #FFCDD2;font-weight:700">🗑 Clear Events</button>
+          <button class="btn btn-ghost btn-sm" id="sxEvClear" style="color:var(--red)">🗑 Events</button>
           <button class="btn btn-gold btn-sm" id="sxRecalc">🔄 Recalc</button>
           <span id="sxStatus" style="font-size:11px;color:var(--slate)"></span>
         </div>
@@ -10508,15 +11039,6 @@ function devExportScheduleJSON() {
       );
       if (!choice){ evt.target.value=''; return; }
       const merged = fcMergeImport(rows);
-      // Auto-set the staffing date picker to the earliest date from this PDF
-      const importedDates = rows.map(r=>r.date).filter(Boolean).sort();
-      if (importedDates.length){
-        const dEl = document.getElementById('sxDate');
-        if (dEl){ dEl.value = importedDates[0]; }
-      }
-      // Stamp the import time for expiry tracking
-      try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
-      if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
       alert('✅ Imported '+rows.length+' rows from PDF.\nTotal now: '+merged.length+' rows.');
     }catch(err){ console.error(err); alert('PDF import failed: '+err.message); }
     evt.target.value='';
@@ -10533,8 +11055,6 @@ function devExportScheduleJSON() {
         alert('Could not read any events from this PDF.'); evt.target.value=''; return;
       }
       saveEvents(events);
-      try{ localStorage.setItem('yph_fc_import_ts', Date.now().toString()); }catch(e){}
-      if(typeof window.fcExpiryTick==='function') setTimeout(window.fcExpiryTick,200);
       document.getElementById('sxStatus').textContent =
         '✅ '+events.length+' events imported across '+
         new Set(events.map(e=>e.date)).size+' day(s).';
@@ -10600,7 +11120,6 @@ function devExportScheduleJSON() {
   // ─────────────────────────────────────────────────────────────────
   function eventsInShift(evs, shift){
     return evs.filter(e=>{
-      if (e.outsideCatering) return false; // Off-site — no valet required
       const h = parseInt((e.start||'0:0').split(':')[0],10);
       if (shift.id==='night') return h>=22 || h<6;
       return h>=shift.from && h<shift.to;
@@ -10715,7 +11234,7 @@ function devExportScheduleJSON() {
       const valetRows = SHIFTS.map(sh => {
         const arr = Math.round((fRow.arr||0) * ARR_SPLIT[sh.id]);
         const dep = Math.round((fRow.dep||0) * DEP_SPLIT[sh.id]);
-        const evShift = hotelEvs.filter(e=>{ if(e.outsideCatering) return false; const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
+        const evShift = hotelEvs.filter(e=>{ const hr=parseInt((e.start||'0:0').split(':')[0],10); if(sh.id==='night') return hr>=22||hr<6; return hr>=sh.from&&hr<sh.to; });
         const evGuests = evShift.reduce((s,e)=>s+(e.guests||0),0);
         const evCount  = evShift.length;
 
@@ -10744,9 +11263,7 @@ function devExportScheduleJSON() {
       const hkWorkload = (fRow.dep||0) + (fRow.arr||0);
       const hkNeed     = Math.ceil(hkWorkload / Math.max(1, cfg.hk.roomsPerAttendant));
       const hkExtra    = Math.max(0, hkNeed - hkRostered);
-      // Exclude Outside Catering from valet pax (off-site events)
-      const valetEvs = hotelEvs.filter(e=>!e.outsideCatering);
-      const totalEvGuests = valetEvs.reduce((s,e)=>s+(e.guests||0),0);
+      const totalEvGuests = hotelEvs.reduce((s,e)=>s+(e.guests||0),0);
 
       const pill = (extra, need) => {
         if (need === 0) return `<span class="sx-pill" style="background:#f0f4f8;color:#94a3b8;font-size:9px">no data</span>`;
@@ -10784,7 +11301,6 @@ function devExportScheduleJSON() {
               <span class="sx-ev-time">${e.start||''}–${e.end||''}</span>
               <span class="sx-ev-title">${e.title||''}</span>
               <span class="sx-ev-pax">${e.guests>0?e.guests+' pax':''}</span>
-              ${e.outsideCatering?'<span style="font-size:9px;background:#FFF3E0;color:#E65C00;padding:1px 5px;border-radius:99px;font-weight:700;flex-shrink:0">Off-site · no valet</span>':''}
             </div>`).join('')}` : ''}
 
           <!-- VALET -->
@@ -10952,104 +11468,191 @@ function devExportScheduleJSON() {
 </script>
 
 <script>
-// ════════════════════════════════════════════════════════════════
-// FORECAST & EVENTS AUTO-EXPIRY + UPDATE REQUEST BANNER
-// Forecasts and events auto-clear after 12 hours.
-// A persistent banner warns the team 30 min before and after expiry.
-// ════════════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════════
+// SECURITY — Rate-limit, session timeout, password strength
+// ══════════════════════════════════════════════════════════════
 (function(){
-  const FC_KEY   = 'yph_forecast_v2';
-  const EVT_KEY  = 'yph_events_v1';
-  const TS_KEY   = 'yph_fc_import_ts';
-  const EXPIRY_MS = 12 * 60 * 60 * 1000;   // 12 hours
-  const WARN_MS   = 30 * 60 * 1000;         // warn 30 min before
+  const MAX_ATTEMPTS  = 5;
+  const LOCKOUT_MS    = 15 * 60 * 1000;  // 15 minutes
+  const SESSION_MS    = 60 * 60 * 1000;  // 60 minutes inactivity
+  const ATKEY = 'yph_login_attempts';
+  const LTKEY = 'yph_lockout_until';
+  const SKEY  = 'yph_session_active_ts';
 
-  function getImportAge(){
-    try{
-      const ts = parseInt(localStorage.getItem(TS_KEY)||'0',10);
-      if (!ts) return null;
-      return Date.now() - ts;
-    }catch(e){ return null; }
-  }
+  // ── Attempt tracking ──
+  function getAttempts(){ try{ return JSON.parse(localStorage.getItem(ATKEY)||'[]'); }catch(e){ return []; } }
+  function setAttempts(a){ try{ localStorage.setItem(ATKEY, JSON.stringify(a)); }catch(e){} }
+  function getLockout(){  try{ return parseInt(localStorage.getItem(LTKEY)||'0',10); }catch(e){ return 0; } }
+  function setLockout(t){ try{ localStorage.setItem(LTKEY, String(t)); }catch(e){} }
 
-  function clearExpiredData(){
-    try{ localStorage.removeItem(FC_KEY); }catch(e){}
-    try{ localStorage.removeItem(EVT_KEY); }catch(e){}
-    try{ localStorage.removeItem(TS_KEY); }catch(e){}
-    if (typeof renderForecast==='function') try{ renderForecast(); }catch(e){}
-    if (typeof renderLiveDashboard==='function') try{ renderLiveDashboard(); }catch(e){}
-    if (typeof window.renderStaffingAddon==='function') try{ window.renderStaffingAddon(); }catch(e){}
-  }
+  window.secIsLocked = function(){
+    const until = getLockout();
+    if (!until) return false;
+    if (Date.now() < until) return true;
+    // Lockout expired — clear
+    try{ localStorage.removeItem(LTKEY); localStorage.removeItem(ATKEY); }catch(e){}
+    return false;
+  };
 
-  function minutesLeft(ageMs){
-    return Math.max(0, Math.round((EXPIRY_MS - ageMs) / 60000));
-  }
+  window.secLockoutRemaining = function(){
+    return Math.max(0, Math.ceil((getLockout() - Date.now()) / 60000));
+  };
 
-  function ensureBanner(){
-    let bar = document.getElementById('fcExpiryBar');
-    if (!bar){
-      bar = document.createElement('div');
-      bar.id = 'fcExpiryBar';
-      bar.style.cssText = 'position:fixed;top:56px;left:0;right:0;z-index:9990;padding:0;display:none;';
-      document.body.appendChild(bar);
+  window.secRecordAttempt = function(success){
+    if (success){
+      try{ localStorage.removeItem(ATKEY); localStorage.removeItem(LTKEY); }catch(e){}
+      secResetSession();
+      return;
     }
-    return bar;
-  }
+    const now = Date.now();
+    const attempts = getAttempts().filter(t => now - t < LOCKOUT_MS);
+    attempts.push(now);
+    setAttempts(attempts);
+    if (attempts.length >= MAX_ATTEMPTS){
+      setLockout(now + LOCKOUT_MS);
+    }
+  };
 
-  function renderBanner(state, minLeft){
-    const bar = ensureBanner();
-    if (state === 'ok'){ bar.style.display='none'; return; }
-    const isExpired = state==='expired';
-    const bg    = isExpired ? '#B71C1C' : '#E65C00';
-    const icon  = isExpired ? '\u{1F534}' : '\u26A0\uFE0F';
-    const title = isExpired ? 'FORECAST EXPIRED — Data has been cleared'
-                            : 'FORECAST EXPIRING in ' + minLeft + ' min';
-    const msg   = isExpired
-      ? 'The 12-hour data window has passed. Upload a new Forecast PDF and Events PDF to keep staffing accurate.'
-      : 'Forecast data expires in <b>' + minLeft + ' minutes</b>. Ask revenue to export and upload a fresh report.';
-    bar.style.display = 'block';
-    bar.innerHTML =
-      '<div style="background:' + bg + ';color:#fff;padding:10px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 4px 20px rgba(0,0,0,.3)">' +
-        '<span style="font-size:18px">' + icon + '</span>' +
-        '<div style="flex:1;min-width:200px">' +
-          '<div style="font-family:Syne,sans-serif;font-weight:800;font-size:13px">' + title + '</div>' +
-          '<div style="font-size:11px;opacity:.9;margin-top:2px">' + msg + '</div>' +
-        '</div>' +
-        '<div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">' +
-          '<button onclick="var el=document.getElementById(\'sxFcFileStaff\')||document.getElementById(\'sxFcFile\');if(el)el.click();" ' +
-            'style="background:#fff;color:' + bg + ';border:none;border-radius:8px;padding:8px 16px;font-weight:800;font-size:12px;cursor:pointer">' +
-            '\uD83D\uDCCA Upload New Forecast' +
-          '</button>' +
-          '<button onclick="var el2=document.getElementById(\'sxEvFile\');if(el2)el2.click();" ' +
-            'style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.4);border-radius:8px;padding:8px 16px;font-weight:700;font-size:12px;cursor:pointer">' +
-            '\uD83D\uDCC5 Upload New Events' +
-          '</button>' +
-          (isExpired ? '' : '<button onclick="document.getElementById(\'fcExpiryBar\').style.display=\'none\';" style="background:rgba(255,255,255,.1);color:#fff;border:none;border-radius:8px;padding:8px 12px;font-size:11px;cursor:pointer">Dismiss</button>') +
-        '</div>' +
-        '<div style="font-size:10px;opacity:.65;white-space:nowrap">' +
-          (isExpired ? 'Data cleared' : 'Auto-clears in ' + minLeft + ' min') +
-        '</div>' +
-      '</div>';
-  }
+  window.secRemainingAttempts = function(){
+    const now = Date.now();
+    const attempts = getAttempts().filter(t => now - t < LOCKOUT_MS);
+    return Math.max(0, MAX_ATTEMPTS - attempts.length);
+  };
 
-    function tick(){
-    const age = getImportAge();
-    if (age === null){ renderBanner('ok',0); return; }
-    if (age >= EXPIRY_MS){ renderBanner('expired',0); clearExpiredData(); return; }
-    if (age >= EXPIRY_MS - WARN_MS){ renderBanner('expiring', minutesLeft(age)); }
-    else { renderBanner('ok',0); }
-  }
+  // ── Session management ──
+  window.secResetSession = function(){
+    try{ localStorage.setItem(SKEY, String(Date.now())); }catch(e){}
+  };
 
-  function init(){ tick(); setInterval(tick, 60000); }
+  window.secCheckSession = function(){
+    try{
+      const ts = parseInt(localStorage.getItem(SKEY)||'0',10);
+      if (!ts) return false;
+      if (Date.now() - ts > SESSION_MS){
+        // Auto-logout
+        try{ localStorage.removeItem(SKEY); }catch(e){}
+        if (typeof isDeveloper === 'function' && isDeveloper()){
+          ADMIN_ROLE = '';
+          if (typeof backToLanding === 'function') backToLanding();
+          showSecToast('🔒 Session expired — please log in again.', 'warn');
+        }
+        return false;
+      }
+      secResetSession(); // Refresh on activity
+      return true;
+    }catch(e){ return false; }
+  };
 
-  if (document.readyState==='loading'){
-    document.addEventListener('DOMContentLoaded', function(){ setTimeout(init,800); });
-  } else {
-    setTimeout(init, 800);
-  }
-  window.addEventListener('load', function(){ setTimeout(tick,1200); });
-  window.fcExpiryTick = tick;
+  // Ping session on any user interaction
+  ['click','keydown','scroll','touchstart'].forEach(evt =>
+    document.addEventListener(evt, function(){ secResetSession(); }, { passive:true })
+  );
+  // Check every 2 minutes
+  setInterval(window.secCheckSession, 2 * 60 * 1000);
+
+  // ── Toast for security messages ──
+  window.showSecToast = function(msg, type){
+    const t = document.createElement('div');
+    const bg = type === 'warn' ? '#E65C00' : type === 'danger' ? '#B71C1C' : '#1B5E20';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:99999;background:' + bg + ';color:#fff;padding:12px 20px;border-radius:12px;font-size:12px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:slideInRight .3s ease;max-width:320px';
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(() => t.remove(), 400); }, 4000);
+  };
+
+  // ── Password strength checker ──
+  window.secPasswordStrength = function(pass){
+    if (!pass || pass.length < 4) return { score:0, label:'Too short', color:'#EF4444' };
+    let score = 0;
+    if (pass.length >= 8)  score++;
+    if (pass.length >= 12) score++;
+    if (/[A-Z]/.test(pass)) score++;
+    if (/[a-z]/.test(pass)) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[^A-Za-z0-9]/.test(pass)) score++;
+    if (score <= 2) return { score, label:'Weak', color:'#EF4444' };
+    if (score <= 4) return { score, label:'Fair', color:'#F59E0B' };
+    if (score === 5) return { score, label:'Strong', color:'#10B981' };
+    return { score, label:'Very Strong', color:'#059669' };
+  };
+
+  window.secRenderStrengthBar = function(containerId, pass){
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const { score, label, color } = secPasswordStrength(pass);
+    const pct = Math.round((score / 6) * 100);
+    el.innerHTML =
+      '<div style="height:4px;background:#eef0f5;border-radius:99px;overflow:hidden;margin-top:5px">' +
+        '<div style="height:100%;width:' + pct + '%;background:' + color + ';transition:.3s;border-radius:99px"></div>' +
+      '</div>' +
+      '<div style="font-size:10px;color:' + color + ';font-weight:700;margin-top:3px">' + label + '</div>';
+  };
+
+  console.log('[YPH Security] Rate-limit, session timeout, strength-checker ready');
 })();
+</script>
+
+<script>
+// ── Dev Panel search ──
+function cpSearchPanel(q) {
+  const res = document.getElementById('cpSearchResults');
+  if (!res) return;
+  q = (q||'').trim().toLowerCase();
+  if (!q) { res.style.display='none'; return; }
+
+  const items = [
+    {label:'🧩 Feature Modules',   tab:'modules'},
+    {label:'🏨 Hotels',            tab:'hotels'},
+    {label:'🏢 Departments',       tab:'departments'},
+    {label:'🏢 Positions',         tab:'departments'},
+    {label:'⏰ Shifts',            tab:'shifts'},
+    {label:'🔑 Passwords',         tab:'access'},
+    {label:'🔑 Access & Passwords',tab:'access'},
+    {label:'🟢 LIVE Dashboard',    tab:'live'},
+    {label:'🟢 Live Users',        tab:'live'},
+    {label:'🔔 Notifications',     tab:'notifications'},
+    {label:'🔥 Firebase',          tab:'firebase'},
+    {label:'📋 Activity Logs',     tab:'logs'},
+    {label:'⚠️ Danger Zone',       tab:'danger'},
+    {label:'⚠️ Factory Reset',     tab:'danger'},
+    {label:'⚠️ Clear Data',        tab:'danger'},
+  ];
+
+  const matches = items.filter(it => it.label.toLowerCase().includes(q));
+  if (!matches.length) {
+    res.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:rgba(255,255,255,.4)">No results</div>';
+    res.style.display = 'block';
+    return;
+  }
+  res.innerHTML = matches.map(it => {
+    const div = document.createElement('div');
+    div.className = 'cp-sr-item';
+    div.textContent = it.label;
+    div.dataset.tab = it.tab;
+    div.style.cssText = 'padding:9px 14px;font-size:12px;color:#fff;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)';
+    div.addEventListener('mouseover',function(){this.style.background='rgba(201,150,58,.15)';});
+    div.addEventListener('mouseout',function(){this.style.background='';});
+    div.addEventListener('click',function(){
+      cpTab(this.dataset.tab);
+      const si=document.getElementById('cpSearch'); if(si)si.value='';
+      const sr=document.getElementById('cpSearchResults'); if(sr)sr.style.display='none';
+    });
+    return div.outerHTML;
+  }).join('');
+  res.style.display = 'block';
+}
+document.addEventListener('click', function(e){
+  const res = document.getElementById('cpSearchResults');
+  const inp = document.getElementById('cpSearch');
+  if (res && inp && !res.contains(e.target) && e.target !== inp) res.style.display='none';
+});
+
+// ── Add password strength to the dev panel change-password form ──
+function cpRenderPassStrength(val){
+  if(typeof secRenderStrengthBar !== 'undefined'){
+    secRenderStrengthBar('cpPassStrengthBar', val);
+  }
+}
 </script>
 </body>
 </html>
