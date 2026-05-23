@@ -334,7 +334,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .link-btn{background:none;border:none;color:var(--slate2);cursor:pointer;font-size:11px;margin-top:12px;text-decoration:underline}
 
 /* ════ APP SHELL ════ */
-#app{display:none;flex-direction:column;min-height:100vh;background:#EEF3FA}
+#app{display:none;flex-direction:column;min-height:100vh;background:var(--ice2)}
 #app.show{display:flex}
 .topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));padding:0 22px;display:flex;align-items:center;height:56px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,.28);position:sticky;top:0;z-index:100}
 .topbar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0}
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .exit-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.65);border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;transition:.2s}
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
-.page{display:none;flex:1;min-height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both}
+.page{display:none;flex:1;height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -1311,6 +1311,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
         <button class="btn btn-ghost btn-sm" onclick="openBulk()">⚡ Bulk Fill</button>
         <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--purple),#7C3AED);color:#fff" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
+        <button class="btn btn-sm" style="background:linear-gradient(135deg,#0F766E,#0D5F58);color:#fff" onclick="openRotaUpdate()">✏️ Update Rota</button>
         <button class="btn btn-sm" style="background:rgba(201,150,58,.2);color:var(--gold);border:1px solid var(--gold)" onclick="printRoster()">🖨 Print / PDF</button>
       </div>
     </div>
@@ -1648,14 +1649,19 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 <div class="page" id="page-settings">
 <style>
 #page-settings{padding:0}
-#page-settings.active{padding:0;display:block;height:auto;min-height:calc(100vh - 56px);overflow:visible}
-#cp-outer{display:flex;flex-direction:column;padding:14px 14px 14px;min-height:calc(100vh - 84px)}
+#page-settings.active{padding:0;height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden}
+#cp-outer{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 14px 0}
 #cp-topbar-area{flex-shrink:0}
-.cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;padding-bottom:14px}
-.cp-sidebar{display:flex;flex-direction:column;gap:10px}
+.cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;overflow:hidden;min-height:0;padding-bottom:14px}
+.cp-sidebar{display:flex;flex-direction:column;gap:10px;overflow-y:auto;height:100%}
 .cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden;flex-shrink:0}
-.cp-content{display:flex;flex-direction:column;gap:12px}
+.cp-content{overflow-y:auto;height:100%;padding-right:4px}
+.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden}
 .cp-nav-hdr{padding:11px 15px;background:rgba(201,150,58,.1);border-bottom:1px solid rgba(201,150,58,.2);font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px}
+.cp-nav-item{display:flex;align-items:center;gap:8px;padding:10px 15px;cursor:pointer;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;color:rgba(255,255,255,.6);user-select:none}
+.cp-nav-item:hover{background:rgba(201,150,58,.07);color:#fff}
+.cp-nav-item.cpa{background:linear-gradient(90deg,rgba(201,150,58,.18),transparent);color:#C9963A;border-left:3px solid #C9963A;padding-left:12px}
+.cp-content{display:flex;flex-direction:column;gap:12px}
 .cp-panel{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
 .cp-ph{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
 .cp-pt{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
@@ -1773,7 +1779,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-nav-item" id="cpni-departments"  onclick="cpTab('departments')"><span class="cp-ni-icon">🏢</span>Departments & Positions</div>
       <div class="cp-nav-item" id="cpni-shifts"       onclick="cpTab('shifts')"><span class="cp-ni-icon">⏰</span>Shifts</div>
       <div class="cp-nav-item" id="cpni-access"       onclick="cpTab('access')"><span class="cp-ni-icon">🔑</span>Access & Passwords</div>
-      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE+ Dashboard</div>
+      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Dashboard</div>
       <div class="cp-nav-item" id="cpni-notifications" onclick="cpTab('notifications')"><span class="cp-ni-icon">🔔</span>Notifications</div>
       <div class="cp-nav-item" id="cpni-firebase"     onclick="cpTab('firebase')"><span class="cp-ni-icon">🔥</span>Firebase Config</div>
       <div class="cp-nav-item" id="cpni-logs"         onclick="cpTab('logs')"><span class="cp-ni-icon">📋</span>Activity Logs</div>
@@ -1821,11 +1827,51 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-ph">
         <div class="cp-pt">🏢 Departments & Positions <span class="cp-badge">Full Control</span></div>
         <div style="display:flex;gap:7px">
-          <button class="bgold" onclick="cpAddDept()">+ Dept</button>
+          <button class="bgold" onclick="cpToggleAddDeptForm()">+ Add Department</button>
           <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3)" onclick="cpAddPos()">+ Position</button>
         </div>
       </div>
-      <div class="cp-body" id="cpDeptBody"></div>
+      <div class="cp-body" id="cpDeptBody">
+        <!-- Action buttons shown inside body (visible in accordion mode too) -->
+        <div style="display:flex;gap:7px;margin-bottom:12px" id="cpDeptActionBtns">
+          <button class="bgold" onclick="cpToggleAddDeptForm()" style="font-size:11px;padding:7px 14px">➕ Add Department</button>
+          <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3);font-size:11px;padding:7px 14px" onclick="cpAddPos()">+ Position</button>
+        </div>
+        <!-- Inline Add Department Form -->
+        <div id="cpAddDeptForm" style="display:none;padding:14px;border:1.5px dashed rgba(201,150,58,.4);border-radius:10px;background:rgba(201,150,58,.06);margin-bottom:14px">
+          <div style="font-size:11px;font-weight:700;color:#E8B04A;margin-bottom:10px;letter-spacing:.5px">➕ NEW DEPARTMENT</div>
+          <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-start;margin-bottom:10px">
+            <div>
+              <label class="cp-lbl2">Department Name *</label>
+              <input class="cp-inp2" id="cpNewDeptName" placeholder="e.g. Food & Beverage, Spa, Security…" maxlength="60"
+                onkeydown="if(event.key==='Enter')cpAddDeptInline()"
+                oninput="cpValidateDeptName(this.value)"
+                style="font-size:13px">
+              <div id="cpNewDeptHint" style="font-size:10px;margin-top:4px;min-height:14px"></div>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:18px">
+              <button class="bgold" onclick="cpAddDeptInline()" style="white-space:nowrap;padding:9px 18px">✓ Create</button>
+              <button class="bx bxn" onclick="cpToggleAddDeptForm()" style="white-space:nowrap">✕</button>
+            </div>
+          </div>
+          <div>
+            <label class="cp-lbl2">Color Tag</label>
+            <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:5px" id="cpDeptColorPicker">
+              <div onclick="cpSelectDeptColor(this,'#3B82F6')" style="width:26px;height:26px;border-radius:50%;background:#3B82F6;cursor:pointer;border:2px solid transparent;transition:.15s" title="Blue"></div>
+              <div onclick="cpSelectDeptColor(this,'#10B981')" style="width:26px;height:26px;border-radius:50%;background:#10B981;cursor:pointer;border:2px solid transparent;transition:.15s" title="Green"></div>
+              <div onclick="cpSelectDeptColor(this,'#F59E0B')" style="width:26px;height:26px;border-radius:50%;background:#F59E0B;cursor:pointer;border:2px solid transparent;transition:.15s" title="Amber"></div>
+              <div onclick="cpSelectDeptColor(this,'#EF4444')" style="width:26px;height:26px;border-radius:50%;background:#EF4444;cursor:pointer;border:2px solid transparent;transition:.15s" title="Red"></div>
+              <div onclick="cpSelectDeptColor(this,'#8B5CF6')" style="width:26px;height:26px;border-radius:50%;background:#8B5CF6;cursor:pointer;border:2px solid transparent;transition:.15s" title="Purple"></div>
+              <div onclick="cpSelectDeptColor(this,'#0F766E')" style="width:26px;height:26px;border-radius:50%;background:#0F766E;cursor:pointer;border:2px solid transparent;transition:.15s" title="Teal"></div>
+              <div onclick="cpSelectDeptColor(this,'#DB2777')" style="width:26px;height:26px;border-radius:50%;background:#DB2777;cursor:pointer;border:2px solid transparent;transition:.15s" title="Pink"></div>
+              <div onclick="cpSelectDeptColor(this,'#C9963A')" style="width:26px;height:26px;border-radius:50%;background:#C9963A;cursor:pointer;outline:2px solid #C9963A;outline-offset:2px;border:2px solid transparent;transition:.15s" title="Gold"></div>
+            </div>
+            <input type="hidden" id="cpNewDeptColor" value="#C9963A">
+          </div>
+          <div id="cpNewDeptMsg" style="font-size:11px;margin-top:10px;min-height:14px"></div>
+        </div>
+        <!-- Dept list rendered here by cpRenderDepts() -->
+      </div>
     </div>
 
     <!-- SHIFTS -->
@@ -1921,36 +1967,21 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         <!-- Live preview panel injected by JS -->
         <div id="cpLivePreview"></div>
 
-        <!-- ══ AUTHORIZED STAFF — LIVE+ DASHBOARD ACCESS ══ -->
+        <!-- ══ AUTHORIZED STAFF — LIVE DASHBOARD ACCESS ══ -->
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)">
           <div class="cp-stitle" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            🟢 LIVE+ Staff Access
-            <span style="font-size:10px;color:#64748B;font-weight:400">Add staff by ID — control how many departments they see</span>
+            🟢 Staff LIVE Access
+            <span style="font-size:10px;color:#64748B;font-weight:400">Add employee IDs — they see LIVE + Roster on login</span>
           </div>
           <div class="cp-infobox" style="margin-bottom:12px">
-            Staff added here see the <strong style="color:#4ADE80">LIVE+</strong> tile + <strong style="color:#E8B04A">My Roster</strong> when they enter their ID. Use <strong>Dept Visibility</strong> to limit which departments they can see (1 = only their own, All = every department).
+            Staff added here will see a <strong style="color:#4ADE80">LIVE</strong> tile (locked to their own department) + <strong style="color:#E8B04A">My Roster</strong> tile when they enter their ID. Everyone else only sees their roster.
           </div>
-          <div style="display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:end;margin-bottom:8px">
-            <div>
-              <label class="cp-lbl2">Employee ID</label>
-              <input id="laEmpIdInp" class="cp-inp2" placeholder="e.g. E001" maxlength="10"
-                style="text-transform:uppercase;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px"
-                oninput="this.value=this.value.toUpperCase()"
-                onkeydown="if(event.key==='Enter')laAddId()">
-            </div>
-            <div>
-              <label class="cp-lbl2">Dept Visibility</label>
-              <select id="laDeptVis" class="cp-inp2" style="min-width:130px">
-                <option value="all">🌐 All Departments</option>
-                <option value="own">🔒 Own Dept Only</option>
-                <option value="1">1 Department</option>
-                <option value="2">2 Departments</option>
-                <option value="3">3 Departments</option>
-                <option value="4">4 Departments</option>
-                <option value="5">5 Departments</option>
-              </select>
-            </div>
-            <button class="bgold" style="padding:9px 18px;font-size:13px;white-space:nowrap;margin-bottom:0" onclick="laAddId()">+ Add</button>
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+            <input id="laEmpIdInp" class="cp-inp2" placeholder="Employee ID  e.g. E001" maxlength="10"
+              style="flex:1;text-transform:uppercase;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px"
+              oninput="this.value=this.value.toUpperCase()"
+              onkeydown="if(event.key==='Enter')laAddId()">
+            <button class="bgold" style="padding:9px 22px;font-size:13px;white-space:nowrap" onclick="laAddId()">+ Add</button>
           </div>
           <div id="laMsg" style="font-size:11px;min-height:16px;margin-bottom:10px;color:#4ADE80"></div>
           <div id="laList" style="display:flex;flex-direction:column;gap:7px"></div>
@@ -2194,7 +2225,132 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     </div>
   </div>
 </div>
-<!-- Bulk Fill Modal -->
+<!-- Rota Quick-Update Modal -->
+<div class="mover" id="rotaUpdateModal" style="display:none" onclick="if(event.target===this)closeModal('rotaUpdateModal')">
+  <div class="modal" style="max-width:680px;width:95vw;padding:0;overflow:hidden;border-radius:18px">
+    <div style="background:linear-gradient(135deg,#0F766E,#0D5F58);padding:18px 22px;display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff">✏️ Update Rota</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.65);margin-top:2px">Apply shift changes quickly to one or multiple employees</div>
+      </div>
+      <button onclick="closeModal('rotaUpdateModal')" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:8px;padding:6px 12px;cursor:pointer;font-size:13px">✕</button>
+    </div>
+
+    <!-- Mode tabs -->
+    <div style="display:flex;background:rgba(15,118,110,.08);border-bottom:1px solid #dde3f0">
+      <button id="ruTab1" onclick="ruSwitchMode('single')" style="flex:1;padding:11px;font-size:12px;font-weight:700;border:none;background:transparent;color:#0F766E;border-bottom:3px solid #0F766E;cursor:pointer">👤 Single Employee</button>
+      <button id="ruTab2" onclick="ruSwitchMode('bulk')" style="flex:1;padding:11px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--slate);border-bottom:3px solid transparent;cursor:pointer">👥 Bulk by Dept/Shift</button>
+      <button id="ruTab3" onclick="ruSwitchMode('swap')" style="flex:1;padding:11px;font-size:12px;font-weight:700;border:none;background:transparent;color:var(--slate);border-bottom:3px solid transparent;cursor:pointer">🔁 Copy From Month</button>
+    </div>
+
+    <div style="padding:20px;max-height:70vh;overflow-y:auto">
+
+      <!-- SINGLE EMPLOYEE MODE -->
+      <div id="ruModeSingle">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label class="lbl">Employee</label>
+            <select class="inp" id="ruEmpSel" onchange="ruRefreshPreview()">
+              <option value="">— Select Employee —</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">New Shift</label>
+            <select class="inp" id="ruNewShift" onchange="ruRefreshPreview()">
+              <option value="">— Select Shift —</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label class="lbl">From Day</label>
+            <input class="inp" type="number" id="ruFromDay" min="1" max="31" value="1" oninput="ruRefreshPreview()">
+          </div>
+          <div>
+            <label class="lbl">To Day</label>
+            <input class="inp" type="number" id="ruToDay" min="1" max="31" value="31" oninput="ruRefreshPreview()">
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer">
+            <input type="checkbox" id="ruSkipOff" style="width:15px;height:15px;accent-color:#0F766E" checked>
+            Skip existing OFF / Leave days (AL, EX, UNP, SICK, ABS, TRN)
+          </label>
+        </div>
+        <!-- Preview strip -->
+        <div id="ruPreview" style="background:var(--ice2);border:1.5px solid #dde3f0;border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;display:none">
+          <div style="font-size:10px;font-weight:700;color:#0F766E;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Preview — days affected</div>
+          <div id="ruPreviewBody" style="display:flex;flex-wrap:wrap;gap:4px"></div>
+        </div>
+        <button class="btn" style="background:linear-gradient(135deg,#0F766E,#0D5F58);color:#fff;width:100%;padding:13px;font-size:13px;font-weight:700" onclick="ruApplySingle()">✅ Apply Changes</button>
+      </div>
+
+      <!-- BULK BY DEPT MODE -->
+      <div id="ruModeBulk" style="display:none">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label class="lbl">Department</label>
+            <select class="inp" id="ruBulkDept" onchange="ruBulkDeptChanged()">
+              <option value="all">All Departments</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Current Shift (filter)</label>
+            <select class="inp" id="ruBulkCurrentShift">
+              <option value="any">Any Shift</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label class="lbl">New Shift</label>
+            <select class="inp" id="ruBulkNewShift">
+              <option value="">— Select Shift —</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">From Day</label>
+            <input class="inp" type="number" id="ruBulkFrom" min="1" max="31" value="1">
+          </div>
+          <div>
+            <label class="lbl">To Day</label>
+            <input class="inp" type="number" id="ruBulkTo" min="1" max="31" value="31">
+          </div>
+        </div>
+        <div id="ruBulkEmpList" style="background:var(--ice2);border:1px solid #dde3f0;border-radius:10px;padding:10px;max-height:180px;overflow-y:auto;margin-bottom:14px;font-size:11px">
+          <div style="color:var(--slate2)">Select department to see affected employees…</div>
+        </div>
+        <button class="btn" style="background:linear-gradient(135deg,#0F766E,#0D5F58);color:#fff;width:100%;padding:13px;font-size:13px;font-weight:700" onclick="ruApplyBulk()">✅ Apply to All Listed Staff</button>
+      </div>
+
+      <!-- COPY FROM MONTH MODE -->
+      <div id="ruModeCopy" style="display:none">
+        <div style="background:var(--amber-l);border:1.5px solid var(--amber);border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:#7C2D12">
+          ⚠️ This copies the entire roster (all employees, all days) from a source month to the current month. Existing shifts will be <strong>overwritten</strong>.
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <label class="lbl">Copy FROM Month</label>
+            <select class="inp" id="ruCopyFromMonth" onchange="ruUpdateCopyPreview()"></select>
+          </div>
+          <div>
+            <label class="lbl">Apply TO</label>
+            <select class="inp" id="ruCopyScope">
+              <option value="all">All Employees</option>
+              <option value="dept">Selected Department Only</option>
+            </select>
+          </div>
+        </div>
+        <div id="ruCopyPreview" style="background:var(--ice2);border:1px solid #dde3f0;border-radius:10px;padding:12px;margin-bottom:14px;font-size:11px;color:var(--slate)">
+          Select a source month above to preview.
+        </div>
+        <button class="btn" style="background:linear-gradient(135deg,#5B21B6,#7C3AED);color:#fff;width:100%;padding:13px;font-size:13px;font-weight:700" onclick="ruApplyCopy()">📋 Copy Roster</button>
+      </div>
+
+      <div id="ruResultMsg" style="margin-top:12px;font-size:12px;font-weight:700;text-align:center;min-height:18px"></div>
+    </div>
+  </div>
+</div>
 <div class="mover" id="bulkModal" style="display:none" onclick="if(event.target===this)closeModal('bulkModal')">
   <div class="modal">
     <h3>⚡ Bulk Fill Shifts</h3>
@@ -4261,7 +4417,6 @@ function _switchPageOriginal(name) {
   if(name==="settings") renderSettings();
   if(name==="sections") { initSectionsPage(); initRosterRulesUI(); }
   if(name==="handover") initHandoverPage();
-  if(name==="forecast" && typeof renderForecast==='function') setTimeout(renderForecast, 50);
 }
 var switchPage = _switchPageOriginal;
 
@@ -4803,8 +4958,8 @@ function setHotelAssignment(empId, y, m, d, hotelId) {
   queueArchiveSnapshot(schKey(y,m), "hotel assignment changed");
   saveLocal();
 }
-function renderHotelPill(empId, day, y, m) {
-  const hotel = getHotelAssignment(empId, y||YEAR, m!=null?m:MONTH, day);
+function renderHotelPill(empId, day) {
+  const hotel = getHotelAssignment(empId, YEAR, MONTH, day);
   const h = HOTELS.find(h=>h.id===hotel);
   if (!h || hotel==="all" || hotel==="none") return `<span class="hp hp-none" onclick="openHotelPicker(event,'${empId}',${day})">—</span>`;
   return `<span class="hp hp-${hotel}" onclick="openHotelPicker(event,'${empId}',${day})">${h.name.split(" ").pop()}</span>`;
@@ -4849,8 +5004,7 @@ function selectHotel(hotelId) {
 
 
 function renderRoster() {
-  // ── HR CYCLE: 15th of current month → 14th of next month ──
-  const rosterDays = getRosterDays(YEAR, MONTH);
+  const numDays=getDIM();
   // Use roster's own hotel filter (rHotelF), fallback to topbar (hotelFilter)
   const hf=document.getElementById("rHotelF")?.value || document.getElementById("hotelFilter")?.value || "all";
   const pf=document.getElementById("rPosF")?.value||"all";
@@ -4873,43 +5027,47 @@ function renderRoster() {
     if(sr) parts.push("🔍 '"+sr+"'");
     infoEl.textContent = parts.length
       ? "Filtering: "+parts.join(" · ")+" — showing "+filt.length+" of "+staffList().length+" employees"
-      : "Showing all "+filt.length+" employees  ·  Roster cycle: "+getRosterLabel(YEAR,MONTH)+"  ·  Use filters above to narrow down before printing PDF";
+      : "Showing all "+filt.length+" employees  ·  Use filters above to narrow down before printing PDF";
   }
 
-  const dths=rosterDays.map(({y,m,d})=>{
-    const dow=new Date(y,m,d).getDay(); const isSat=dow===6;
-    const hol = getHolidayForDate(y, m, d);
-    const isMonthStart = d===1;
-    return`<th class="${isSat?"sat-th":""}" style="text-align:center;min-width:34px;padding:6px 1px${isMonthStart?';border-left:2px solid #C9963A':''}" title="${hol ? '🇦🇪 '+hol.name : ''}">
+  const days=Array.from({length:numDays},(_,i)=>i+1);
+  const dths=days.map(d=>{
+    const dow=new Date(YEAR,MONTH,d).getDay(); const isSat=dow===6;
+    const hol = getHolidayForDate(YEAR, MONTH, d);
+    return`<th class="${isSat?"sat-th":""}" style="text-align:center;min-width:34px;padding:6px 1px" title="${hol ? '🇦🇪 '+hol.name : ''}">
       <div style="font-size:9px;font-weight:800">${d}</div>
       <div style="font-size:7px;opacity:.6">${DAYS_S[dow]}</div>
-      ${isMonthStart?`<div style="font-size:6px;color:#C9963A;font-weight:700">${MONTHS[m].substring(0,3)}</div>`:''}
       ${hol ? `<div style="font-size:6px;color:#FFD54F;font-weight:700;line-height:1.2;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32px">🇦🇪</div>` : ''}
     </th>`;
   }).join("");
 
   const rows=filt.map((emp,ei)=>{
-    // Aggregate schedule across both months in the cycle
-    const aggSch = {};
-    rosterDays.forEach(({y,m,d},idx)=>{ aggSch[idx+1] = (getEmpSch(emp.id,y,m)||{})[d]||""; });
-    const st=calcStats(emp,aggSch);
+    const sch=getEmpSch(emp.id);
+    const st=calcStats(emp,sch);
     const hotel=HOTELS.find(h=>h.id===emp.hotel);
     const dc=getDeptColor(emp.department);
-    const cells=rosterDays.map(({y,m,d})=>{
-      const sch = getEmpSch(emp.id,y,m);
+    const cells=days.map(d=>{
       const code=sch[d]||""; const sh=SHIFTS[code];
-      const dow=new Date(y,m,d).getDay(); const isSat=dow===6;
-      const hol = getHolidayForDate(y, m, d);
-      const isMonthStart = d===1;
-      return`<td class="${isSat?"sat-td":""}" style="padding:2px 1px;text-align:center${hol?';background:rgba(255,213,0,.06)':''}${isMonthStart?';border-left:2px solid #C9963A':''}" title="${hol ? '🇦🇪 '+hol.name : ''}">
-        <div class="sp ${sh?'sp-'+code:'sp-empty'}" onclick="openPicker(event,'${emp.id}',${d},${y},${m})" title="${sh?sh.label+' '+sh.time:''}">${code||"—"}</div>
-        ${renderHotelPill(emp.id, d, y, m)}
+      const dow=new Date(YEAR,MONTH,d).getDay(); const isSat=dow===6;
+      const hol = getHolidayForDate(YEAR, MONTH, d);
+      return`<td class="${isSat?"sat-td":""}" style="padding:2px 1px;text-align:center${hol?';background:rgba(255,213,0,.06)':''}" title="${hol ? '🇦🇪 '+hol.name : ''}">
+        <div class="sp ${sh?'sp-'+code:'sp-empty'}" onclick="openPicker(event,'${emp.id}',${d})" title="${sh?sh.label+' '+sh.time:''}">${code||"—"}</div>
+        ${renderHotelPill(emp.id, d)}
         ${hol ? `<div style="font-size:5.5px;color:#C9963A;font-weight:800;line-height:1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:32px">🇦🇪</div>` : ''}
       </td>`;
     }).join("");
+    // Build holiday badges for days this employee works that are holidays
+    const holDays = days.filter(d => sch[d] && !['OFF','AL','EX','UNP'].includes(sch[d]) && getHolidayForDate(YEAR, MONTH, d));
+    const holBadge = holDays.length ? holDays.map(d => {
+      const hol = getHolidayForDate(YEAR, MONTH, d);
+      return `<span style="display:inline-flex;align-items:center;gap:2px;background:rgba(201,150,58,.12);color:#C9963A;border:1px solid rgba(201,150,58,.3);border-radius:4px;padding:1px 4px;font-size:7px;font-weight:700;white-space:nowrap">🇦🇪 ${d}:${hol.name.length>14?hol.name.substring(0,13)+'…':hol.name}</span>`;
+    }).join('') : '';
     return`<tr style="${ei%2?"background:#FAFBFD":""}">
       <td class="sc-col" style="min-width:160px;padding:7px 10px;${ei%2?"background:#FAFBFD":""}">
-        <div style="font-weight:600;font-size:11px">${emp.name||"—"}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:4px">
+          <div style="font-weight:600;font-size:11px">${emp.name||"—"}</div>
+          ${holBadge ? `<div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:flex-end">${holBadge}</div>` : ''}
+        </div>
         <div style="font-size:9px;color:${hotel?.color||"#888"};margin-top:1px">${hotel?.name||emp.hotel}</div>
       </td>
       <td><span class="db" style="background:${dc.bg};color:${dc.color};border-color:${dc.color}30;font-size:9px">${emp.department}</span></td>
@@ -4945,20 +5103,13 @@ function renderRoster() {
     </table>`;
 }
 
-// Picker month/year tracking for cross-month cells
-let popYear = null, popMonth = null;
-
-function openPicker(ev, empId, day, cellYear, cellMonth) {
+function openPicker(ev, empId, day) {
   ev.stopPropagation(); popEmpId=empId; popDay=day;
-  // Support cross-month cells (days 1-14 of next month in the 15-14 HR cycle)
-  popYear  = (cellYear  !== undefined) ? cellYear  : YEAR;
-  popMonth = (cellMonth !== undefined) ? cellMonth : MONTH;
   const pop=document.getElementById("shiftPop");
   const emp = staffList().find(e=>e.id===empId);
   const dept = emp?.department;
   const sections = (DEPT_SECTIONS[dept]||[]);
-  const curKey = schKey(popYear, popMonth);
-  const curSec = sectionOverrides[empId]?.[curKey]?.[day] || emp?.section || '';
+  const curSec = sectionOverrides[empId]?.[schKey()]?.[day] || emp?.section || '';
   const shiftHtml = Object.entries(SHIFTS).map(([k,v])=>
     `<div class="spi" style="background:${v.bg};border-color:${v.border}" onclick="selectShift('${k}')">
       <span class="spi-c" style="color:${v.color}">${k}</span>
@@ -4987,8 +5138,7 @@ function selectDaySection(secName){
 }
 async function selectShift(code) {
   if(popEmpId && popDay) {
-    // Use popYear/popMonth so cross-month cells (days 1-14 of next month) save correctly
-    const key = schKey(popYear !== null ? popYear : YEAR, popMonth !== null ? popMonth : MONTH);
+    const key=schKey();
     if(!schedData[popEmpId]) schedData[popEmpId]={};
     if(!schedData[popEmpId][key]) schedData[popEmpId][key]={};
     schedData[popEmpId][key][popDay]=code;
@@ -5000,7 +5150,6 @@ async function selectShift(code) {
     renderRoster();
   }
   closePop();
-  popYear = null; popMonth = null;
 }
 
 
@@ -7482,7 +7631,14 @@ function cpDelHotel(idx){
 
 function cpRenderDepts(){
   const body=document.getElementById('cpDeptBody'); if(!body)return;
-  body.innerHTML=`<div class="cp-stitle">Active Departments</div>`+
+  // Don't overwrite the action buttons & inline form — only update the dept list
+  let listEl = document.getElementById('cpDeptList');
+  if (!listEl) {
+    listEl = document.createElement('div');
+    listEl.id = 'cpDeptList';
+    body.appendChild(listEl);
+  }
+  listEl.innerHTML=`<div class="cp-stitle">Active Departments</div>`+
     getAllDepts().map(dept=>{
       const positions=DEPT_POS[dept]||[];
       const c=getDeptColor(dept);
@@ -8166,13 +8322,9 @@ function wireLegendPills(){
 
 // Add a Block Days button into the Sections page when it's visible
 (function(){
-  let _t = null;
   const tryInject = ()=>{
     const target = document.querySelector('#page-sections .card');
-    if (!target || document.getElementById('btnBlockDays')) {
-      if (document.getElementById('btnBlockDays') && _t) { clearInterval(_t); _t = null; }
-      return;
-    }
+    if (!target || document.getElementById('btnBlockDays')) return;
     const btn = document.createElement('button');
     btn.id = 'btnBlockDays';
     btn.className = 'btn';
@@ -8180,10 +8332,9 @@ function wireLegendPills(){
     btn.textContent = '★ Manage Block Days (Special Events)';
     btn.onclick = openBlockDaysModal;
     target.appendChild(btn);
-    if (_t) { clearInterval(_t); _t = null; }
   };
   document.addEventListener('click', tryInject);
-  _t = setInterval(tryInject, 3000);
+  setInterval(tryInject, 3000);
 })();
 
 // ════════════════════════════════════════════════
@@ -8605,40 +8756,58 @@ function cpRemoveLiveAuthId(i) {
 // ════════════════════════════════════════════════
 // LIVE ACCESS TAB — Simple Add/Remove Employee IDs
 // ════════════════════════════════════════════════
-// laRender, laAddId, laRemoveId, laUpdateDeptVis defined below
+function laRender() {
+  const ids = LIVE_AUTHORIZED_IDS;
+  const cardHtml = ids.length ? ids.map((id, i) => {
+    const emp = staffData[id];
+    const name = emp ? emp.name : '<span style="color:#64748B;font-style:italic">Unknown — not in staff list</span>';
+    const dept = emp ? emp.department : '';
+    const section = emp ? (emp.section || '') : '';
+    return `<div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.18);border-radius:10px;padding:10px 14px;margin-bottom:5px">
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#4ADE80;flex-shrink:0">${id.slice(0,3)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:700;color:#fff">${name}</div>
+        <div style="font-size:10px;color:#64748B;margin-top:2px">${dept}${section ? ' · ' + section : ''} &nbsp;·&nbsp; <span style="color:#4ADE80;font-family:'DM Mono',monospace">${id}</span></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:6px;padding:2px 10px;font-size:9px;font-weight:700;color:#4ADE80">LIVE ACCESS</div>
+        <button class="bx bxr" onclick="laRemoveId(${i})" style="font-size:10px;padding:4px 10px">✕ Remove</button>
+      </div>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:#64748B;padding:12px 0">No authorized staff yet. Add employee IDs above.</div>';
+  // Update ALL containers — static panel (#laList) + dynamically injected (#cpLiveAuthIds)
+  document.querySelectorAll('#laList, #cpLiveAuthIds').forEach(el => { el.innerHTML = cardHtml; });
+}
+
 function laAddId() {
   // Two panels share the same IDs (original + mounted tab) — pick the visible one with a value
   const inputs = Array.from(document.querySelectorAll('#laEmpIdInp'));
   const msgs   = Array.from(document.querySelectorAll('#laMsg'));
-  const visEls = Array.from(document.querySelectorAll('#laDeptVis'));
   const inp = inputs.find(i => i.offsetParent !== null && i.value.trim()) || inputs.find(i => i.offsetParent !== null) || inputs[0];
   const msg = msgs.find(m => m.offsetParent !== null) || msgs[0];
-  const visEl = visEls.find(v => v.offsetParent !== null) || visEls[0];
   const id = (inp ? inp.value : '').trim().toUpperCase();
-  const deptVis = visEl ? visEl.value : 'all';
   if (!id) { msgs.forEach(m => { m.style.color='#F87171'; m.textContent='❌ Please enter an Employee ID.'; }); return; }
 
-  // Normalize LIVE_AUTHORIZED_IDS to array of objects
-  const normalized = LIVE_AUTHORIZED_IDS.map(x => typeof x === 'string' ? {id:x, deptVis:'all'} : x);
-  if (normalized.map(x=>x.id.toUpperCase()).includes(id)) {
-    msgs.forEach(m => { m.style.color='#FBBF24'; m.textContent='⚠️ ' + id + ' already has LIVE+ access.'; });
+  // Check if already authorized
+  if (LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes(id)) {
+    msgs.forEach(m => { m.style.color='#FBBF24'; m.textContent='⚠️ ' + id + ' already has LIVE access.'; });
     return;
   }
 
+  // Check employee exists
   const emp = staffData[id];
-  normalized.push({id, deptVis});
-  LIVE_AUTHORIZED_IDS.length = 0;
-  normalized.forEach(x => LIVE_AUTHORIZED_IDS.push(x));
-  saveLiveAuthorizedIds();
-  inputs.forEach(i => { if(i) i.value=''; });
 
-  const deptVisLabel = deptVis==='all'?'All Depts':deptVis==='own'?'Own Only':deptVis+' Dept(s)';
+  LIVE_AUTHORIZED_IDS.push(id);
+  saveLiveAuthorizedIds();
+  ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
+
   const empInfo = emp ? (emp.name + ' · ' + emp.department) : '(will auto-resolve on next login)';
-  msgs.forEach(m => { m.style.color='#4ADE80'; m.textContent='✅ ' + id + ' added ('+deptVisLabel+') — ' + empInfo; });
+  msgs.forEach(m => { m.style.color='#4ADE80'; m.textContent='✅ ' + id + ' added — ' + empInfo; });
   laRender();
   if(typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-  if(typeof logAccess==='function') logAccess('s','LIVE+ access added: '+id+' (deptVis:'+deptVis+')');
+  if(typeof logAccess==='function') logAccess('s','Live access added: '+id);
 
+  // Also try Firebase lookup if emp not in local cache
   if (!emp && typeof db !== 'undefined' && db) {
     db.ref('staff/' + id).once('value').then(snap => {
       const e = snap.val();
@@ -8648,68 +8817,15 @@ function laAddId() {
 }
 
 function laRemoveId(i) {
-  const entry = LIVE_AUTHORIZED_IDS[i];
-  const id = typeof entry === 'string' ? entry : entry?.id;
+  const id = LIVE_AUTHORIZED_IDS[i];
   if (!id) return;
-  if (!confirm('Remove ' + id + ' from LIVE+ access?')) return;
+  if (!confirm('Remove ' + id + ' from LIVE access?')) return;
   LIVE_AUTHORIZED_IDS.splice(i, 1);
   saveLiveAuthorizedIds();
   laRender();
   if(typeof cpRenderLiveAuthIds==='function') cpRenderLiveAuthIds();
-  document.querySelectorAll('#laMsg').forEach(m => { m.style.color='#F87171'; m.textContent='🗑 ' + id + ' removed from LIVE+ access.'; });
-  if(typeof logAccess==='function') logAccess('s','LIVE+ access removed: '+id);
-}
-
-function laRender() {
-  const entries = LIVE_AUTHORIZED_IDS.map((x,i) => {
-    const entry = typeof x === 'string' ? {id:x, deptVis:'all'} : x;
-    const id = entry.id;
-    const deptVis = entry.deptVis || 'all';
-    const emp = staffData[id];
-    const name = emp ? emp.name : '<span style="color:#64748B;font-style:italic">Unknown — not in staff list</span>';
-    const dept = emp ? emp.department : '';
-    const deptVisLabel = deptVis==='all'?'🌐 All Depts':deptVis==='own'?'🔒 Own Only':'📊 Max '+deptVis+' Dept(s)';
-    const deptVisColor = deptVis==='all'?'#4ADE80':deptVis==='own'?'#FBBF24':'#60A5FA';
-    return `<div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.18);border-radius:10px;padding:10px 14px;margin-bottom:5px">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#4ADE80;flex-shrink:0">${id.slice(0,3)}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:700;color:#fff">${name}</div>
-        <div style="font-size:10px;color:#64748B;margin-top:2px">${dept} &nbsp;·&nbsp; <span style="color:#4ADE80;font-family:'DM Mono',monospace">${id}</span></div>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-        <div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:6px;padding:2px 10px;font-size:9px;font-weight:700;color:#4ADE80">LIVE+</div>
-        <div style="background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 10px;font-size:9px;font-weight:700;color:${deptVisColor}">${deptVisLabel}</div>
-        <select onchange="laUpdateDeptVis(${i}, this.value)" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:6px;padding:2px 6px;font-size:9px;cursor:pointer">
-          <option value="all" ${deptVis==='all'?'selected':''}>All Depts</option>
-          <option value="own" ${deptVis==='own'?'selected':''}>Own Only</option>
-          <option value="1" ${deptVis==='1'?'selected':''}>1 Dept</option>
-          <option value="2" ${deptVis==='2'?'selected':''}>2 Depts</option>
-          <option value="3" ${deptVis==='3'?'selected':''}>3 Depts</option>
-          <option value="4" ${deptVis==='4'?'selected':''}>4 Depts</option>
-          <option value="5" ${deptVis==='5'?'selected':''}>5 Depts</option>
-        </select>
-        <button class="bx bxr" onclick="laRemoveId(${i})" style="font-size:10px;padding:4px 10px">✕ Remove</button>
-      </div>
-    </div>`;
-  });
-  const cardHtml = entries.length ? entries.join('') : '<div style="font-size:12px;color:#64748B;padding:12px 0">No authorized staff yet. Add employee IDs above.</div>';
-  document.querySelectorAll('#laList, #cpLiveAuthIds').forEach(el => { el.innerHTML = cardHtml; });
-}
-
-function laUpdateDeptVis(i, val) {
-  const entry = LIVE_AUTHORIZED_IDS[i];
-  if (!entry) return;
-  if (typeof entry === 'string') {
-    LIVE_AUTHORIZED_IDS[i] = {id: entry, deptVis: val};
-  } else {
-    LIVE_AUTHORIZED_IDS[i].deptVis = val;
-  }
-  saveLiveAuthorizedIds();
-  laRender();
-  if(typeof logAccess==='function') {
-    const id = typeof LIVE_AUTHORIZED_IDS[i]==='string'?LIVE_AUTHORIZED_IDS[i]:LIVE_AUTHORIZED_IDS[i].id;
-    logAccess('s','LIVE+ deptVis updated: '+id+' → '+val);
-  }
+  document.querySelectorAll('#laMsg').forEach(m => { m.style.color='#F87171'; m.textContent='🗑 ' + id + ' removed from LIVE access.'; });
+  if(typeof logAccess==='function') logAccess('s','Live access removed: '+id);
 }
 
 // Patch cpRenderLive to also render the auth IDs section
@@ -8896,9 +9012,49 @@ function cpAutoLoadUAEHolidays() {
   cpToast(count > 0 ? `✅ ${count} UAE holiday(s) marked in roster` : '⚠️ No UAE holidays in current month');
 }
 
-// UAE Holidays injection removed per user request
-
-
+// Inject UAE Holidays tab into control panel
+(function injectHolidaysTab(){
+  const tryInject = () => {
+    const cpNav = document.querySelector('.cp-nav');
+    const cpBody = document.querySelector('.cp-body');
+    if (!cpNav || !cpBody || document.getElementById('cpHolidayTab')) return;
+    // Add nav item
+    const navItem = document.createElement('div');
+    navItem.className = 'cp-nav-item';
+    navItem.onclick = function() { cpTab('holidays'); };
+    navItem.setAttribute('onclick', "cpTab('holidays')");
+    navItem.textContent = '🇦🇪 Holidays';
+    cpNav.appendChild(navItem);
+    // Add tab content
+    const tab = document.createElement('div');
+    tab.id = 'cpt-holidays';
+    tab.style.display = 'none';
+    tab.innerHTML = `
+      <div class="cp-stitle">🇦🇪 UAE Public Holidays Management</div>
+      <div class="cp-infobox">Manage UAE public holidays. Use "Mark in Roster" to automatically block them in the current month's roster view.</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
+        <div><label class="cp-lbl2">Date</label><input class="cp-inp2" type="date" id="cpHolDate"></div>
+        <div><label class="cp-lbl2">Holiday Name</label><input class="cp-inp2" id="cpHolName" placeholder="e.g. Eid Al Fitr"></div>
+        <button class="bgold" onclick="cpAddHoliday()" style="white-space:nowrap">+ Add Holiday</button>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="bx bxg" onclick="cpAutoLoadUAEHolidays()">🇦🇪 Mark Holidays in Current Month Roster</button>
+        <button class="bx bxn" onclick="cpRenderHolidays()">🔄 Refresh</button>
+      </div>
+      <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>`;
+    cpBody.appendChild(tab);
+    // Hook into cpTab
+    const _origCpTab = window.cpTab;
+    if (_origCpTab) {
+      window.cpTab = function(id) {
+        _origCpTab(id);
+        document.getElementById('cpt-holidays').style.display = (id === 'holidays') ? 'block' : 'none';
+        if (id === 'holidays') cpRenderHolidays();
+      };
+    }
+  };
+  setInterval(tryInject, 1500);
+})();
 
 // ════════════════════════════════════════════════
 // DEVELOPER: THEME SYSTEM — AUTO UAE EVENT THEMES
@@ -9142,14 +9298,10 @@ function devExportScheduleJSON() {
 
 // Inject Export/Import tab into control panel
 (function injectExportTab(){
-  let _timer = null;
   const tryInject = () => {
     const cpNav = document.querySelector('.cp-nav');
     const cpBody = document.querySelector('.cp-body');
-    if (!cpNav || !cpBody || document.getElementById('cpt-exportimport')) {
-      if (document.getElementById('cpt-exportimport') && _timer) { clearInterval(_timer); _timer = null; }
-      return;
-    }
+    if (!cpNav || !cpBody || document.getElementById('cpt-exportimport')) return;
     const navItem = document.createElement('div');
     navItem.className = 'cp-nav-item';
     navItem.textContent = '💾 Export/Import';
@@ -9220,11 +9372,8 @@ function devExportScheduleJSON() {
         if (el) el.style.display = (id === 'exportimport') ? 'block' : 'none';
       };
     }
-    if (_timer) { clearInterval(_timer); _timer = null; }
   };
-  _timer = setInterval(tryInject, 2500);
-  document.addEventListener('DOMContentLoaded', tryInject);
-  setTimeout(tryInject, 500);
+  setInterval(tryInject, 2500);
 })();
 
 // ════════════════════════════════════════════════
@@ -11492,6 +11641,348 @@ function devExportScheduleJSON() {
 </script>
 
 <script>
+// ════════════════════════════════════════════════════════
+// 1. DEPARTMENT INLINE ADD FORM (replaces prompt())
+// ════════════════════════════════════════════════════════
+window._cpNewDeptColor = '#C9963A';
+
+function cpToggleAddDeptForm() {
+  const form = document.getElementById('cpAddDeptForm');
+  if (!form) return;
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  if (!isOpen) {
+    const inp = document.getElementById('cpNewDeptName');
+    if (inp) { inp.value = ''; inp.focus(); }
+    const hint = document.getElementById('cpNewDeptHint');
+    if (hint) hint.textContent = '';
+    const msg = document.getElementById('cpNewDeptMsg');
+    if (msg) msg.textContent = '';
+  }
+}
+
+function cpSelectDeptColor(elOrColor, color) {
+  // Accept (element, color) or legacy (color)
+  if (typeof elOrColor === 'string') { color = elOrColor; elOrColor = null; }
+  window._cpNewDeptColor = color;
+  const inp = document.getElementById('cpNewDeptColor');
+  if (inp) inp.value = color;
+  document.querySelectorAll('#cpDeptColorPicker > div').forEach(el => {
+    const bg = el.style.background;
+    const isSelected = bg === color || bg.replace(/\s/g,'') === color;
+    el.style.outline = isSelected ? '2px solid #fff' : 'none';
+    el.style.outlineOffset = '2px';
+    el.style.transform = isSelected ? 'scale(1.2)' : 'scale(1)';
+  });
+}
+
+function cpValidateDeptName(val) {
+  const hint = document.getElementById('cpNewDeptHint');
+  if (!hint) return;
+  val = val.trim();
+  if (!val) { hint.textContent = ''; return; }
+  if (typeof DEPT_POS !== 'undefined' && DEPT_POS[val]) {
+    hint.style.color = '#EF4444';
+    hint.textContent = '⚠️ Department already exists.';
+  } else if (val.length < 2) {
+    hint.style.color = '#F59E0B';
+    hint.textContent = 'Name too short.';
+  } else {
+    hint.style.color = '#10B981';
+    hint.textContent = '✓ Name available';
+  }
+}
+
+function cpAddDeptInline() {
+  const inp = document.getElementById('cpNewDeptName');
+  const msg = document.getElementById('cpNewDeptMsg');
+  const setMsg = (t, c) => { if (msg) { msg.style.color = c || '#F87171'; msg.textContent = t; } };
+  const name = (inp ? inp.value : '').trim();
+  if (!name) { setMsg('❌ Please enter a department name.'); inp && inp.focus(); return; }
+  if (name.length < 2) { setMsg('❌ Name must be at least 2 characters.'); return; }
+  if (typeof DEPT_POS !== 'undefined' && DEPT_POS[name]) { setMsg('❌ "' + name + '" already exists.'); return; }
+  if (typeof DEPT_POS !== 'undefined') DEPT_POS[name] = [];
+  if (typeof DEPT_C !== 'undefined') {
+    DEPT_C[name] = { color: window._cpNewDeptColor || '#C9963A', bg: (window._cpNewDeptColor || '#C9963A') + '22' };
+  }
+  if (typeof saveLocal === 'function') saveLocal();
+  if (typeof saveDeptConfig === 'function') saveDeptConfig();
+  if (typeof cpRenderDepts === 'function') cpRenderDepts();
+  if (typeof fillAllSelects === 'function') fillAllSelects();
+  if (typeof logAccess === 'function') logAccess('s', 'Department added: ' + name);
+  setMsg('✅ "' + name + '" added successfully!', '#10B981');
+  if (inp) inp.value = '';
+  const hint = document.getElementById('cpNewDeptHint');
+  if (hint) hint.textContent = '';
+  if (typeof cpToast === 'function') cpToast('✅ ' + name + ' added!');
+  setTimeout(() => { if (msg) msg.textContent = ''; }, 3500);
+}
+
+// ════════════════════════════════════════════════════════
+// 2. FORECAST PAGE GAP FIX (force min-height on sections)
+// ════════════════════════════════════════════════════════
+(function fixForecastGap() {
+  const fix = () => {
+    const fcSec = document.getElementById('fcHotelSections');
+    const fcKpi = document.getElementById('fcGlobalKpi');
+    if (fcSec && !fcSec.children.length) {
+      fcSec.style.minHeight = '0';
+      fcSec.style.marginBottom = '0';
+    }
+    // Dev panel body gap fix — remove auto empty space
+    const cpWrap = document.querySelector('.cp-wrap');
+    if (cpWrap) cpWrap.style.gap = '12px';
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fix);
+  } else {
+    fix();
+  }
+  // Also run after forecast renders
+  const orig = window.renderForecast;
+  if (typeof orig === 'function') {
+    window.renderForecast = function() {
+      orig.apply(this, arguments);
+      setTimeout(fix, 100);
+    };
+  }
+  // Fix DEV panel content gap
+  const style = document.createElement('style');
+  style.textContent = `
+    #fcHotelSections:empty { margin-bottom: 0 !important; min-height: 0 !important; }
+    #fcGlobalKpi:empty { margin-bottom: 0 !important; }
+    .cp-wrap { gap: 12px !important; }
+    .cp-content { gap: 10px !important; }
+    /* Remove blank space caused by hidden panels */
+    .cp-panel[style*="display:none"] { display: none !important; margin: 0 !important; padding: 0 !important; }
+    /* Forecast page consistent card spacing */
+    #page-forecast .card, #page-forecast > div { margin-bottom: 14px; }
+    #page-forecast { padding-bottom: 28px; }
+  `;
+  document.head.appendChild(style);
+})();
+
+// ════════════════════════════════════════════════════════
+// 3. ROTA UPDATE MODAL
+// ════════════════════════════════════════════════════════
+function openRotaUpdate() {
+  const modal = document.getElementById('rotaUpdateModal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+  ruPopulateFields();
+  ruSwitchMode('single');
+}
+
+function ruPopulateFields() {
+  // Employees
+  const empSel = document.getElementById('ruEmpSel');
+  if (empSel && typeof staffList === 'function') {
+    empSel.innerHTML = '<option value="">— Select Employee —</option>' +
+      staffList().sort((a,b)=>a.name.localeCompare(b.name)).map(e =>
+        `<option value="${e.id}">${e.name} (${e.department})</option>`
+      ).join('');
+  }
+  // Shifts
+  ['ruNewShift','ruBulkCurrentShift','ruBulkNewShift'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || typeof SHIFTS === 'undefined') return;
+    const prefix = id === 'ruBulkCurrentShift' ? '<option value="any">Any Shift</option>' : '<option value="">— Select Shift —</option>';
+    el.innerHTML = prefix + Object.entries(SHIFTS).map(([k,v]) =>
+      `<option value="${k}">${k} — ${v.label}</option>`
+    ).join('');
+  });
+  // Departments
+  const deptSel = document.getElementById('ruBulkDept');
+  if (deptSel && typeof getAllDepts === 'function') {
+    deptSel.innerHTML = '<option value="all">All Departments</option>' +
+      getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+  }
+  // Default day range
+  const dim = typeof getDIM === 'function' ? getDIM() : 31;
+  ['ruToDay','ruBulkTo'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = dim;
+  });
+  // Copy months — last 12 available keys
+  const monthSel = document.getElementById('ruCopyFromMonth');
+  if (monthSel && typeof schedData !== 'undefined') {
+    const keys = [...new Set(Object.values(schedData).flatMap(e => Object.keys(e||{})))].sort().reverse();
+    if (keys.length) {
+      monthSel.innerHTML = keys.map(k => `<option value="${k}">${k}</option>`).join('');
+    } else {
+      monthSel.innerHTML = '<option value="">No archived months found</option>';
+    }
+    ruUpdateCopyPreview();
+  }
+}
+
+function ruSwitchMode(mode) {
+  ['single','bulk','swap'].forEach(m => {
+    const tab = document.getElementById('ruTab' + ({single:1,bulk:2,swap:3}[m]));
+    const panel = document.getElementById('ruMode' + m.charAt(0).toUpperCase() + m.slice(1));
+    if (!tab || !panel) return;
+    const isActive = m === mode;
+    tab.style.borderBottomColor = isActive ? '#0F766E' : 'transparent';
+    tab.style.color = isActive ? '#0F766E' : 'var(--slate)';
+    tab.style.fontWeight = isActive ? '700' : '600';
+    panel.style.display = isActive ? 'block' : 'none';
+  });
+  document.getElementById('ruResultMsg').textContent = '';
+}
+
+function ruRefreshPreview() {
+  const empId = document.getElementById('ruEmpSel')?.value;
+  const shift = document.getElementById('ruNewShift')?.value;
+  const from = parseInt(document.getElementById('ruFromDay')?.value || 1);
+  const to = parseInt(document.getElementById('ruToDay')?.value || 31);
+  const skip = document.getElementById('ruSkipOff')?.checked;
+  const preview = document.getElementById('ruPreview');
+  const body = document.getElementById('ruPreviewBody');
+  if (!empId || !shift || !preview || !body) { if (preview) preview.style.display = 'none'; return; }
+  const SKIP_CODES = new Set(['OFF','AL','EX','UNP','SICK','ABS','TRN','SH','PH']);
+  const key = typeof schKey === 'function' ? schKey() : '';
+  const sch = (schedData && schedData[empId] && schedData[empId][key]) || {};
+  const sh = typeof SHIFTS !== 'undefined' ? SHIFTS[shift] : null;
+  let affected = [], skipped = [];
+  for (let d = from; d <= to; d++) {
+    const cur = sch[d] || '';
+    if (skip && SKIP_CODES.has(cur)) { skipped.push(d); continue; }
+    affected.push({d, cur});
+  }
+  preview.style.display = 'block';
+  body.innerHTML = affected.map(({d, cur}) =>
+    `<div style="display:inline-flex;align-items:center;gap:3px;background:${sh?.bg||'#eee'};border:1px solid ${sh?.border||'#ccc'};border-radius:6px;padding:2px 7px;font-size:10px;font-weight:700">
+      <span style="color:${sh?.color||'#333'}">${shift}</span>
+      <span style="opacity:.5;font-size:8px">d${d}</span>
+    </div>`
+  ).join('') + (skipped.length ? `<div style="color:var(--slate2);font-size:10px;margin-top:6px">⏭ Skipping ${skipped.length} days with leave/off</div>` : '');
+}
+
+async function ruApplySingle() {
+  const empId = document.getElementById('ruEmpSel')?.value;
+  const shift = document.getElementById('ruNewShift')?.value;
+  const from = parseInt(document.getElementById('ruFromDay')?.value || 1);
+  const to = parseInt(document.getElementById('ruToDay')?.value || 31);
+  const skip = document.getElementById('ruSkipOff')?.checked;
+  const msg = document.getElementById('ruResultMsg');
+  const SKIP_CODES = new Set(['OFF','AL','EX','UNP','SICK','ABS','TRN','SH','PH']);
+  if (!empId) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ Please select an employee.';} return; }
+  if (!shift) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ Please select a new shift.';} return; }
+  if (from > to) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ From day must be ≤ To day.';} return; }
+  const key = typeof schKey === 'function' ? schKey() : '';
+  if (!schedData[empId]) schedData[empId] = {};
+  if (!schedData[empId][key]) schedData[empId][key] = {};
+  let count = 0;
+  for (let d = from; d <= to; d++) {
+    const cur = schedData[empId][key][d] || '';
+    if (skip && SKIP_CODES.has(cur)) continue;
+    schedData[empId][key][d] = shift;
+    count++;
+    if (typeof db !== 'undefined' && db) {
+      try { await db.ref(`schedules/${empId}/${key}/${d}`).set(shift); } catch(e) {}
+    }
+  }
+  if (typeof saveLocal === 'function') saveLocal();
+  if (typeof renderRoster === 'function') renderRoster();
+  if (typeof queueArchiveSnapshot === 'function') queueArchiveSnapshot(key, 'rota update: '+empId);
+  if (msg) { msg.style.color='#10B981'; msg.textContent=`✅ Applied "${shift}" to ${count} day(s) for ${staffData[empId]?.name||empId}.`; }
+  ruRefreshPreview();
+  setTimeout(() => { if(msg) msg.textContent=''; }, 4000);
+}
+
+function ruBulkDeptChanged() {
+  const dept = document.getElementById('ruBulkDept')?.value;
+  const list = document.getElementById('ruBulkEmpList');
+  if (!list || typeof staffList !== 'function') return;
+  const staff = dept === 'all' ? staffList() : staffList().filter(e => e.department === dept);
+  list.innerHTML = staff.length ?
+    staff.map(e => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #eef0f5">
+      <div style="width:26px;height:26px;border-radius:7px;background:#0F766E22;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#0F766E;flex-shrink:0">${e.name.charAt(0)}</div>
+      <div style="flex:1"><div style="font-size:11px;font-weight:600;color:var(--navy)">${e.name}</div>
+      <div style="font-size:9px;color:var(--slate2)">${e.position} · ${e.department}</div></div>
+    </div>`).join('') :
+    '<div style="color:var(--slate2);font-size:11px">No employees in this department.</div>';
+}
+
+async function ruApplyBulk() {
+  const dept = document.getElementById('ruBulkDept')?.value;
+  const curShift = document.getElementById('ruBulkCurrentShift')?.value;
+  const newShift = document.getElementById('ruBulkNewShift')?.value;
+  const from = parseInt(document.getElementById('ruBulkFrom')?.value || 1);
+  const to = parseInt(document.getElementById('ruBulkTo')?.value || 31);
+  const msg = document.getElementById('ruResultMsg');
+  if (!newShift) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ Please select a new shift.';} return; }
+  if (!confirm(`Apply shift "${newShift}" to all ${dept==='all'?'staff':'staff in '+dept} (days ${from}–${to})?\n\n${curShift!=='any'?'Only replacing days currently set to: '+curShift:'All existing shifts will be replaced.'}`)) return;
+  const key = typeof schKey === 'function' ? schKey() : '';
+  const staff = (dept === 'all') ? (typeof staffList==='function'?staffList():[]) : (typeof staffList==='function'?staffList().filter(e=>e.department===dept):[]);
+  let total = 0;
+  for (const emp of staff) {
+    if (!schedData[emp.id]) schedData[emp.id] = {};
+    if (!schedData[emp.id][key]) schedData[emp.id][key] = {};
+    for (let d = from; d <= to; d++) {
+      const cur = schedData[emp.id][key][d] || '';
+      if (curShift !== 'any' && cur !== curShift) continue;
+      schedData[emp.id][key][d] = newShift;
+      total++;
+      if (typeof db !== 'undefined' && db) {
+        try { await db.ref(`schedules/${emp.id}/${key}/${d}`).set(newShift); } catch(e) {}
+      }
+    }
+  }
+  if (typeof saveLocal === 'function') saveLocal();
+  if (typeof renderRoster === 'function') renderRoster();
+  if (typeof queueArchiveSnapshot === 'function') queueArchiveSnapshot(key, 'bulk rota update');
+  if (msg) { msg.style.color='#10B981'; msg.textContent=`✅ Updated ${total} shift slots across ${staff.length} employees.`; }
+  ruBulkDeptChanged();
+  setTimeout(() => { if(msg) msg.textContent=''; }, 5000);
+}
+
+function ruUpdateCopyPreview() {
+  const fromKey = document.getElementById('ruCopyFromMonth')?.value;
+  const preview = document.getElementById('ruCopyPreview');
+  if (!preview) return;
+  if (!fromKey) { preview.textContent = 'Select a source month above to preview.'; return; }
+  let totalEmp = 0, totalShifts = 0;
+  if (typeof schedData !== 'undefined') {
+    Object.values(schedData).forEach(empSch => {
+      if (empSch[fromKey] && Object.keys(empSch[fromKey]).length) {
+        totalEmp++;
+        totalShifts += Object.keys(empSch[fromKey]).length;
+      }
+    });
+  }
+  preview.innerHTML = `<strong style="color:var(--navy)">${fromKey}</strong> — ${totalEmp} employees with ${totalShifts} shift slots will be copied to the current month (${typeof schKey==='function'?schKey():'current'}).`;
+}
+
+async function ruApplyCopy() {
+  const fromKey = document.getElementById('ruCopyFromMonth')?.value;
+  const scope = document.getElementById('ruCopyScope')?.value;
+  const msg = document.getElementById('ruResultMsg');
+  if (!fromKey) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ Select a source month first.';} return; }
+  const toKey = typeof schKey === 'function' ? schKey() : '';
+  if (fromKey === toKey) { if(msg){msg.style.color='#EF4444';msg.textContent='❌ Cannot copy to the same month.';} return; }
+  if (!confirm(`Copy roster from ${fromKey} → ${toKey}?\n\nThis will overwrite existing shifts in ${toKey}. Continue?`)) return;
+  let copied = 0;
+  if (typeof schedData !== 'undefined') {
+    for (const [empId, empSch] of Object.entries(schedData)) {
+      if (!empSch[fromKey]) continue;
+      if (!schedData[empId][toKey]) schedData[empId][toKey] = {};
+      Object.assign(schedData[empId][toKey], JSON.parse(JSON.stringify(empSch[fromKey])));
+      copied++;
+      if (typeof db !== 'undefined' && db) {
+        try { await db.ref(`schedules/${empId}/${toKey}`).set(schedData[empId][toKey]); } catch(e) {}
+      }
+    }
+  }
+  if (typeof saveLocal === 'function') saveLocal();
+  if (typeof renderRoster === 'function') renderRoster();
+  if (typeof queueArchiveSnapshot === 'function') queueArchiveSnapshot(toKey, 'roster copied from ' + fromKey);
+  if (msg) { msg.style.color='#10B981'; msg.textContent=`✅ Copied ${copied} employees from ${fromKey} to ${toKey}.`; }
+  setTimeout(() => { if(msg) msg.textContent=''; }, 5000);
+}
+</script>
+
+<script>
 // ══════════════════════════════════════════════════════════════
 // SECURITY — Rate-limit, session timeout, password strength
 // ══════════════════════════════════════════════════════════════
@@ -11632,8 +12123,8 @@ function cpSearchPanel(q) {
     {label:'⏰ Shifts',            tab:'shifts'},
     {label:'🔑 Passwords',         tab:'access'},
     {label:'🔑 Access & Passwords',tab:'access'},
-    {label:'🟢 LIVE+ Dashboard',    tab:'live'},
-    {label:'🟢 Live+ Users',        tab:'live'},
+    {label:'🟢 LIVE Dashboard',    tab:'live'},
+    {label:'🟢 Live Users',        tab:'live'},
     {label:'🔔 Notifications',     tab:'notifications'},
     {label:'🔥 Firebase',          tab:'firebase'},
     {label:'📋 Activity Logs',     tab:'logs'},
