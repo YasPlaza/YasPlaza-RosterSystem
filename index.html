@@ -1309,7 +1309,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           <span id="weekLabel" style="font-size:11px;font-weight:700;color:var(--navy);min-width:80px;text-align:center"></span>
           <button class="btn btn-ghost btn-xs" onclick="changeWeek(1)">›</button>
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="openBulk()">⚡ Bulk Fill</button>
+        <button class="btn btn-ghost btn-sm" onclick="openBulk()" title="Smart Auto Fill — respects off-days, leave & existing shifts">🧠 Smart Auto Fill</button>
         <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--purple),#7C3AED);color:#fff" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
         <button class="btn btn-sm" style="background:linear-gradient(135deg,#0F766E,#0D5F58);color:#fff" onclick="openRotaUpdate()">✏️ Update Rota</button>
         <button class="btn btn-sm" style="background:rgba(201,150,58,.2);color:var(--gold);border:1px solid var(--gold)" onclick="printRoster()">🖨 Print / PDF</button>
@@ -2345,7 +2345,10 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 </div>
 <div class="mover" id="bulkModal" style="display:none" onclick="if(event.target===this)closeModal('bulkModal')">
   <div class="modal">
-    <h3>⚡ Bulk Fill Shifts</h3>
+    <h3>🧠 Smart Auto Fill Shifts</h3>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:10px;line-height:1.5">
+      Auto-fills shifts across a date range with smart safeguards. Use the toggles below to control what gets skipped.
+    </div>
     <div class="fg">
       <div><label class="lbl">From Day</label><input class="inp" id="bFrom" type="number" min="1" max="31" value="1"></div>
       <div><label class="lbl">To Day</label><input class="inp" id="bTo" type="number" min="1" max="31" value="30"></div>
@@ -2358,9 +2361,22 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </select>
       </div>
     </div>
+    <!-- Smart Auto Fill options -->
+    <div style="margin-top:10px;padding:12px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
+      <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">⚙️ Smart Options</div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="bSkipOff" checked> Respect off-days &amp; weekly OFF pattern
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="bSkipLeave" checked> Skip staff on Annual Leave / Sick Leave (AL, SL)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer">
+        <input type="checkbox" id="bSkipExisting"> Skip cells that already have a shift (don't overwrite)
+      </label>
+    </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('bulkModal')">Cancel</button>
-      <button class="btn btn-gold" onclick="applyBulk()">Apply</button>
+      <button class="btn btn-gold" onclick="applyBulk()">🧠 Smart Fill</button>
     </div>
   </div>
 </div>
@@ -6890,18 +6906,37 @@ async function applyBulk() {
     if(pf!=="all") targets=targets.filter(e=>e.position===pf);
     if(df!=="all") targets=targets.filter(e=>e.department===df);
   }
-  const k=schKey(); const numDays=getDIM(); const updates={};
+  const skipOff      = !!document.getElementById("bSkipOff")?.checked;
+  const skipLeave    = !!document.getElementById("bSkipLeave")?.checked;
+  const skipExisting = !!document.getElementById("bSkipExisting")?.checked;
+  const LEAVE_CODES = new Set(["AL","SL","ML","UL","CL","BL"]); // leave codes to protect
+  const OFF_CODES   = new Set(["OFF","EX","O","X"]);            // off-day codes
+  const k=schKey(); const numDays=getDIM(); const updates={}; let skipped=0, written=0;
   targets.forEach(emp=>{
-    for(let d=from;d<=Math.min(to,numDays);d++) updates[`schedules/${emp.id}/${k}/${d}`]=code;
-    // local optimistic
     if(!schedData[emp.id]) schedData[emp.id]={};
     if(!schedData[emp.id][k]) schedData[emp.id][k]={};
-    for(let d=from;d<=Math.min(to,numDays);d++) schedData[emp.id][k][d]=code;
+    for(let d=from;d<=Math.min(to,numDays);d++){
+      const cur = schedData[emp.id][k][d];
+      if (skipExisting && cur) { skipped++; continue; }
+      if (skipLeave    && cur && LEAVE_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
+      if (skipOff      && cur && OFF_CODES.has(String(cur).toUpperCase()))   { skipped++; continue; }
+      // Respect employee's weekly OFF pattern if defined (emp.offDays = [0..6] day-of-week numbers, or count like 2)
+      if (skipOff && Array.isArray(emp.offDaysList)) {
+        const dow = new Date(YEAR, MONTH, d).getDay();
+        if (emp.offDaysList.includes(dow)) { skipped++; continue; }
+      }
+      updates[`schedules/${emp.id}/${k}/${d}`]=code;
+      schedData[emp.id][k][d]=code;
+      written++;
+    }
   });
   if(db) { try { await db.ref().update(updates); } catch(e){} }
-  queueArchiveSnapshot(k, "bulk fill");
+  queueArchiveSnapshot(k, "smart auto fill");
   closeModal("bulkModal");
   renderRoster();
+  if (skipped) {
+    try { console.log(`[Smart Auto Fill] wrote ${written}, skipped ${skipped} protected cells`); } catch(e){}
+  }
 }
 
 // ═══════════════════════════════════════════════════
@@ -12369,7 +12404,8 @@ td.droppable-cell{position:relative}
         <div id="liveISelMeta" style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px"></div>
       </div>
       <div class="livei-options">
-        <button class="livei-opt live-opt" onclick="liveIOpenLive()">🟢 Open LIVE Dashboard</button>
+        <button class="livei-opt live-opt" id="liveIBtnLive" onclick="liveIOpenLive()" title="See who's on duty NOW in your own department">🟢 LIVE <span style="font-size:9px;opacity:.7;display:block;font-weight:500;margin-top:2px">My Department · by section &amp; position</span></button>
+        <button class="livei-opt live-opt" id="liveIBtnLivePlus" onclick="liveIOpenLivePlus()" title="Multi-department live view (Dev grants access)" style="background:linear-gradient(135deg,#5B21B6,#7C3AED)">🟢 LIVE + <span style="font-size:9px;opacity:.85;display:block;font-weight:500;margin-top:2px">Multi-department · Dev-configured</span></button>
         <button class="livei-opt" onclick="liveIOpenRoster()">📅 View My Roster</button>
       </div>
     </div>
@@ -12603,6 +12639,14 @@ function liveISelect(id) {
   if (metaEl) metaEl.textContent = `${emp.id} · ${emp.department||''} · ${emp.position||''} · ${emp.hotel||''}`;
   if (selBox) selBox.style.display = '';
   if (listEl) listEl.style.display = 'none';
+  // Dim LIVE+ button if this employee lacks multi-dept access
+  const plusBtn = document.getElementById('liveIBtnLivePlus');
+  if (plusBtn) {
+    const allowed = (typeof liveIHasPlusAccess === 'function') && liveIHasPlusAccess(emp.id);
+    plusBtn.style.opacity = allowed ? '1' : '.45';
+    plusBtn.style.cursor = allowed ? 'pointer' : 'not-allowed';
+    plusBtn.title = allowed ? 'Multi-department live view' : '🔒 LIVE + access not granted by Dev';
+  }
 }
 
 function liveIOpenLive() {
@@ -12610,6 +12654,27 @@ function liveIOpenLive() {
   closeLiveIModal();
   if (typeof openLiveDashForEmployee === 'function') {
     openLiveDashForEmployee(_liveISelected.id, _liveISelected);
+  } else if (typeof openLiveDashFromSelector === 'function') {
+    openLiveDashFromSelector();
+  }
+}
+// ── LIVE + (multi-department) ──
+// Dev grants access by adding an entry to window.LIVEPLUS_ACCESS:
+//   { "E001": { depts:["Front Office","Housekeeping"], sections:[], positions:[] } }
+window.LIVEPLUS_ACCESS = window.LIVEPLUS_ACCESS || JSON.parse(localStorage.getItem('LIVEPLUS_ACCESS')||'{}');
+function _saveLivePlusAccess(){ try{ localStorage.setItem('LIVEPLUS_ACCESS', JSON.stringify(window.LIVEPLUS_ACCESS||{})); }catch(e){} }
+function liveIHasPlusAccess(id){ return !!(window.LIVEPLUS_ACCESS && window.LIVEPLUS_ACCESS[id]); }
+function liveIOpenLivePlus() {
+  if (!_liveISelected) return;
+  const id = _liveISelected.id;
+  if (!liveIHasPlusAccess(id)) {
+    alert('🔒 LIVE + access not granted for ' + id + '.\n\nA developer must enable multi-department access via:\nDev Panel → LIVE Access → "LIVE + Multi-Department Access".');
+    return;
+  }
+  closeLiveIModal();
+  window._LIVEPLUS_ACTIVE = { id, cfg: window.LIVEPLUS_ACCESS[id] };
+  if (typeof openLiveDashForEmployee === 'function') {
+    openLiveDashForEmployee(id, _liveISelected);
   } else if (typeof openLiveDashFromSelector === 'function') {
     openLiveDashFromSelector();
   }
@@ -12625,23 +12690,19 @@ function liveIOpenRoster() {
 }
 
 // Wire "LIVE + I" button on the landing page
+// NOTE: Top-bar "LIVE + I" button has been removed (per request).
+// The chooser is now accessible ONLY from the Dev Panel -> LIVE Access tab.
 function _initLiveIButton() {
-  // Look for existing LIVE tile on landing and make it open the chooser
+  // Make sure any previously-injected topbar button is removed
+  const old = document.getElementById('liveITopBtn');
+  if (old) old.remove();
+  // Landing LIVE tile still opens the chooser (so existing staff flow keeps working)
   const existing = document.querySelector('[onclick="openLiveDashFromSelector()"]');
   if (existing) { existing.setAttribute('onclick','openLiveIModal()'); }
-  // Also add button to topbar
-  const tbr = document.querySelector('.topbar-r');
-  if (tbr && !document.getElementById('liveITopBtn')) {
-    const btn = document.createElement('button');
-    btn.id = 'liveITopBtn';
-    btn.className = 'btn btn-sm';
-    btn.style.cssText = 'background:rgba(74,222,128,.15);color:#4ADE80;border:1.5px solid rgba(74,222,128,.4)';
-    btn.innerHTML = '🟢 LIVE + I';
-    btn.onclick = openLiveIModal;
-    tbr.insertBefore(btn, tbr.firstChild);
-  }
 }
 setTimeout(_initLiveIButton, 800);
+// Re-run periodically in case the topbar button is re-added by another script
+setInterval(() => { const b = document.getElementById('liveITopBtn'); if (b) b.remove(); }, 2000);
 
 // ── 2. DEPARTMENT MANAGER ─────────────────────────────────────
 function openDeptManager() {
@@ -13417,7 +13478,198 @@ function _wireEnhancedButtons() {
 setTimeout(_wireEnhancedButtons, 1200);
 setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
 
-console.log('[YPH v5] Enhancement module loaded: LIVE+I · Dept Manager · OCC Warnings · Templates · Drag&Drop · Fatigue · Smart AI · Fair Dist · Multi-Hotel · Export/Import');
+// ═══════════════════════════════════════════════════════════════
+// LIVE STAFFING COUNTER (sticky bar at top of roster page)
+//   Required  = visible staff for the current filter
+//   Scheduled = visible staff with a working shift assigned for TODAY
+//   Missing   = Required − Scheduled (clamped at 0)
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  const OFF_OR_LEAVE = new Set(['','OFF','EX','O','X','AL','SL','ML','UL','CL','BL']);
+
+  function _liveCountInject(){
+    const page = document.getElementById('page-roster');
+    if (!page || document.getElementById('liveStaffCounter')) return;
+    const bar = document.createElement('div');
+    bar.id = 'liveStaffCounter';
+    bar.style.cssText = 'position:sticky;top:0;z-index:50;display:flex;gap:10px;align-items:center;flex-wrap:wrap;'+
+      'padding:10px 14px;margin:-2px 0 10px;border-radius:12px;'+
+      'background:linear-gradient(135deg,#0F1E35,#1B2D4A);border:1.5px solid rgba(201,150,58,.35);'+
+      'box-shadow:0 4px 16px rgba(15,30,53,.25);color:#fff;font-family:"DM Sans",sans-serif;font-size:12px';
+    bar.innerHTML =
+      '<span style="font-size:10px;font-weight:800;color:#4ADE80;letter-spacing:1px;'+
+        'background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.4);'+
+        'border-radius:6px;padding:3px 8px">● LIVE STAFFING</span>'+
+      '<span id="lsc-date" style="font-size:11px;color:rgba(255,255,255,.55);font-weight:600"></span>'+
+      '<div style="flex:1"></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+        '<span style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 12px;font-weight:700">Required: <span id="lsc-req" style="color:#E8B04A">0</span></span>'+
+        '<span style="background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.35);border-radius:8px;padding:5px 12px;font-weight:700;color:#4ADE80">Scheduled: <span id="lsc-sch">0</span></span>'+
+        '<span id="lsc-miss-pill" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);border-radius:8px;padding:5px 12px;font-weight:700;color:#F87171">Missing: <span id="lsc-miss">0</span></span>'+
+      '</div>';
+    page.insertBefore(bar, page.firstChild);
+  }
+
+  function _liveCountUpdate(){
+    const reqEl  = document.getElementById('lsc-req');
+    const schEl  = document.getElementById('lsc-sch');
+    const missEl = document.getElementById('lsc-miss');
+    const dateEl = document.getElementById('lsc-date');
+    if (!reqEl) return;
+    if (typeof staffList !== 'function') return;
+
+    let list = staffList();
+    const hf = document.getElementById('hotelFilter')?.value || 'all';
+    const df = document.getElementById('rDeptF')?.value     || 'all';
+    const pf = document.getElementById('rPosF')?.value      || 'all';
+    const sf = document.getElementById('rSecF')?.value      || 'all';
+    if (hf !== 'all') list = list.filter(e => e.hotel === hf || e.hotel === 'all');
+    if (df !== 'all') list = list.filter(e => e.department === df);
+    if (pf !== 'all') list = list.filter(e => e.position   === pf);
+    if (sf !== 'all') list = list.filter(e => (e.section||'') === sf);
+
+    const today = new Date();
+    const k = (typeof schKey === 'function') ? schKey() : '';
+    const sameMonth = (typeof YEAR !== 'undefined' && typeof MONTH !== 'undefined')
+      ? (YEAR === today.getFullYear() && MONTH === today.getMonth()) : true;
+    const day = today.getDate();
+
+    let scheduled = 0;
+    if (sameMonth) {
+      list.forEach(emp => {
+        const sch = (typeof getEmpSch === 'function') ? getEmpSch(emp.id) : ((window.schedData||{})[emp.id]||{})[k]||{};
+        const code = String(sch[day] || '').toUpperCase().trim();
+        if (code && !OFF_OR_LEAVE.has(code)) scheduled++;
+      });
+    }
+    const required = list.length;
+    const missing  = Math.max(0, required - scheduled);
+    reqEl.textContent  = required;
+    schEl.textContent  = scheduled;
+    missEl.textContent = missing;
+    if (dateEl) {
+      dateEl.textContent = sameMonth
+        ? today.toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'}) + ' · today'
+        : 'Viewing another month';
+    }
+    const missPill = document.getElementById('lsc-miss-pill');
+    if (missPill) missPill.style.opacity = missing === 0 ? '.55' : '1';
+  }
+
+  function _liveCountWrapRender(){
+    if (typeof window.renderRoster !== 'function' || window.renderRoster.__lscWrapped) return;
+    const _orig = window.renderRoster;
+    window.renderRoster = function(){
+      const r = _orig.apply(this, arguments);
+      try { _liveCountInject(); _liveCountUpdate(); } catch(e){}
+      return r;
+    };
+    window.renderRoster.__lscWrapped = true;
+  }
+
+  function _liveCountBoot(){
+    _liveCountInject();
+    _liveCountUpdate();
+    _liveCountWrapRender();
+  }
+  setTimeout(_liveCountBoot, 1500);
+  setInterval(_liveCountUpdate, 30000);
+  setInterval(_liveCountBoot,    3000);
+})();
+
+// ═══════════════════════════════════════════════════════════════
+// DEV PANEL: LIVE + I launcher + LIVE+ multi-dept access manager
+// ═══════════════════════════════════════════════════════════════
+(function(){
+  function _injectLiveIDevControls(){
+    const tab = document.getElementById('cpt-liveaccess');
+    if (!tab || tab.querySelector('#devLiveIControls')) return;
+    const body = tab.querySelector('.cp-body') || tab;
+
+    const wrap = document.createElement('div');
+    wrap.id = 'devLiveIControls';
+    wrap.style.cssText = 'margin-top:18px;padding:14px;border:1.5px solid rgba(124,58,237,.35);border-radius:12px;background:linear-gradient(135deg,rgba(91,33,182,.12),rgba(124,58,237,.06))';
+    wrap.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+
+        '<div style="font-size:13px;font-weight:800;color:#C084FC">🟢 LIVE + I  &amp;  LIVE + Multi-Department</div>'+
+        '<span style="font-size:10px;color:#94A3B8;font-weight:500">Dev only</span>'+
+      '</div>'+
+      '<div style="font-size:11px;color:#94A3B8;margin-bottom:12px;line-height:1.6">'+
+        'The <strong style="color:#fff">LIVE + I</strong> chooser has been removed from the top bar — open it here. '+
+        'Grant a staff member <strong style="color:#C084FC">LIVE +</strong> access and pick which departments / sections / positions they can monitor.'+
+      '</div>'+
+      '<button onclick="openLiveIModal()" style="width:100%;background:linear-gradient(135deg,#5B21B6,#7C3AED);color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:14px">🟢 Open LIVE + I Chooser</button>'+
+      '<div style="font-size:11px;font-weight:700;color:#C084FC;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">➕ Grant LIVE + Multi-Dept Access</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px">'+
+        '<div><label class="cp-lbl2">Employee ID</label>'+
+          '<input id="lpIdInp" class="cp-inp2" placeholder="e.g. E001" maxlength="10" style="text-transform:uppercase;font-family:\'DM Mono\',monospace;font-size:13px;letter-spacing:2px" oninput="this.value=this.value.toUpperCase()"></div>'+
+        '<div><label class="cp-lbl2">Departments (comma-separated)</label>'+
+          '<input id="lpDeptsInp" class="cp-inp2" placeholder="Front Office, Housekeeping, F&amp;B"></div>'+
+        '<button class="bgold" style="padding:9px 18px;white-space:nowrap;margin-bottom:0" onclick="lpAddAccess()">+ Grant</button>'+
+      '</div>'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'+
+        '<div><label class="cp-lbl2">Sections (optional)</label>'+
+          '<input id="lpSecsInp" class="cp-inp2" placeholder="Front Desk, Pool, Lobby"></div>'+
+        '<div><label class="cp-lbl2">Positions (optional)</label>'+
+          '<input id="lpPosInp" class="cp-inp2" placeholder="Receptionist, Bellman"></div>'+
+      '</div>'+
+      '<div id="lpMsg" style="font-size:11px;min-height:16px;margin-bottom:10px;color:#4ADE80"></div>'+
+      '<div id="lpList" style="display:flex;flex-direction:column;gap:6px"></div>';
+
+    body.appendChild(wrap);
+    lpRender();
+  }
+
+  window.lpAddAccess = function(){
+    const id = (document.getElementById('lpIdInp')?.value||'').trim().toUpperCase();
+    const msg = document.getElementById('lpMsg');
+    if (!id) { if(msg) msg.textContent='⚠️ Enter an Employee ID'; return; }
+    const split = s => (s||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const depts     = split(document.getElementById('lpDeptsInp')?.value);
+    const sections  = split(document.getElementById('lpSecsInp')?.value);
+    const positions = split(document.getElementById('lpPosInp')?.value);
+    if (!depts.length) { if(msg) msg.textContent='⚠️ Add at least one department'; return; }
+    window.LIVEPLUS_ACCESS = window.LIVEPLUS_ACCESS || {};
+    window.LIVEPLUS_ACCESS[id] = { depts, sections, positions };
+    if (typeof _saveLivePlusAccess === 'function') _saveLivePlusAccess();
+    if(msg) msg.textContent = '✅ Granted LIVE + access to ' + id;
+    ['lpIdInp','lpDeptsInp','lpSecsInp','lpPosInp'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    lpRender();
+  };
+  window.lpRemoveAccess = function(id){
+    if (!confirm('Revoke LIVE + access for ' + id + '?')) return;
+    if (window.LIVEPLUS_ACCESS) delete window.LIVEPLUS_ACCESS[id];
+    if (typeof _saveLivePlusAccess === 'function') _saveLivePlusAccess();
+    lpRender();
+  };
+  function lpRender(){
+    const host = document.getElementById('lpList');
+    if (!host) return;
+    const map = window.LIVEPLUS_ACCESS || {};
+    const keys = Object.keys(map);
+    if (!keys.length) {
+      host.innerHTML = '<div style="font-size:11px;color:rgba(255,255,255,.35);font-style:italic;padding:8px">No LIVE + grants yet.</div>';
+      return;
+    }
+    host.innerHTML = keys.map(id=>{
+      const c = map[id] || {};
+      const chips = (arr,col)=> (arr||[]).map(x=>`<span style="background:${col};color:#fff;font-size:10px;padding:2px 7px;border-radius:8px;margin-right:3px">${x}</span>`).join('');
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px">
+        <div style="font-family:'DM Mono',monospace;font-weight:800;color:#C084FC;font-size:12px;min-width:60px">${id}</div>
+        <div style="flex:1;display:flex;flex-wrap:wrap;gap:3px">
+          ${chips(c.depts,    '#5B21B6')}
+          ${chips(c.sections, '#0F766E')}
+          ${chips(c.positions,'#BF360C')}
+        </div>
+        <button onclick="lpRemoveAccess('${id}')" style="background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer">Revoke</button>
+      </div>`;
+    }).join('');
+  }
+
+  setInterval(_injectLiveIDevControls, 1500);
+})();
+
+console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ multi-dept · Smart Auto Fill · LIVE Staffing Counter');
 </script>
 </body>
 </html>
