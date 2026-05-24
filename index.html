@@ -30,6 +30,8 @@
   --sh:0 4px 24px rgba(15,30,53,.1);
   --sh-lg:0 16px 56px rgba(15,30,53,.18);
 }
+</style>
+<script>
 
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ROSTER INPUT — Tab navigation, live validation, avatar
@@ -211,6 +213,8 @@ function _empResetTabs() {
   empUpdateALRemaining();
 }
 
+</script>
+<style>
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-height:100vh}
@@ -874,6 +878,8 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 .cp-ni-icon{display:inline-block;width:22px;text-align:center;margin-right:4px}
 .cp-nav-item{display:flex;align-items:center}
 #cpPassStrengthBar{min-height:18px}
+#liveDashWindow select,#liveDashWindow select option{background:#0F1E35 !important;color:#fff !important}
+#liveDashWindow select:focus,#liveDashWindow select:hover{background:#1B2D4A !important}
 </style></head>
 <body>
 
@@ -1049,21 +1055,21 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   </div>
   <!-- Filters row -->
   <div style="background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <select id="liveDeptFilter" style="display:none">
-      <option value="all">All Departments</option>
+    <select id="liveDeptFilter" style="display:none;background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="all" style="background:#0F1E35;color:#fff">All Departments</option>
     </select>
-    <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="all">🏨 All Hotels</option>
+    <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="all" style="background:#0F1E35;color:#fff">🏨 All Hotels</option>
     </select>
-    <select id="liveShiftFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="auto">⏰ Current Shift</option>
-      <option value="MOR">🌅 Morning</option>
-      <option value="AFT">☀️ Afternoon</option>
-      <option value="EVE">🌙 Evening/Night</option>
-      <option value="all">📋 All Shifts</option>
+    <select id="liveShiftFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="auto" style="background:#0F1E35;color:#fff">⏰ Current Shift</option>
+      <option value="MOR" style="background:#0F1E35;color:#fff">🌅 Morning</option>
+      <option value="AFT" style="background:#0F1E35;color:#fff">☀️ Afternoon</option>
+      <option value="EVE" style="background:#0F1E35;color:#fff">🌙 Evening/Night</option>
+      <option value="all" style="background:#0F1E35;color:#fff">📋 All Shifts</option>
     </select>
-    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="">📍 All Sections</option>
+    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="" style="background:#0F1E35;color:#fff">📍 All Sections</option>
     </select>
     <input id="liveSearchInp" oninput="renderLiveDash()" placeholder="🔍 Search staff..." style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px;font-size:11px;color:#fff;outline:none;width:180px" onmouseover="" />
     <div style="margin-left:auto;display:flex;gap:8px">
