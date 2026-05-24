@@ -4106,8 +4106,9 @@ function populateDeptPassSelect() {
   const sel = document.getElementById("deptPassSelect");
   if (!sel) return;
   const depts = getAllDepts();
-  sel.innerHTML = '<option value="">-- Select Department --</option>' +
-    depts.map(d => '<option value="' + d + '">' + d + '</option>').join("");
+  const optStyle = ' style="background:#0F1E35;color:#fff"';
+  sel.innerHTML = '<option value=""' + optStyle + '>-- Select Department --</option>' +
+    depts.map(d => '<option value="' + d + '"' + optStyle + '>' + d + '</option>').join("");
 }
 
 function onDeptSelectChange() {
@@ -9725,21 +9726,40 @@ function devExportScheduleJSON() {
   }, 500);
   document.addEventListener('click', function(){ mountAll(); }, true);
 
-  // ---------- 3. Lock LIVE dept filter to user's department ----------
+  // ---------- 3. Configure LIVE dept filter ----------
+  // - Single-dept LIVE: lock & hide to user's department
+  // - LIVE+ multi-dept: show dropdown with all granted departments + "All"
   const _origOpenLive = typeof openLiveDashForEmployee === 'function' ? openLiveDashForEmployee : null;
   if (_origOpenLive) {
     window.openLiveDashForEmployee = function(id, emp){
       _origOpenLive(id, emp);
       try {
         const deptSel = document.getElementById('liveDeptFilter');
-        if (deptSel && emp && emp.department) {
-          // Lock and HIDE the dept filter — staff only see their own department
+        if (!deptSel || !emp) return;
+        const livePlus = window._LIVEPLUS_ACTIVE && window._LIVEPLUS_ACTIVE.id === id ? window._LIVEPLUS_ACTIVE : null;
+        if (livePlus) {
+          // Build allowed-dept list from grant config (fallback: all known depts)
+          let depts = [];
+          const cfg = livePlus.cfg || {};
+          if (Array.isArray(cfg.departments) && cfg.departments.length) depts = cfg.departments.slice();
+          else if (Array.isArray(cfg.depts) && cfg.depts.length) depts = cfg.depts.slice();
+          else if (typeof getAllDepts === 'function') depts = getAllDepts();
+          if (emp.department && !depts.includes(emp.department)) depts.unshift(emp.department);
+          const styleDark = 'background:#0F1E35;color:#fff';
+          deptSel.innerHTML = `<option value="all" style="${styleDark}">🏢 All Departments</option>` +
+            depts.map(d => `<option value="${d}" style="${styleDark}">${d}</option>`).join('');
+          deptSel.value = 'all';
+          deptSel.disabled = false;
+          deptSel.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none;display:inline-block';
+          deptSel.onchange = function(){ if (typeof renderLiveDash === 'function') renderLiveDash(); };
+        } else if (emp.department) {
+          // Single-dept user: lock and hide
           deptSel.innerHTML = `<option value="${emp.department}">${emp.department}</option>`;
           deptSel.value = emp.department;
           deptSel.disabled = true;
-          deptSel.style.display = 'none';  // hide completely
-          if (typeof renderLiveDash === 'function') renderLiveDash();
+          deptSel.style.display = 'none';
         }
+        if (typeof renderLiveDash === 'function') renderLiveDash();
       } catch(e) { console.error(e); }
     };
   }
