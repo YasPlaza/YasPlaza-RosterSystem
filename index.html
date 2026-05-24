@@ -1779,7 +1779,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-nav-item" id="cpni-departments"  onclick="cpTab('departments')"><span class="cp-ni-icon">🏢</span>Departments & Positions</div>
       <div class="cp-nav-item" id="cpni-shifts"       onclick="cpTab('shifts')"><span class="cp-ni-icon">⏰</span>Shifts</div>
       <div class="cp-nav-item" id="cpni-access"       onclick="cpTab('access')"><span class="cp-ni-icon">🔑</span>Access & Passwords</div>
-      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Dashboard</div>
+      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Positions</div>
       <div class="cp-nav-item" id="cpni-notifications" onclick="cpTab('notifications')"><span class="cp-ni-icon">🔔</span>Notifications</div>
       <div class="cp-nav-item" id="cpni-firebase"     onclick="cpTab('firebase')"><span class="cp-ni-icon">🔥</span>Firebase Config</div>
       <div class="cp-nav-item" id="cpni-logs"         onclick="cpTab('logs')"><span class="cp-ni-icon">📋</span>Activity Logs</div>
@@ -1914,7 +1914,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <!-- LIVE DASHBOARD -->
     <div class="cp-panel" id="cpt-live" style="display:none">
       <div class="cp-ph">
-        <div class="cp-pt">🟢 LIVE <span class="cp-badge">Access & Positions</span></div>
+        <div class="cp-pt">🟢 LIVE Positions <span class="cp-badge">Monitored Roles</span></div>
         <button class="bgold" onclick="cpOpenLiveUserForm()">+ Add User</button>
       </div>
       <div class="cp-body">
@@ -8349,7 +8349,7 @@ function saveLiveAuthorizedIds() {
   }
 }
 function isLiveAuthorized(empId) {
-  return LIVE_AUTHORIZED_IDS.map(x=>x.toUpperCase()).includes((empId||'').toUpperCase());
+  return LIVE_AUTHORIZED_IDS.map(x=>typeof x==='object'?x.id.toUpperCase():x.toUpperCase()).includes((empId||'').toUpperCase());
 }
 
 // ════════════════════════════════════════════════
@@ -8758,16 +8758,19 @@ function cpRemoveLiveAuthId(i) {
 // ════════════════════════════════════════════════
 function laRender() {
   const ids = LIVE_AUTHORIZED_IDS;
-  const cardHtml = ids.length ? ids.map((id, i) => {
+  const cardHtml = ids.length ? ids.map((entry, i) => {
+    const id = typeof entry === 'object' ? entry.id : entry;
+    const deptOverride = typeof entry === 'object' ? (entry.dept || '') : '';
     const emp = staffData[id];
     const name = emp ? emp.name : '<span style="color:#64748B;font-style:italic">Unknown — not in staff list</span>';
-    const dept = emp ? emp.department : '';
+    const dept = deptOverride || (emp ? emp.department : '');
     const section = emp ? (emp.section || '') : '';
+    const idSlice = (id||'???').slice(0,3);
     return `<div style="display:flex;align-items:center;gap:10px;background:rgba(74,222,128,.05);border:1px solid rgba(74,222,128,.18);border-radius:10px;padding:10px 14px;margin-bottom:5px">
-      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#4ADE80;flex-shrink:0">${id.slice(0,3)}</div>
+      <div style="width:36px;height:36px;border-radius:10px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#4ADE80;flex-shrink:0">${idSlice}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:700;color:#fff">${name}</div>
-        <div style="font-size:10px;color:#64748B;margin-top:2px">${dept}${section ? ' · ' + section : ''} &nbsp;·&nbsp; <span style="color:#4ADE80;font-family:'DM Mono',monospace">${id}</span></div>
+        <div style="font-size:10px;color:#64748B;margin-top:2px">${dept}${section ? ' · '+section : ''} &nbsp;·&nbsp; <span style="color:#4ADE80;font-family:'DM Mono',monospace">${id}</span>${deptOverride ? ' <span style="color:#FBBF24;font-size:9px">🔒 Dept: '+deptOverride+'</span>' : ''}</div>
       </div>
       <div style="display:flex;align-items:center;gap:6px">
         <div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:6px;padding:2px 10px;font-size:9px;font-weight:700;color:#4ADE80">LIVE ACCESS</div>
@@ -8794,10 +8797,16 @@ function laAddId() {
     return;
   }
 
+  // Get optional department restriction
+  const deptSel = document.getElementById('laEmpDeptInp');
+  const deptRestrict = deptSel ? deptSel.value : '';
+
   // Check employee exists
   const emp = staffData[id];
 
-  LIVE_AUTHORIZED_IDS.push(id);
+  // Store as object with optional dept override
+  const entry = deptRestrict ? { id, dept: deptRestrict } : id;
+  LIVE_AUTHORIZED_IDS.push(entry);
   saveLiveAuthorizedIds();
   ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
 
@@ -9018,13 +9027,8 @@ function cpAutoLoadUAEHolidays() {
     const cpNav = document.querySelector('.cp-nav');
     const cpBody = document.querySelector('.cp-body');
     if (!cpNav || !cpBody || document.getElementById('cpHolidayTab')) return;
-    // Add nav item
-    const navItem = document.createElement('div');
-    navItem.className = 'cp-nav-item';
-    navItem.onclick = function() { cpTab('holidays'); };
-    navItem.setAttribute('onclick', "cpTab('holidays')");
-    navItem.textContent = '🇦🇪 Holidays';
-    cpNav.appendChild(navItem);
+    // Holiday nav removed — holidays auto-update, no panel needed
+    // navItem suppressed by design
     // Add tab content
     const tab = document.createElement('div');
     tab.id = 'cpt-holidays';
@@ -9478,25 +9482,8 @@ function devExportScheduleJSON() {
   function mountAll(){
     if (!document.querySelector('.cp-content')) return false;
 
-    // Holidays
-    if (!document.getElementById('cpt-holidays')) {
-      mountTab('🇦🇪 Holidays', 'cpt-holidays', `
-        <div class="cp-ph"><div class="cp-pt">🇦🇪 UAE Public Holidays <span class="cp-badge">Manage Calendar</span></div></div>
-        <div class="cp-body">
-          <div class="cp-stitle">🇦🇪 UAE Public Holidays Management</div>
-          <div class="cp-infobox">Manage UAE public holidays. Use "Mark in Roster" to automatically block them in the current month's roster view.</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
-            <div><label class="cp-lbl2">Date</label><input class="cp-inp2" type="date" id="cpHolDate"></div>
-            <div><label class="cp-lbl2">Holiday Name</label><input class="cp-inp2" id="cpHolName" placeholder="e.g. Eid Al Fitr"></div>
-            <button class="bgold" onclick="cpAddHoliday()" style="white-space:nowrap">+ Add Holiday</button>
-          </div>
-          <div style="display:flex;gap:8px;margin-bottom:12px">
-            <button class="bx bxg" onclick="cpAutoLoadUAEHolidays()">🇦🇪 Mark Holidays in Current Month Roster</button>
-            <button class="bx bxn" onclick="cpRenderHolidays()">🔄 Refresh</button>
-          </div>
-          <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>
-        </div>`, function(){ if (typeof cpRenderHolidays==='function') cpRenderHolidays(); });
-    }
+    // Holidays tab removed — UAE holidays are auto-managed and update automatically
+    // No manual panel needed — data persists via localStorage + Firebase sync
 
     // Themes
     if (!document.getElementById('cpt-themes')) {
@@ -9534,25 +9521,47 @@ function devExportScheduleJSON() {
     // Live Access (Authorized Staff)
     if (!document.getElementById('cpt-liveaccess')) {
       mountTab('\u{1F7E2} Live Access', 'cpt-liveaccess', `
-        <div class="cp-ph"><div class="cp-pt">&#128994; LIVE Access <span class="cp-badge">Authorized Staff</span></div></div>
+        <div class="cp-ph"><div class="cp-pt">&#128994; LIVE Access <span class="cp-badge">Developer Only</span></div></div>
         <div class="cp-body">
-          <div class="cp-stitle">&#128994; LIVE Access</div>
-          <div class="cp-infobox" style="margin-bottom:14px">
-            Add employee IDs here to give them access to the <strong style="color:#4ADE80">LIVE</strong>.
-            When they log in on the main screen they will see two tiles: <strong style="color:#4ADE80">LIVE</strong> (locked to their own department &amp; they can filter by section) and <strong style="color:#E8B04A">My Roster</strong>.
-            Staff NOT on this list only see their personal roster.
+          <div class="cp-stitle">&#128994; LIVE Access — Authorized Staff</div>
+          <div class="cp-infobox" style="margin-bottom:14px;border-left:3px solid #4ADE80">
+            <strong style="color:#4ADE80">🔧 Developer Only:</strong> Add employee IDs here to grant LIVE dashboard access.<br>
+            These staff see two tiles on login: <strong style="color:#4ADE80">LIVE</strong> (locked to their department) + <strong style="color:#E8B04A">My Roster</strong>.<br>
+            Optionally restrict which <strong>department</strong> they can see in the LIVE view.<br>
+            <span style="color:#94A3B8;font-size:10px">💡 To manage which positions appear in LIVE, go to <strong style="color:#fff">LIVE Positions</strong> tab.</span>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;margin-bottom:14px">
-            <input id="laEmpIdInp" class="cp-inp2" placeholder="Employee ID  e.g. E001" maxlength="10"
-              style="flex:1;text-transform:uppercase;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px"
-              oninput="this.value=this.value.toUpperCase()"
-              onkeydown="if(event.key==='Enter')laAddId()">
-            <button class="bgold" style="padding:9px 22px;font-size:13px;white-space:nowrap" onclick="laAddId()">+ Add</button>
+          <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px">
+            <div>
+              <label class="cp-lbl2">Employee ID</label>
+              <input id="laEmpIdInp" class="cp-inp2" placeholder="e.g. E001" maxlength="10"
+                style="text-transform:uppercase;font-family:'DM Mono',monospace;font-size:13px;letter-spacing:2px"
+                oninput="this.value=this.value.toUpperCase()"
+                onkeydown="if(event.key==='Enter')laAddId()">
+            </div>
+            <div>
+              <label class="cp-lbl2">Department (optional — restricts LIVE view)</label>
+              <select id="laEmpDeptInp" class="cp-inp2">
+                <option value="">All Departments</option>
+              </select>
+            </div>
+            <button class="bgold" style="padding:9px 22px;font-size:13px;white-space:nowrap;margin-bottom:0" onclick="laAddId()">+ Add</button>
           </div>
           <div id="laMsg" style="font-size:11px;min-height:16px;margin-bottom:10px;color:#4ADE80"></div>
           <div id="laList" style="display:flex;flex-direction:column;gap:7px"></div>
         </div>
-      `, function(){ if(typeof laRender==='function') laRender(); });
+      `, function(){
+        if(typeof laRender==='function') laRender();
+        // Populate dept dropdown
+        const sel = document.getElementById('laEmpDeptInp');
+        if (sel && typeof DEPARTMENTS !== 'undefined') {
+          DEPARTMENTS.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.id || d.name;
+            opt.textContent = d.name;
+            sel.appendChild(opt);
+          });
+        }
+      });
     }
 
     // Export / Import
@@ -12168,6 +12177,1173 @@ function cpRenderPassStrength(val){
     secRenderStrengthBar('cpPassStrengthBar', val);
   }
 }
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     YPH ROSTER ENHANCEMENT MODULE v5.0
+     Features: LIVE+I Chooser · Department Builder · OCC Warnings
+               AI Auto Schedule · Smart Shifts · Fair Distribution
+               Drag & Drop · Fatigue Warnings · Shift Templates
+               Multi-Hotel Balancing · Excel/PDF Export/Import
+═══════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── LIVE + I Modal ── */
+#liveIModal{position:fixed;inset:0;background:rgba(0,0,0,.82);backdrop-filter:blur(12px);display:none;align-items:center;justify-content:center;z-index:5000;padding:20px}
+#liveIModal.show{display:flex}
+.livei-card{background:linear-gradient(135deg,#0D1B2E,#162540);border:1.5px solid rgba(201,150,58,.35);border-radius:24px;padding:36px;width:520px;max-width:96vw;max-height:92vh;overflow-y:auto;animation:fadeUp .3s ease both;box-shadow:0 32px 80px rgba(0,0,0,.7)}
+.livei-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:#fff;margin-bottom:4px}
+.livei-sub{font-size:12px;color:rgba(255,255,255,.45);margin-bottom:24px}
+.livei-search{width:100%;padding:14px 16px;background:rgba(255,255,255,.07);border:1.5px solid rgba(201,150,58,.3);border-radius:12px;color:#fff;font-size:15px;font-family:'DM Mono',monospace;letter-spacing:2px;text-align:center;outline:none;transition:.2s;margin-bottom:14px}
+.livei-search:focus{border-color:var(--gold);background:rgba(255,255,255,.1)}
+.livei-list{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;margin-bottom:16px}
+.livei-emp{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;cursor:pointer;transition:.2s}
+.livei-emp:hover{background:rgba(201,150,58,.12);border-color:var(--gold)}
+.livei-av{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#0D1B2E;flex-shrink:0}
+.livei-name{font-size:13px;font-weight:700;color:#fff}
+.livei-meta{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
+.livei-badge{margin-left:auto;font-size:9px;font-weight:700;padding:3px 9px;border-radius:6px;background:rgba(74,222,128,.15);color:#4ADE80;border:1px solid rgba(74,222,128,.3)}
+/* dept option buttons */
+.livei-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.livei-opt{padding:14px;border-radius:12px;border:1.5px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:rgba(255,255,255,.75);font-size:13px;font-weight:600;cursor:pointer;transition:.2s;text-align:center}
+.livei-opt:hover{background:rgba(201,150,58,.15);border-color:var(--gold);color:#fff}
+.livei-opt.primary{background:linear-gradient(135deg,#4ADE80,#22c55e);color:#0D1B2E;border-color:transparent}
+.livei-opt.live-opt{background:linear-gradient(135deg,rgba(74,222,128,.15),rgba(34,197,94,.1));border-color:rgba(74,222,128,.4);color:#4ADE80}
+
+/* ── Department Manager Modal ── */
+#deptManagerModal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:4000;padding:20px}
+#deptManagerModal.show{display:flex}
+.deptmgr-card{background:#1B2D4A;border:1.5px solid rgba(201,150,58,.25);border-radius:22px;padding:32px;width:620px;max-width:96vw;max-height:90vh;overflow-y:auto;animation:fadeUp .25s ease both}
+.dept-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:100px;font-size:11px;font-weight:700;margin:3px;cursor:pointer;transition:.15s;border:1.5px solid transparent}
+.dept-chip:hover{filter:brightness(1.1)}
+.dept-chip-del{background:rgba(239,68,68,.15);color:#EF4444;border-color:rgba(239,68,68,.3);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:9px;cursor:pointer;flex-shrink:0;line-height:1}
+
+/* ── OCC Warning Banner ── */
+#occWarnBanner{display:none;position:sticky;top:0;z-index:200;margin-bottom:10px}
+.occ-warn-inner{display:flex;align-items:center;gap:12px;padding:10px 16px;border-radius:10px;font-size:12px;font-weight:700}
+.occ-warn-red{background:rgba(183,28,28,.15);border:1.5px solid rgba(183,28,28,.5);color:#EF4444}
+.occ-warn-amber{background:rgba(230,92,0,.1);border:1.5px solid rgba(230,92,0,.4);color:#F97316}
+.occ-warn-pulse{animation:pulse 2s infinite}
+
+/* ── Smart Shift Suggestions Panel ── */
+#smartShiftPanel{position:fixed;right:0;top:56px;bottom:0;width:350px;background:linear-gradient(135deg,#1B2D4A,#0F1E35);border-left:1.5px solid rgba(91,33,182,.4);box-shadow:-8px 0 32px rgba(91,33,182,.15);transform:translateX(100%);transition:.3s ease;z-index:600;overflow-y:auto;padding:16px}
+#smartShiftPanel.open{transform:translateX(0)}
+.ss-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;margin-bottom:10px;cursor:pointer;transition:.2s}
+.ss-card:hover{border-color:var(--gold);background:rgba(201,150,58,.08)}
+.ss-label{font-size:11px;font-weight:700;color:var(--gold2);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.ss-desc{font-size:11px;color:rgba(255,255,255,.6);line-height:1.5}
+.ss-score{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px;background:rgba(74,222,128,.12);color:#4ADE80;border:1px solid rgba(74,222,128,.25);margin-left:auto}
+.fatigue-badge{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;padding:2px 7px;border-radius:6px}
+.fatigue-high{background:rgba(239,68,68,.15);color:#EF4444;border:1px solid rgba(239,68,68,.3)}
+.fatigue-mid{background:rgba(245,158,11,.1);color:#F59E0B;border:1px solid rgba(245,158,11,.3)}
+.fatigue-ok{background:rgba(16,185,129,.1);color:#10B981;border:1px solid rgba(16,185,129,.3)}
+
+/* ── Drag & Drop Roster ── */
+.droppable-cell{position:relative;transition:background .15s}
+.droppable-cell.drag-over{background:rgba(201,150,58,.2)!important;outline:2px dashed var(--gold)}
+.draggable-pill{cursor:grab;transition:opacity .15s}
+.draggable-pill:active{cursor:grabbing;opacity:.6}
+.drag-over{outline:2px dashed var(--gold)!important;outline-offset:-2px;background:rgba(201,150,58,.08)!important}
+td.droppable-cell{position:relative}
+
+/* ── Shift Templates Modal ── */
+#shiftTemplatesModal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:4000;padding:20px}
+#shiftTemplatesModal.show{display:flex}
+.tmpl-card{padding:14px;border:1.5px solid rgba(201,150,58,.3);border-radius:12px;background:rgba(201,150,58,.06);cursor:pointer;transition:.2s}
+.tmpl-card:hover{border-color:var(--gold);background:rgba(201,150,58,.12)}
+.tmpl-name{font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.tmpl-desc{font-size:10px;color:rgba(255,255,255,.5);line-height:1.5}
+.tmpl-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:5px}
+
+/* ── Fair Distribution Indicator ── */
+.fair-bar{height:6px;border-radius:99px;background:#dde3f0;overflow:hidden;margin-top:4px}
+.fair-fill{height:100%;border-radius:99px;transition:width .4s}
+.fair-ok{background:#10B981}
+.fair-warn{background:#F59E0B}
+.fair-bad{background:#EF4444}
+
+/* ── Multi Hotel Balance ── */
+.hotel-bal-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.hotel-bal-pill{font-size:9px;font-weight:700;padding:2px 8px;border-radius:6px}
+.bal-over{background:rgba(239,68,68,.15);color:#EF4444}
+.bal-under{background:rgba(245,158,11,.1);color:#F59E0B}
+.bal-ok{background:rgba(16,185,129,.1);color:#10B981}
+
+/* ── Export Options ── */
+#exportModal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:4000;padding:20px}
+#exportModal.show{display:flex}
+.exp-btn{display:flex;align-items:center;gap:12px;padding:16px 20px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;background:rgba(255,255,255,.04);cursor:pointer;transition:.2s;width:100%;text-align:left;color:#fff;font-size:13px;font-weight:600;margin-bottom:8px}
+.exp-btn:hover{border-color:var(--gold);background:rgba(201,150,58,.1)}
+.exp-icon{font-size:24px;width:40px;text-align:center}
+</style>
+
+<!-- ══ LIVE + I CHOOSER MODAL ══ -->
+<div id="liveIModal">
+  <div class="livei-card">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
+      <div>
+        <div class="livei-title">🟢 LIVE <span style="color:var(--gold)">+ I</span></div>
+        <div class="livei-sub">Search by ID or name · choose your access mode</div>
+      </div>
+      <button class="exit-btn" onclick="closeLiveIModal()">✕</button>
+    </div>
+    <input class="livei-search" id="liveISearch" placeholder="Enter ID or name…" oninput="liveISearchChanged(this.value)" autocomplete="off">
+    <div class="livei-list" id="liveIList"></div>
+    <div id="liveISelected" style="display:none">
+      <div style="padding:14px;background:rgba(74,222,128,.08);border:1.5px solid rgba(74,222,128,.25);border-radius:12px;margin-bottom:14px">
+        <div style="font-size:11px;color:#4ADE80;font-weight:700;margin-bottom:4px">✓ Selected</div>
+        <div id="liveISelName" style="font-size:15px;font-weight:800;color:#fff"></div>
+        <div id="liveISelMeta" style="font-size:11px;color:rgba(255,255,255,.5);margin-top:3px"></div>
+      </div>
+      <div class="livei-options">
+        <button class="livei-opt live-opt" onclick="liveIOpenLive()">🟢 Open LIVE Dashboard</button>
+        <button class="livei-opt" onclick="liveIOpenRoster()">📅 View My Roster</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:14px">
+      <button class="btn btn-ghost btn-sm" onclick="closeLiveIModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ DEPARTMENT MANAGER MODAL ══ -->
+<div id="deptManagerModal">
+  <div class="deptmgr-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div>
+        <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff">🏢 Department Manager</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">Add one or many departments by name</div>
+      </div>
+      <button class="exit-btn" onclick="closeDeptManager()">✕</button>
+    </div>
+
+    <!-- Current Departments -->
+    <div style="margin-bottom:18px">
+      <div style="font-size:10px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Current Departments</div>
+      <div id="deptChipList" style="min-height:40px;padding:8px;background:rgba(0,0,0,.2);border-radius:10px;border:1px solid rgba(255,255,255,.07)"></div>
+    </div>
+
+    <!-- Add single department -->
+    <div style="background:rgba(201,150,58,.06);border:1.5px dashed rgba(201,150,58,.3);border-radius:12px;padding:14px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--gold2);margin-bottom:10px">➕ Add Department</div>
+      <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:180px">
+          <label style="font-size:9px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:4px">Department Name</label>
+          <input class="cp-inp2" id="deptAddName" placeholder="e.g. Spa, Security, IT…">
+        </div>
+        <button class="bgold" onclick="deptMgrAddSingle()">+ Add</button>
+      </div>
+    </div>
+
+    <!-- Bulk add -->
+    <div style="background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:14px">
+      <div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px">📋 Bulk Add (one per line)</div>
+      <textarea class="cp-inp2" id="deptBulkText" rows="4" placeholder="Spa&#10;Security&#10;IT Support&#10;Purchasing" style="font-family:'DM Mono',monospace;font-size:11px;resize:vertical"></textarea>
+      <button class="bgold" style="margin-top:10px;width:100%" onclick="deptMgrAddBulk()">+ Add All Listed</button>
+    </div>
+
+    <div id="deptMgrMsg" style="font-size:11px;margin-top:10px;min-height:16px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- ══ SHIFT TEMPLATES MODAL ══ -->
+<div id="shiftTemplatesModal">
+  <div class="modal" style="width:680px;background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:1.5px solid rgba(201,150,58,.3)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+      <div>
+        <h3 style="color:#fff;margin:0">📋 Shift Templates</h3>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px">Apply smart pre-built schedules to selected staff</div>
+      </div>
+      <button class="exit-btn" onclick="closeModal('shiftTemplatesModal')">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px" id="tmplGrid"></div>
+    <div style="margin-bottom:14px">
+      <label class="lbl" style="color:rgba(255,255,255,.6)">Apply to Hotel</label>
+      <select class="inp" id="tmplHotelSel"></select>
+    </div>
+    <div style="margin-bottom:14px">
+      <label class="lbl" style="color:rgba(255,255,255,.6)">Apply to Department (optional)</label>
+      <select class="inp" id="tmplDeptSel"><option value="">All Departments</option></select>
+    </div>
+    <div id="tmplMsg" style="font-size:11px;margin-bottom:10px;min-height:16px;text-align:center;color:#4ADE80"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal('shiftTemplatesModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SMART SHIFT SUGGESTIONS PANEL ══ -->
+<div id="smartShiftPanel">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff;display:flex;align-items:center;gap:8px">
+        <span style="background:linear-gradient(135deg,#5B21B6,#7C3AED);width:30px;height:30px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">🤖</span>
+        AI Auto Schedule
+      </div>
+      <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;margin-left:38px">🧠 Smart Shift Suggestions</div>
+    </div>
+    <button class="exit-btn" onclick="closeSmartPanel()">✕</button>
+  </div>
+  <div style="background:rgba(91,33,182,.15);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:10px;color:rgba(255,255,255,.65);line-height:1.6">
+    Analyses <strong style="color:#C084FC">fatigue patterns</strong>, <strong style="color:#60A5FA">fair distribution</strong>, and <strong style="color:#4ADE80">OCC data</strong> to give prioritised recommendations — who needs an extra OFF day, whose weekends are unbalanced, when to add overlap shifts.
+  </div>
+  <button onclick="_buildSmartSuggestions()" style="width:100%;background:linear-gradient(135deg,#5B21B6,#7C3AED);color:#fff;border:none;border-radius:10px;padding:8px;font-size:11px;font-weight:700;cursor:pointer;margin-bottom:12px">🔄 Analyse &amp; Refresh Suggestions</button>
+  <div id="smartSuggList"></div>
+</div>
+<!-- Smart panel toggle button -->
+<div id="smartPanelBtn" style="position:fixed;right:16px;bottom:80px;z-index:600;display:none">
+  <button onclick="toggleSmartPanel()" style="background:linear-gradient(135deg,#5B21B6,#7C3AED);color:#fff;border:none;border-radius:14px;padding:12px 18px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 8px 24px rgba(91,33,182,.5),0 0 0 2px rgba(124,58,237,.3);display:flex;align-items:center;gap:8px;transition:.2s"
+    onmouseover="this.style.transform='scale(1.05)';this.style.boxShadow='0 12px 32px rgba(91,33,182,.7)'"
+    onmouseout="this.style.transform='';this.style.boxShadow='0 8px 24px rgba(91,33,182,.5),0 0 0 2px rgba(124,58,237,.3)'">
+    <span style="font-size:16px">🤖</span>
+    <div>
+      <div>AI Auto Schedule</div>
+      <div style="font-size:9px;opacity:.75;margin-top:1px">Smart Shift Suggestions</div>
+    </div>
+  </button>
+</div>
+
+<!-- ══ EXPORT MODAL ══ -->
+<div id="exportModal">
+  <div style="background:#1B2D4A;border:1.5px solid rgba(201,150,58,.25);border-radius:22px;padding:32px;width:480px;max-width:96vw;animation:fadeUp .25s ease both">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+      <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#fff">📤 Export / Import</div>
+      <button class="exit-btn" onclick="closeModal('exportModal')">✕</button>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Export Roster</div>
+    <button class="exp-btn" onclick="exportEnhancedExcel()">
+      <span class="exp-icon">📊</span>
+      <div><div>Excel (.xlsx)</div><div style="font-size:10px;font-weight:400;color:rgba(255,255,255,.45);margin-top:2px">Full month roster with shifts, stats, hotel breakdown</div></div>
+    </button>
+    <button class="exp-btn" onclick="exportEnhancedPDF()">
+      <span class="exp-icon">📄</span>
+      <div><div>PDF Roster</div><div style="font-size:10px;font-weight:400;color:rgba(255,255,255,.45);margin-top:2px">Printable roster with colours, headers, summaries</div></div>
+    </button>
+    <button class="exp-btn" onclick="exportCSV()">
+      <span class="exp-icon">📋</span>
+      <div><div>CSV Data</div><div style="font-size:10px;font-weight:400;color:rgba(255,255,255,.45);margin-top:2px">Raw data export for spreadsheet tools</div></div>
+    </button>
+    <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.8px;margin:16px 0 10px">Import Roster / Staff</div>
+    <button class="exp-btn" onclick="document.getElementById('enhImportFile').click()">
+      <span class="exp-icon">📥</span>
+      <div><div>Import Excel / CSV</div><div style="font-size:10px;font-weight:400;color:rgba(255,255,255,.45);margin-top:2px">Import staff list or pre-filled roster from Excel</div></div>
+    </button>
+    <input type="file" id="enhImportFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="enhImportFile(event)">
+    <div id="exportMsg" style="font-size:11px;margin-top:10px;min-height:16px;text-align:center;color:#4ADE80"></div>
+  </div>
+</div>
+
+<!-- ══ OCC WARNING BANNER (injected into roster page) ══ -->
+<div id="occWarnBanner">
+  <div class="occ-warn-inner occ-warn-amber occ-warn-pulse" id="occWarnInner">
+    <span style="font-size:18px">⚠️</span>
+    <div id="occWarnText" style="flex:1"></div>
+    <button onclick="document.getElementById('occWarnBanner').style.display='none'" style="background:none;border:none;color:inherit;cursor:pointer;font-size:16px;opacity:.7">✕</button>
+  </div>
+</div>
+
+<!-- ══ FAIR DISTRIBUTION MODAL ══ -->
+<div class="mover" id="fairDistModal" style="display:none" onclick="if(event.target===this)closeModal('fairDistModal')">
+  <div class="modal" style="width:640px">
+    <h3>⚖️ Fair Shift Distribution</h3>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:16px">Balance weekend OFFs, morning/afternoon/night shifts fairly across all staff</div>
+    <div id="fairDistTable"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="closeModal('fairDistModal')">Close</button>
+      <button class="btn btn-primary" onclick="applyFairDistribution()">⚖️ Auto-Balance This Month</button>
+    </div>
+    <div id="fairDistMsg" style="font-size:11px;margin-top:8px;min-height:16px;color:var(--green)"></div>
+  </div>
+</div>
+
+<!-- ══ MULTI HOTEL BALANCE MODAL ══ -->
+<div class="mover" id="hotelBalModal" style="display:none" onclick="if(event.target===this)closeModal('hotelBalModal')">
+  <div class="modal" style="width:600px">
+    <h3>🏨 Multi-Hotel Staff Balance</h3>
+    <div style="font-size:11px;color:var(--slate);margin-bottom:16px">Ensure adequate coverage across all hotels for this month</div>
+    <div id="hotelBalGrid"></div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="closeModal('hotelBalModal')">Close</button>
+      <button class="btn btn-primary" onclick="applyHotelBalance()">🔀 Suggest Rebalancing</button>
+    </div>
+    <div id="hotelBalMsg" style="font-size:11px;margin-top:8px;min-height:16px;color:var(--green)"></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// YPH ENHANCEMENT MODULE v5.0
+// ═══════════════════════════════════════════════════════════════
+
+// ── 1. LIVE + I MODAL ──────────────────────────────────────────
+let _liveISelected = null;
+
+function openLiveIModal() {
+  const m = document.getElementById('liveIModal');
+  if (m) { m.classList.add('show'); liveISearchChanged(''); }
+  const si = document.getElementById('liveISearch');
+  if (si) { si.value=''; setTimeout(()=>si.focus(),200); }
+}
+function closeLiveIModal() {
+  const m = document.getElementById('liveIModal');
+  if (m) m.classList.remove('show');
+  _liveISelected = null;
+  const sel = document.getElementById('liveISelected');
+  if (sel) sel.style.display = 'none';
+}
+
+function liveISearchChanged(q) {
+  const list = document.getElementById('liveIList');
+  if (!list) return;
+  q = q.trim().toLowerCase();
+  const staff = typeof staffList === 'function' ? staffList() : [];
+  const matches = q.length < 1
+    ? staff.slice(0,12)
+    : staff.filter(s => s.id.toLowerCase().includes(q) || s.name.toLowerCase().includes(q)).slice(0,12);
+
+  if (!matches.length) { list.innerHTML='<div style="text-align:center;padding:20px;font-size:11px;color:rgba(255,255,255,.35)">No matching employee</div>'; return; }
+
+  list.innerHTML = matches.map(s => {
+    const initials = s.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const isLive = typeof isLiveAuthorized === 'function' && isLiveAuthorized(s.id);
+    return `<div class="livei-emp" onclick="liveISelect('${s.id}')">
+      <div class="livei-av">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div class="livei-name">${s.name}</div>
+        <div class="livei-meta">${s.id} · ${s.department||''} · ${s.hotel||''}</div>
+      </div>
+      ${isLive ? '<span class="livei-badge">🟢 LIVE</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function liveISelect(id) {
+  const staff = typeof staffList === 'function' ? staffList() : [];
+  const emp = staff.find(s => s.id === id);
+  if (!emp) return;
+  _liveISelected = emp;
+  const nameEl = document.getElementById('liveISelName');
+  const metaEl = document.getElementById('liveISelMeta');
+  const selBox = document.getElementById('liveISelected');
+  const listEl = document.getElementById('liveIList');
+  if (nameEl) nameEl.textContent = emp.name;
+  if (metaEl) metaEl.textContent = `${emp.id} · ${emp.department||''} · ${emp.position||''} · ${emp.hotel||''}`;
+  if (selBox) selBox.style.display = '';
+  if (listEl) listEl.style.display = 'none';
+}
+
+function liveIOpenLive() {
+  if (!_liveISelected) return;
+  closeLiveIModal();
+  if (typeof openLiveDashForEmployee === 'function') {
+    openLiveDashForEmployee(_liveISelected.id, _liveISelected);
+  } else if (typeof openLiveDashFromSelector === 'function') {
+    openLiveDashFromSelector();
+  }
+}
+function liveIOpenRoster() {
+  if (!_liveISelected) return;
+  closeLiveIModal();
+  if (typeof openEmpPortal === 'function') {
+    openEmpPortal(_liveISelected.id);
+  } else if (typeof showEmpPortal === 'function') {
+    showEmpPortal(_liveISelected.id);
+  }
+}
+
+// Wire "LIVE + I" button on the landing page
+function _initLiveIButton() {
+  // Look for existing LIVE tile on landing and make it open the chooser
+  const existing = document.querySelector('[onclick="openLiveDashFromSelector()"]');
+  if (existing) { existing.setAttribute('onclick','openLiveIModal()'); }
+  // Also add button to topbar
+  const tbr = document.querySelector('.topbar-r');
+  if (tbr && !document.getElementById('liveITopBtn')) {
+    const btn = document.createElement('button');
+    btn.id = 'liveITopBtn';
+    btn.className = 'btn btn-sm';
+    btn.style.cssText = 'background:rgba(74,222,128,.15);color:#4ADE80;border:1.5px solid rgba(74,222,128,.4)';
+    btn.innerHTML = '🟢 LIVE + I';
+    btn.onclick = openLiveIModal;
+    tbr.insertBefore(btn, tbr.firstChild);
+  }
+}
+setTimeout(_initLiveIButton, 800);
+
+// ── 2. DEPARTMENT MANAGER ─────────────────────────────────────
+function openDeptManager() {
+  const m = document.getElementById('deptManagerModal');
+  if (m) m.classList.add('show');
+  deptMgrRender();
+}
+function closeDeptManager() {
+  const m = document.getElementById('deptManagerModal');
+  if (m) m.classList.remove('show');
+}
+
+function deptMgrRender() {
+  const list = document.getElementById('deptChipList');
+  if (!list) return;
+  const depts = typeof getAllDepts === 'function' ? getAllDepts() : Object.keys(window.DEPT_POS||{});
+  if (!depts.length) { list.innerHTML = '<span style="font-size:11px;color:rgba(255,255,255,.3)">No departments yet</span>'; return; }
+  list.innerHTML = depts.map((d,i) => {
+    const c = typeof getDeptColor === 'function' ? getDeptColor(d) : {bg:'#E3F2FD',color:'#0D47A1'};
+    return `<span class="dept-chip" style="background:${c.bg};color:${c.color}">
+      ${d}
+      <span class="dept-chip-del" onclick="deptMgrDelete('${d.replace(/'/g,"\\'")}')">×</span>
+    </span>`;
+  }).join('');
+}
+
+function deptMgrAddSingle() {
+  const inp = document.getElementById('deptAddName');
+  const val = (inp?.value||'').trim();
+  if (!val) return;
+  _deptMgrAddOne(val);
+  if (inp) inp.value = '';
+  deptMgrRender();
+  _refreshDeptDropdowns();
+  deptMgrMsg('✅ Added: ' + val);
+}
+
+function deptMgrAddBulk() {
+  const ta = document.getElementById('deptBulkText');
+  const lines = (ta?.value||'').split('\n').map(l=>l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(l => { if (_deptMgrAddOne(l)) added++; });
+  if (ta) ta.value = '';
+  deptMgrRender();
+  _refreshDeptDropdowns();
+  deptMgrMsg(`✅ Added ${added} department${added!==1?'s':''}`);
+}
+
+function _deptMgrAddOne(name) {
+  if (!name) return false;
+  if (!window.DEPT_POS) window.DEPT_POS = {};
+  if (window.DEPT_POS[name]) return false; // already exists
+  window.DEPT_POS[name] = [];
+  if (!window.DEPT_C) window.DEPT_C = {};
+  if (!window.DEPT_C[name] && window.DEPT_PALETTE) {
+    window.DEPT_C[name] = window.DEPT_PALETTE[Object.keys(window.DEPT_C).length % window.DEPT_PALETTE.length];
+  }
+  // Persist
+  try { localStorage.setItem('deptPos_custom', JSON.stringify(window.DEPT_POS)); } catch(e) {}
+  return true;
+}
+
+function deptMgrDelete(name) {
+  if (!confirm(`Remove department "${name}"? Employees assigned will keep their records but lose this dept.`)) return;
+  if (window.DEPT_POS) delete window.DEPT_POS[name];
+  if (window.DEPT_C) delete window.DEPT_C[name];
+  try { localStorage.setItem('deptPos_custom', JSON.stringify(window.DEPT_POS||{})); } catch(e) {}
+  deptMgrRender();
+  _refreshDeptDropdowns();
+  deptMgrMsg('🗑 Removed: ' + name);
+}
+
+function deptMgrMsg(txt) {
+  const el = document.getElementById('deptMgrMsg');
+  if (el) { el.textContent = txt; el.style.color='#4ADE80'; setTimeout(()=>{ el.textContent=''; },3000); }
+}
+
+function _refreshDeptDropdowns() {
+  const depts = typeof getAllDepts === 'function' ? getAllDepts() : Object.keys(window.DEPT_POS||{});
+  ['deptFilter','rDeptF','sDeptF','secc DeptSelect','f-dept','ruBulkDept','tmplDeptSel'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    const cur = sel.value;
+    const firstOpt = sel.options[0];
+    sel.innerHTML = '';
+    if (firstOpt) sel.appendChild(firstOpt);
+    depts.forEach(d => {
+      const o = document.createElement('option');
+      o.value = d; o.textContent = d;
+      sel.appendChild(o);
+    });
+    sel.value = cur;
+  });
+}
+
+// Restore custom departments on load
+(function _restoreCustomDepts() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('deptPos_custom') || 'null');
+    if (saved && typeof saved === 'object') {
+      Object.keys(saved).forEach(k => {
+        if (!window.DEPT_POS) window.DEPT_POS = {};
+        if (!window.DEPT_POS[k]) window.DEPT_POS[k] = saved[k]||[];
+      });
+    }
+  } catch(e) {}
+  setTimeout(_refreshDeptDropdowns, 1000);
+})();
+
+// ── 3. OCC-LINKED ROSTER WARNINGS ────────────────────────────
+function checkOccRosterWarnings() {
+  try {
+    const fcData = JSON.parse(localStorage.getItem('forecastData_v1')||'null');
+    if (!fcData || !Array.isArray(fcData)) return;
+    const today = new Date();
+    const next7 = [];
+    for (let i=0; i<10; i++) {
+      const d = new Date(today); d.setDate(today.getDate()+i);
+      next7.push({ date: d.toISOString().split('T')[0], day: d.getDate() });
+    }
+    const warnings = [];
+    next7.forEach(({date,day}) => {
+      const rec = fcData.find(r => r.date === date || r.day == day);
+      if (!rec) return;
+      const occ = parseFloat(rec.occupancy||rec.occ||0);
+      const arr = parseInt(rec.arrivals||rec.arr||0);
+      const dep = parseInt(rec.departures||rec.dep||0);
+      if (occ > 90) warnings.push(`🔴 ${date}: Occupancy ${occ}% — full house! Roster may be under-staffed.`);
+      else if (occ > 80) warnings.push(`⚠️ ${date}: Occupancy ${occ}% — high load expected.`);
+      if (arr > 150) warnings.push(`⚠️ ${date}: ${arr} arrivals — reinforce front desk & housekeeping.`);
+      if (dep > 150) warnings.push(`⚠️ ${date}: ${dep} departures — early housekeeping surge expected.`);
+    });
+    const banner = document.getElementById('occWarnBanner');
+    const inner = document.getElementById('occWarnInner');
+    const txt = document.getElementById('occWarnText');
+    if (!banner || !txt) return;
+    if (warnings.length) {
+      txt.innerHTML = warnings.slice(0,3).join('<br>');
+      if (warnings.length > 0 && warnings[0].startsWith('🔴')) {
+        inner.className = 'occ-warn-inner occ-warn-red occ-warn-pulse';
+      } else {
+        inner.className = 'occ-warn-inner occ-warn-amber occ-warn-pulse';
+      }
+      banner.style.display = '';
+      // Inject into roster page
+      const rp = document.getElementById('page-roster');
+      if (rp && !rp.contains(banner)) rp.insertBefore(banner, rp.firstChild);
+    } else {
+      banner.style.display = 'none';
+    }
+  } catch(e) {}
+}
+setInterval(checkOccRosterWarnings, 30000);
+setTimeout(checkOccRosterWarnings, 2000);
+
+// ── 4. SHIFT TEMPLATES ────────────────────────────────────────
+const SHIFT_TEMPLATES = [
+  { id:'ramadan', name:'🌙 Ramadan', badge:'Ramadan', badgeColor:'#9b59b6',
+    desc:'Shortened day shifts (MOR→M11), more EVE cover. Recommended for all hotels during Ramadan.',
+    shifts:{MOR:'M11', AFT:'M12', default:'M11'}, offRatio:5 },
+  { id:'high_occ', name:'🔥 High Occupancy', badge:'Peak', badgeColor:'#e74c3c',
+    desc:'Minimize OFF days, maximize coverage. For 85%+ occupancy periods.',
+    shifts:{}, offRatio:7, extraCover:true },
+  { id:'weekend', name:'🎉 Weekend Rush', badge:'Weekend', badgeColor:'#2980b9',
+    desc:'Extra front desk & F&B cover on Fri–Sat. Moves more MOR to AFT on weekends.',
+    shifts:{}, weekendMode:true },
+  { id:'formula1', name:'🏎 Formula One', badge:'F1 Event', badgeColor:'#c0392b',
+    desc:'Circuit hotel at full stretch. Add MOR+AFT overlap. Cover 07:00–23:00 continuous.',
+    shifts:{default:'MOR'}, hotels:['circuit'], offRatio:7, extraCover:true },
+  { id:'eid', name:'🌟 Eid', badge:'Eid', badgeColor:'#f39c12',
+    desc:'Public holiday staffing. Balance PH days, ensure skeleton coverage on both hotels.',
+    phMode:true, offRatio:4 },
+  { id:'normal', name:'📅 Standard Rotation', badge:'Normal', badgeColor:'#27ae60',
+    desc:'Default MOR→AFT→EVE rotation. 4 off days per month, evenly spread.',
+    shifts:{default:'MOR'}, offRatio:4 },
+];
+
+function openShiftTemplates() {
+  // Populate hotel & dept selects each time
+  const hs = document.getElementById('tmplHotelSel');
+  const ds = document.getElementById('tmplDeptSel');
+  if (hs && typeof HOTELS !== 'undefined') {
+    hs.innerHTML = (HOTELS||[]).filter(h=>h.id!=='all').map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
+  }
+  if (ds && typeof DEPARTMENTS !== 'undefined') {
+    ds.innerHTML = '<option value="">All Departments</option>' +
+      (DEPARTMENTS||[]).map(d=>`<option value="${d.id||d.name}">${d.name}</option>`).join('');
+  } else if (ds) {
+    // Fallback: collect from staff
+    const allDepts = [...new Set((typeof staffList==='function'?staffList():[]).map(s=>s.department).filter(Boolean))];
+    ds.innerHTML = '<option value="">All Departments</option>' + allDepts.map(d=>`<option>${d}</option>`).join('');
+  }
+  const m = document.getElementById('shiftTemplatesModal');
+  if (m) m.classList.add('show');
+  _renderTmplGrid();
+  _populateTmplDropdowns();
+}
+
+function _renderTmplGrid() {
+  const grid = document.getElementById('tmplGrid');
+  if (!grid) return;
+  grid.innerHTML = SHIFT_TEMPLATES.map(t => `
+    <div class="tmpl-card" onclick="applyShiftTemplate('${t.id}')">
+      <div class="tmpl-name">${t.name} <span class="tmpl-badge" style="background:${t.badgeColor}22;color:${t.badgeColor};border:1px solid ${t.badgeColor}44">${t.badge}</span></div>
+      <div class="tmpl-desc">${t.desc}</div>
+    </div>`).join('');
+}
+
+function _populateTmplDropdowns() {
+  const hs = document.getElementById('tmplHotelSel');
+  const ds = document.getElementById('tmplDeptSel');
+  if (hs) {
+    hs.innerHTML = '<option value="all">All Hotels</option>';
+    (window.HOTELS||[]).filter(h=>h.id!=='all').forEach(h => {
+      const o = document.createElement('option'); o.value=h.id; o.textContent=h.name; hs.appendChild(o);
+    });
+  }
+  if (ds) {
+    ds.innerHTML = '<option value="">All Departments</option>';
+    const depts = typeof getAllDepts === 'function' ? getAllDepts() : [];
+    depts.forEach(d => { const o=document.createElement('option'); o.value=d; o.textContent=d; ds.appendChild(o); });
+  }
+}
+
+function applyShiftTemplate(tmplId) {
+  // Ensure hotel/dept selects are populated before applying
+  const hs = document.getElementById('tmplHotelSel');
+  if (hs && !hs.options.length && typeof HOTELS !== 'undefined') {
+    hs.innerHTML = (HOTELS||[]).filter(h=>h.id!=='all').map(h=>`<option value="${h.id}">${h.name}</option>`).join('');
+  }
+  const tmpl = SHIFT_TEMPLATES.find(t=>t.id===tmplId);
+  if (!tmpl) return;
+  const hotelF = document.getElementById('tmplHotelSel')?.value||'all';
+  const deptF  = document.getElementById('tmplDeptSel')?.value||'';
+  const staff  = typeof staffList==='function' ? staffList() : [];
+  const target = staff.filter(s => (hotelF==='all'||s.hotel===hotelF) && (!deptF||s.department===deptF));
+  if (!target.length) { _tmplMsg('No matching staff found.'); return; }
+
+  const ROSTER = _getRoster();
+  const year = window.YEAR || new Date().getFullYear();
+  const month = typeof window.MONTH!=='undefined' ? window.MONTH : new Date().getMonth();
+  const days = new Date(year, month+1, 0).getDate();
+  let changed = 0;
+
+  target.forEach(emp => {
+    if (!ROSTER[emp.id]) ROSTER[emp.id] = {};
+    for (let d=1; d<=days; d++) {
+      const date = new Date(year, month, d);
+      const dow = date.getDay(); // 0=Sun,5=Fri,6=Sat
+      const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cur = ROSTER[emp.id][key];
+
+      if (tmpl.phMode && (dow===5||dow===6)) { ROSTER[emp.id][key]='PH'; changed++; continue; }
+
+      // Calculate if this should be an OFF day
+      const offEvery = tmpl.offRatio || 4;
+      const isOff = (d % offEvery === 0);
+      if (isOff && cur!=='AL'&&cur!=='SICK'&&cur!=='TRN') { ROSTER[emp.id][key]='OFF'; continue; }
+
+      // Assign shift
+      let shift = (tmpl.shifts&&tmpl.shifts.default) || emp.defaultShift || 'MOR';
+      if (tmpl.weekendMode && (dow===5||dow===6)) shift='AFT';
+      if (cur==='AL'||cur==='SICK'||cur==='TRN') continue; // respect existing leave
+      ROSTER[emp.id][key] = shift;
+      changed++;
+    }
+  });
+
+  _saveRoster(ROSTER);
+  _tmplMsg(`✅ Template "${tmpl.name}" applied to ${target.length} staff (${changed} cells updated)`);
+  if (typeof renderRoster === 'function') renderRoster();
+  setTimeout(()=>closeModal('shiftTemplatesModal'), 2000);
+}
+
+function _tmplMsg(txt) {
+  const el = document.getElementById('tmplMsg');
+  if (el) { el.textContent=txt; setTimeout(()=>{el.textContent='';},4000); }
+}
+
+// ── 5. DRAG & DROP ROSTER ─────────────────────────────────────
+// Enhanced rendering hook — after roster renders, make pills draggable
+function _initDragDrop() {
+  // Mark all roster shift cells as draggable & droppable
+  const rosterTable = document.querySelector('#rosterWrap table, #rosterBody table, table.roster-table, #page-roster table');
+  if (rosterTable) {
+    rosterTable.querySelectorAll('td[data-emp], td[data-employee-id]').forEach(cell => {
+      cell.classList.add('droppable-cell');
+      const pill = cell.querySelector('.sp');
+      if (pill) {
+        pill.classList.add('draggable-pill');
+        pill.draggable = true;
+        // Store emp+day on pill
+        pill.dataset.empId = cell.dataset.emp || cell.dataset.employeeId || '';
+        pill.dataset.day   = cell.dataset.day || cell.dataset.date || '';
+      }
+    });
+  }
+  const pills = document.querySelectorAll('.sp.draggable-pill,[data-draggable]');
+  pills.forEach(pill => {
+    pill.draggable = true;
+    if (!pill.dataset.listenerAdded) {
+      pill.addEventListener('dragstart', _onPillDragStart);
+      pill.dataset.listenerAdded = '1';
+    }
+  });
+  const cells = document.querySelectorAll('td.droppable-cell,[data-drop-cell]');
+  cells.forEach(cell => {
+    if (!cell.dataset.dropListenerAdded) {
+      cell.addEventListener('dragover', _onCellDragOver);
+      cell.addEventListener('drop', _onCellDrop);
+      cell.addEventListener('dragleave', e => e.currentTarget.classList.remove('drag-over'));
+      cell.dataset.dropListenerAdded = '1';
+    }
+  });
+}
+let _dragData = null;
+function _onPillDragStart(e) {
+  const pill = e.currentTarget;
+  const cell = pill.closest('td');
+  _dragData = {
+    empId: (pill.dataset.empId) || (cell && (cell.dataset.empId||cell.dataset.emp)) || '',
+    day:   (pill.dataset.day)   || (cell && (cell.dataset.day||cell.dataset.date))  || '',
+    shift: pill.textContent.trim()
+  };
+  e.dataTransfer.effectAllowed = 'move';
+  pill.style.opacity = '0.5';
+  setTimeout(()=>{ pill.style.opacity=''; }, 300);
+}
+function _onCellDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function _onCellDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!_dragData) return;
+  const targetEmp = e.currentTarget.dataset.empId||e.currentTarget.dataset.emp;
+  const targetDay = e.currentTarget.dataset.day;
+  if (!targetEmp||!targetDay) return;
+  const ROSTER = _getRoster();
+  const year = window.YEAR||new Date().getFullYear();
+  const month = typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const srcKey = `${year}-${String(month+1).padStart(2,'0')}-${String(_dragData.day).padStart(2,'0')}`;
+  const dstKey = `${year}-${String(month+1).padStart(2,'0')}-${String(targetDay).padStart(2,'0')}`;
+  if (!ROSTER[_dragData.empId]) ROSTER[_dragData.empId]={};
+  if (!ROSTER[targetEmp]) ROSTER[targetEmp]={};
+  const srcShift = ROSTER[_dragData.empId][srcKey];
+  const dstShift = ROSTER[targetEmp][dstKey];
+  // Swap
+  ROSTER[_dragData.empId][srcKey] = dstShift||'OFF';
+  ROSTER[targetEmp][dstKey] = srcShift||'OFF';
+  _saveRoster(ROSTER);
+  _dragData = null;
+  if (typeof renderRoster==='function') renderRoster();
+  showToast('🔄 Shifts swapped via drag & drop');
+}
+
+// Observe roster table for re-renders — watch multiple possible containers
+const _rosterObserver = new MutationObserver(() => setTimeout(_initDragDrop, 400));
+(function _startRosterObserver() {
+  const wrap = document.getElementById('rosterWrap') ||
+               document.getElementById('rosterBody') ||
+               document.getElementById('page-roster');
+  if (wrap) {
+    _rosterObserver.observe(wrap, {childList:true, subtree:true});
+    // Also patch renderRoster if it exists
+    if (typeof window.renderRoster === 'function' && !window._patchedRenderRoster) {
+      const _origRR = window.renderRoster;
+      window.renderRoster = function() {
+        _origRR.apply(this, arguments);
+        setTimeout(_initDragDrop, 500);
+      };
+      window._patchedRenderRoster = true;
+    }
+    setTimeout(_initDragDrop, 800);
+  } else {
+    setTimeout(_startRosterObserver, 1000);
+  }
+})();
+
+// ── 6. FATIGUE WARNINGS ───────────────────────────────────────
+function computeFatigue(empId) {
+  const ROSTER = _getRoster();
+  const year = window.YEAR||new Date().getFullYear();
+  const month = typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const days = new Date(year, month+1, 0).getDate();
+  const shifts = window.SHIFTS||{};
+  let consec=0, maxConsec=0, nightCount=0, totalHours=0;
+  for (let d=1; d<=days; d++) {
+    const key = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const sh = (ROSTER[empId]||{})[key]||'OFF';
+    if (sh==='OFF'||sh==='AL'||sh==='EX'||sh==='UNP'||sh==='SICK') { consec=0; continue; }
+    consec++; if(consec>maxConsec) maxConsec=consec;
+    if (sh==='EVE') nightCount++;
+    totalHours += (shifts[sh]||{}).hours||0;
+  }
+  let level='ok', label='✅ Good';
+  if (maxConsec>=7||nightCount>=10||(totalHours>220)) { level='high'; label='🔴 High Fatigue'; }
+  else if (maxConsec>=5||nightCount>=6||(totalHours>185)) { level='mid'; label='⚠️ Moderate'; }
+  return {level, label, maxConsec, nightCount, totalHours};
+}
+
+function renderFatigueReport() {
+  const staff = typeof staffList==='function'?staffList():[];
+  return staff.map(s => {
+    const f = computeFatigue(s.id);
+    return {emp:s, ...f};
+  }).filter(r=>r.level!=='ok').sort((a,b)=>b.totalHours-a.totalHours);
+}
+
+// ── 7. SMART SHIFT SUGGESTIONS ────────────────────────────────
+function toggleSmartPanel() {
+  const p = document.getElementById('smartShiftPanel');
+  if (!p) return;
+  p.classList.toggle('open');
+  if (p.classList.contains('open')) _buildSmartSuggestions();
+}
+function closeSmartPanel() {
+  document.getElementById('smartShiftPanel')?.classList.remove('open');
+}
+
+function _buildSmartSuggestions() {
+  const list = document.getElementById('smartSuggList');
+  if (!list) return;
+  list.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:11px">Analyzing…</div>';
+  setTimeout(() => {
+    const suggestions = [];
+    const fatigued = renderFatigueReport();
+    fatigued.slice(0,3).forEach(r => {
+      suggestions.push({
+        icon:'🔴', title:`Fatigue Alert: ${r.emp.name.split(' ')[0]}`,
+        desc:`${r.maxConsec} consecutive working days · ${r.totalHours}h this month. Consider adding an OFF day.`,
+        score:'High Priority', action:()=>{}
+      });
+    });
+    // Fair distribution check
+    const dist = _getFairDistData();
+    dist.filter(r=>r.weekendDiff>2).slice(0,2).forEach(r=>{
+      suggestions.push({
+        icon:'⚖️', title:`Unbalanced weekends: ${r.name.split(' ')[0]}`,
+        desc:`Only ${r.weekendOff} weekend OFFs vs team avg of ${r.avgWeekendOff}. Adjust shift pattern.`,
+        score:'Medium', action:()=>{}
+      });
+    });
+    // OCC-based suggestions
+    try {
+      const fcData = JSON.parse(localStorage.getItem('forecastData_v1')||'null');
+      if (fcData) {
+        const highDays = fcData.filter(r=>parseFloat(r.occupancy||r.occ||0)>85);
+        if (highDays.length>0) {
+          suggestions.push({
+            icon:'🏨', title:`High occupancy next ${highDays.length} days`,
+            desc:`OCC >85% detected. Recommend morning/afternoon overlap — avoid scheduling OFFs.`,
+            score:'Roster Alert', action:()=>{}
+          });
+        }
+      }
+    } catch(e){}
+
+    if (!suggestions.length) {
+      list.innerHTML='<div style="text-align:center;padding:30px;color:rgba(255,255,255,.35);font-size:11px">✅ All looking good — no critical suggestions right now.</div>';
+      return;
+    }
+    list.innerHTML = suggestions.map(s=>`
+      <div class="ss-card">
+        <div class="ss-label">${s.icon} ${s.title} <span class="ss-score">${s.score}</span></div>
+        <div class="ss-desc">${s.desc}</div>
+      </div>`).join('');
+  }, 400);
+}
+// Show smart panel btn when on roster page
+document.addEventListener('click', e => {
+  const tab = e.target.closest('[data-p]');
+  if (!tab) return;
+  const btn = document.getElementById('smartPanelBtn');
+  if (btn) btn.style.display = tab.dataset.p==='roster'?'':'none';
+});
+// Show AI panel button whenever roster page is active
+(function _pollSmartBtn(){
+  const btn = document.getElementById('smartPanelBtn');
+  if (btn) {
+    btn.style.display = '';
+    btn.style.zIndex = '600';
+    // Keep visible when on roster page
+    document.addEventListener('click', () => {
+      const rp = document.getElementById('page-roster');
+      if (rp && rp.classList.contains('active')) btn.style.display = '';
+    });
+  } else {
+    setTimeout(_pollSmartBtn, 800);
+  }
+})();
+
+// ── 8. FAIR DISTRIBUTION ─────────────────────────────────────
+function openFairDist() {
+  const m = document.getElementById('fairDistModal');
+  if (m) m.style.display='flex';
+  _renderFairDistTable();
+}
+function _getFairDistData() {
+  const staff = typeof staffList==='function'?staffList():[];
+  const ROSTER = _getRoster();
+  const year = window.YEAR||new Date().getFullYear();
+  const month = typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const days = new Date(year,month+1,0).getDate();
+  const rows = staff.map(s => {
+    let weekendOff=0, morCount=0, aftCount=0, eveCount=0, offTotal=0;
+    for(let d=1;d<=days;d++){
+      const date=new Date(year,month,d);
+      const key=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const sh=(ROSTER[s.id]||{})[key]||(s.defaultShift||'MOR');
+      const isWeekend=date.getDay()===5||date.getDay()===6;
+      if(sh==='OFF'){offTotal++;if(isWeekend)weekendOff++;}
+      if(sh==='MOR')morCount++;
+      if(sh==='AFT')aftCount++;
+      if(sh==='EVE')eveCount++;
+    }
+    return {id:s.id,name:s.name,dept:s.department,weekendOff,morCount,aftCount,eveCount,offTotal,weekendDiff:0,avgWeekendOff:0};
+  });
+  const avgWkndOff = rows.reduce((a,r)=>a+r.weekendOff,0)/(rows.length||1);
+  rows.forEach(r=>{ r.avgWeekendOff=Math.round(avgWkndOff); r.weekendDiff=Math.abs(r.weekendOff-avgWkndOff); });
+  return rows;
+}
+function _renderFairDistTable() {
+  const tbl = document.getElementById('fairDistTable');
+  if (!tbl) return;
+  const rows = _getFairDistData().slice(0,30);
+  tbl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:11px">
+    <thead><tr style="background:var(--ice2)">
+      <th style="padding:8px;text-align:left">Name</th>
+      <th>Dept</th><th>MOR</th><th>AFT</th><th>EVE</th><th>OFF</th><th>Wknd OFF</th><th>Balance</th>
+    </tr></thead>
+    <tbody>${rows.map(r=>{
+      const cls = r.weekendDiff>2?'fair-bad':r.weekendDiff>1?'fair-warn':'fair-ok';
+      const pct = Math.min(100,(r.weekendOff/(r.avgWeekendOff||1))*100);
+      return `<tr style="border-bottom:1px solid var(--ice)">
+        <td style="padding:6px 8px;font-weight:600">${r.name.split(' ')[0]}</td>
+        <td style="padding:6px 4px;color:var(--slate)">${(r.dept||'').slice(0,12)}</td>
+        <td style="text-align:center">${r.morCount}</td>
+        <td style="text-align:center">${r.aftCount}</td>
+        <td style="text-align:center">${r.eveCount}</td>
+        <td style="text-align:center">${r.offTotal}</td>
+        <td style="text-align:center">${r.weekendOff}</td>
+        <td style="padding:6px 8px;min-width:80px">
+          <div class="fair-bar"><div class="fair-fill ${cls}" style="width:${pct}%"></div></div>
+        </td>
+      </tr>`;
+    }).join('')}</tbody></table>`;
+}
+function applyFairDistribution() {
+  const staff = typeof staffList==='function'?staffList():[];
+  const ROSTER = _getRoster();
+  const year=window.YEAR||new Date().getFullYear();
+  const month=typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const days=new Date(year,month+1,0).getDate();
+  let changed=0;
+  staff.forEach((s,si)=>{
+    if(!ROSTER[s.id])ROSTER[s.id]={};
+    // Spread OFFs evenly — one OFF every 4 working days, rotate which day per employee
+    const offset=si%4;
+    for(let d=1;d<=days;d++){
+      const key=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const cur=ROSTER[s.id][key];
+      if(cur==='AL'||cur==='SICK'||cur==='TRN') continue;
+      if((d+offset)%4===0){ ROSTER[s.id][key]='OFF'; changed++; }
+    }
+  });
+  _saveRoster(ROSTER);
+  const msg=document.getElementById('fairDistMsg');
+  if(msg){msg.textContent=`✅ Applied fair OFF distribution (${changed} cells updated)`;setTimeout(()=>msg.textContent='',4000);}
+  if(typeof renderRoster==='function') renderRoster();
+}
+
+// ── 9. MULTI-HOTEL BALANCE ────────────────────────────────────
+function openHotelBalance() {
+  const m = document.getElementById('hotelBalModal');
+  if (m) m.style.display='flex';
+  _renderHotelBalGrid();
+}
+function _renderHotelBalGrid() {
+  const grid = document.getElementById('hotelBalGrid');
+  if (!grid) return;
+  const staff = typeof staffList==='function'?staffList():[];
+  const hotels = (window.HOTELS||[]).filter(h=>h.id!=='all'&&h.id!=='yph');
+  const year=window.YEAR||new Date().getFullYear();
+  const month=typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const today=new Date().getDate();
+  const ROSTER=_getRoster();
+
+  const data = hotels.map(h=>{
+    const hStaff=staff.filter(s=>s.hotel===h.id);
+    const key=`${year}-${String(month+1).padStart(2,'0')}-${String(today).padStart(2,'0')}`;
+    const onDuty=hStaff.filter(s=>{const sh=(ROSTER[s.id]||{})[key]; return sh&&sh!=='OFF'&&sh!=='AL'&&sh!=='EX'&&sh!=='SICK'&&sh!=='UNP';}).length;
+    const total=hStaff.length;
+    const rooms=h.rooms||100;
+    const recommended=Math.ceil(rooms/20);
+    let status='ok';
+    if(onDuty<recommended*0.7) status='under';
+    else if(onDuty>recommended*1.4) status='over';
+    return {hotel:h,total,onDuty,recommended,status};
+  });
+
+  grid.innerHTML = data.map(r=>{
+    const cls=r.status==='over'?'bal-over':r.status==='under'?'bal-under':'bal-ok';
+    const label=r.status==='over'?'Over-staffed':r.status==='under'?'Under-staffed':'Balanced';
+    return `<div class="hotel-bal-row">
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)">${r.hotel.name}</div>
+        <div style="font-size:10px;color:var(--slate)">${r.total} total · ${r.hotel.rooms||'?'} rooms</div>
+      </div>
+      <div style="text-align:center;min-width:60px">
+        <div style="font-size:18px;font-weight:800;color:var(--navy)">${r.onDuty}</div>
+        <div style="font-size:9px;color:var(--slate)">on duty</div>
+      </div>
+      <div style="text-align:center;min-width:60px">
+        <div style="font-size:13px;font-weight:700;color:var(--slate)">${r.recommended}</div>
+        <div style="font-size:9px;color:var(--slate)">rec.</div>
+      </div>
+      <span class="hotel-bal-pill ${cls}">${label}</span>
+    </div>`;
+  }).join('');
+}
+function applyHotelBalance() {
+  const msg=document.getElementById('hotelBalMsg');
+  if(msg){msg.textContent='ℹ️ Suggestion: review under-staffed hotels and reassign staff from over-staffed ones via Staff page.';setTimeout(()=>msg.textContent='',5000);}
+}
+
+// ── 10. EXCEL & PDF EXPORT/IMPORT ────────────────────────────
+function openExportModal() {
+  const m = document.getElementById('exportModal');
+  if (!m) { showToast('⚠️ Export panel not found', 'warn'); return; }
+  m.classList.add('show');
+  // Ensure exportCSV function exists
+  if (typeof exportCSV === 'undefined') {
+    window.exportCSV = function() {
+      showToast('📋 CSV export: use Excel export and save as CSV', 'info');
+    };
+  }
+}
+
+function exportEnhancedExcel() {
+  if (typeof XLSX === 'undefined') { showToast('⚠️ Excel library not loaded'); return; }
+  const staff = typeof staffList==='function'?staffList():[];
+  const ROSTER = _getRoster();
+  const year=window.YEAR||new Date().getFullYear();
+  const month=typeof window.MONTH!=='undefined'?window.MONTH:new Date().getMonth();
+  const days=new Date(year,month+1,0).getDate();
+  const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Full Roster
+  const header=['ID','Name','Dept','Hotel'];
+  for(let d=1;d<=days;d++) header.push(String(d));
+  header.push('MOR','AFT','EVE','OFF','AL','Total Hours');
+  const rows = staff.map(s=>{
+    const row=[s.id,s.name,s.department||'',s.hotel||''];
+    let morC=0,aftC=0,eveC=0,offC=0,alC=0,hrs=0;
+    for(let d=1;d<=days;d++){
+      const key=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const sh=(ROSTER[s.id]||{})[key]||(s.defaultShift||'MOR');
+      row.push(sh);
+      if(sh==='MOR')morC++;if(sh==='AFT')aftC++;if(sh==='EVE')eveC++;
+      if(sh==='OFF'||sh==='EX')offC++;if(sh==='AL')alC++;
+      hrs+=((window.SHIFTS||{})[sh]||{}).hours||0;
+    }
+    row.push(morC,aftC,eveC,offC,alC,hrs);
+    return row;
+  });
+  const ws=XLSX.utils.aoa_to_sheet([header,...rows]);
+  XLSX.utils.book_append_sheet(wb,ws,`${MONTHS[month]} Roster`);
+
+  // Sheet 2: By Hotel
+  const hotels=(window.HOTELS||[]).filter(h=>h.id!=='all');
+  hotels.forEach(h=>{
+    const hStaff=staff.filter(s=>s.hotel===h.id);
+    if(!hStaff.length) return;
+    const hHeader=['ID','Name','Dept','Position'];
+    for(let d=1;d<=days;d++) hHeader.push(String(d));
+    const hRows=hStaff.map(s=>{
+      const row=[s.id,s.name,s.department||'',s.position||''];
+      for(let d=1;d<=days;d++){
+        const key=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        row.push((ROSTER[s.id]||{})[key]||(s.defaultShift||'MOR'));
+      }
+      return row;
+    });
+    const hws=XLSX.utils.aoa_to_sheet([hHeader,...hRows]);
+    XLSX.utils.book_append_sheet(wb,hws,h.name.slice(0,31));
+  });
+
+  XLSX.writeFile(wb,`YPH_Roster_${MONTHS[month]}_${year}.xlsx`);
+  const msg=document.getElementById('exportMsg');
+  if(msg){msg.textContent='✅ Excel exported!';setTimeout(()=>msg.textContent='',3000);}
+}
+
+function exportEnhancedPDF() {
+  closeModal('exportModal');
+  // Brief delay so modal closes before print dialog opens
+  setTimeout(function() {
+    showToast('🖨️ Preparing PDF — use "Save as PDF" in the print dialog', 'info');
+    setTimeout(function() {
+      if (typeof printRoster === 'function') {
+        printRoster();
+      } else {
+        window.print();
+      }
+    }, 400);
+  }, 300);
+}
+
+function enhImportFile(event) {
+  const file=event.target.files[0];
+  if(!file) return;
+  if(typeof openImportModal==='function'){ closeModal('exportModal'); openImportModal(); }
+  else showToast('📥 Use the Import CSV button on the Staff page for full import features.');
+  event.target.value='';
+}
+
+// ── HELPER: Roster storage access ─────────────────────────────
+function _getRoster() {
+  if (typeof window.ROSTER!=='undefined' && window.ROSTER) return window.ROSTER;
+  try { return JSON.parse(localStorage.getItem('rosterData_v1')||'{}'); } catch(e) { return {}; }
+}
+function _saveRoster(r) {
+  if (typeof window.ROSTER!=='undefined') window.ROSTER=r;
+  try { localStorage.setItem('rosterData_v1',JSON.stringify(r)); } catch(e){}
+  if(typeof window.db!=='undefined'&&window.db){
+    try{window.db.ref('roster').set(r).catch(()=>{});}catch(e){}
+  }
+}
+
+// ── TOAST helper ──────────────────────────────────────────────
+function showToast(msg, type='info') {
+  const colors={info:'#1B2D4A',ok:'#1B5E20',warn:'#E65C00',err:'#B71C1C'};
+  const t=document.createElement('div');
+  t.style.cssText=`position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:${colors[type]||colors.info};color:#fff;padding:11px 20px;border-radius:12px;font-size:12px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:fadeUp .3s ease;max-width:340px;text-align:center`;
+  t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .4s';setTimeout(()=>t.remove(),400);},3000);
+}
+
+// ── WIRE NEW BUTTONS INTO EXISTING UI ─────────────────────────
+function _wireEnhancedButtons() {
+  // Add "Dept Manager" button to settings or topbar
+  const settingsNav = document.querySelector('.cp-nav-item[onclick*="departments"]')||document.getElementById('cpni-departments');
+  if (settingsNav && !document.getElementById('deptMgrBtn')) {
+    const btn=document.createElement('button');
+    btn.id='deptMgrBtn';
+    btn.className='btn btn-ghost btn-sm';
+    btn.innerHTML='🏢 Dept Manager';
+    btn.onclick=openDeptManager;
+    btn.style.cssText='margin:8px 14px;width:calc(100%-28px)';
+    settingsNav.parentNode.insertBefore(btn, settingsNav.nextSibling);
+  }
+  // Add Templates + Fair Dist + Hotel Balance to roster toolbar
+  const rosterFb = document.querySelector('#page-roster .fb > div[style*="margin-left"]');
+  if (rosterFb && !document.getElementById('tmplBtn')) {
+    const btns=[
+      {id:'tmplBtn',  html:'📋 Templates',   fn:'openShiftTemplates()',    css:'background:rgba(230,92,0,.15);color:#E65C00;border:1px solid rgba(230,92,0,.4)'},
+      {id:'fairBtn',  html:'⚖️ Fair Dist',   fn:'openFairDist()',           css:'background:rgba(27,107,58,.15);color:#1B6B3A;border:1px solid rgba(27,107,58,.4)'},
+      {id:'hotelBalBtn',html:'🏨 Balance',   fn:'openHotelBalance()',       css:'background:rgba(13,71,161,.15);color:#0D47A1;border:1px solid rgba(13,71,161,.4)'},
+      {id:'exportBtn',html:'📤 Export',       fn:'openExportModal()',        css:'background:rgba(91,33,182,.15);color:#5B21B6;border:1px solid rgba(91,33,182,.4)'},
+    ];
+    btns.reverse().forEach(b=>{
+      const btn=document.createElement('button');
+      btn.id=b.id; btn.className='btn btn-sm'; btn.innerHTML=b.html;
+      btn.setAttribute('onclick',b.fn); btn.style.cssText=b.css;
+      rosterFb.prepend(btn);
+    });
+  }
+  // Replace old Export buttons in topbar with new modal
+  const csvBtn=document.querySelector('.topbar-r .btn-gold[onclick*="exportCSV"]');
+  if(csvBtn){csvBtn.innerHTML='📤 Export/Import';csvBtn.setAttribute('onclick','openExportModal()');}
+}
+setTimeout(_wireEnhancedButtons, 1200);
+setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
+
+console.log('[YPH v5] Enhancement module loaded: LIVE+I · Dept Manager · OCC Warnings · Templates · Drag&Drop · Fatigue · Smart AI · Fair Dist · Multi-Hotel · Export/Import');
 </script>
 </body>
 </html>
