@@ -1005,15 +1005,15 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
   <!-- Two tiles -->
   <div style="display:flex;gap:18px;flex-wrap:wrap;justify-content:center;margin-bottom:24px">
-    <!-- LIVE tile -->
-    <div onclick="openLiveDashFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#1a4a2e,#0d6b35);border:1.5px solid rgba(74,222,128,.3);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(74,222,128,.12)"
+    <!-- LIVE / LIVE+ tile (dynamic) -->
+    <div id="authLiveTile" onclick="openLiveDashFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#1a4a2e,#0d6b35);border:1.5px solid rgba(74,222,128,.3);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(74,222,128,.12)"
       onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 16px 48px rgba(74,222,128,.25)'"
       onmouseout="this.style.transform='';this.style.boxShadow='0 8px 32px rgba(74,222,128,.12)'">
       <div style="width:56px;height:56px;background:rgba(74,222,128,.15);border:1.5px solid rgba(74,222,128,.4);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px">
         <div style="width:16px;height:16px;border-radius:50%;background:#4ADE80;box-shadow:0 0 12px #4ADE80;animation:blink 1.5s infinite"></div>
       </div>
-      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">LIVE</div>
-      <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Staff on duty right now</div>
+      <div id="authLiveTileLabel" style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#fff">LIVE</div>
+      <div id="authLiveTileSub" style="font-size:11px;color:rgba(255,255,255,.45);margin-top:5px">Staff on duty in your department</div>
     </div>
     <!-- My Roster tile -->
     <div onclick="openRosterFromSelector()" style="cursor:pointer;background:linear-gradient(135deg,#4a3000,#8a5a00);border:1.5px solid rgba(201,150,58,.4);border-radius:22px;padding:36px 40px;width:220px;text-align:center;transition:.25s;box-shadow:0 8px 32px rgba(201,150,58,.12)"
@@ -8491,6 +8491,42 @@ function openAuthSelector(id, emp) {
     // Pre-select employee's own section if set
     if (emp.section) secSel.value = emp.section;
   }
+
+  // Decide LIVE vs LIVE+ tile based on dev-granted access
+  const tile = document.getElementById('authLiveTile');
+  const label = document.getElementById('authLiveTileLabel');
+  const sub   = document.getElementById('authLiveTileSub');
+  const hasPlus = (typeof liveIHasPlusAccess === 'function') && liveIHasPlusAccess(id);
+  if (tile && label && sub) {
+    if (hasPlus) {
+      label.textContent = 'LIVE +';
+      const depts = (window.LIVEPLUS_ACCESS[id] && window.LIVEPLUS_ACCESS[id].depts) || [];
+      sub.textContent = depts.length ? ('On duty · ' + depts.join(', ')) : 'On duty across multiple departments';
+      tile.setAttribute('onclick','openLivePlusFromSelector()');
+      tile.style.background = 'linear-gradient(135deg,#3b1078,#7C3AED)';
+      tile.style.borderColor = 'rgba(192,132,252,.45)';
+    } else {
+      label.textContent = 'LIVE';
+      sub.textContent = 'Staff on duty in ' + (dept || 'your department');
+      tile.setAttribute('onclick','openLiveDashFromSelector()');
+      tile.style.background = 'linear-gradient(135deg,#1a4a2e,#0d6b35)';
+      tile.style.borderColor = 'rgba(74,222,128,.3)';
+    }
+  }
+}
+
+function openLivePlusFromSelector() {
+  const sel = document.getElementById('authStaffSelector');
+  if (sel) sel.style.display = 'none';
+  const id = _currentLandEmpId;
+  if (!id) return;
+  const emp = staffData[id];
+  if (!emp) return;
+  if (!liveIHasPlusAccess(id)) { openLiveDashFromSelector(); return; }
+  window._LIVEPLUS_ACTIVE = { id, cfg: window.LIVEPLUS_ACCESS[id] };
+  if (typeof openLiveDashForEmployee === 'function') {
+    openLiveDashForEmployee(id, emp);
+  }
 }
 
 function openLiveDashFromSelector() {
@@ -12693,12 +12729,11 @@ function liveIOpenRoster() {
 // NOTE: Top-bar "LIVE + I" button has been removed (per request).
 // The chooser is now accessible ONLY from the Dev Panel -> LIVE Access tab.
 function _initLiveIButton() {
-  // Make sure any previously-injected topbar button is removed
+  // Remove any previously-injected topbar LIVE + I button
   const old = document.getElementById('liveITopBtn');
   if (old) old.remove();
-  // Landing LIVE tile still opens the chooser (so existing staff flow keeps working)
-  const existing = document.querySelector('[onclick="openLiveDashFromSelector()"]');
-  if (existing) { existing.setAttribute('onclick','openLiveIModal()'); }
+  // NOTE: The welcome-page tile is now dynamic (LIVE vs LIVE+ based on access),
+  // managed by openAuthSelector. Do NOT hijack its onclick here.
 }
 setTimeout(_initLiveIButton, 800);
 // Re-run periodically in case the topbar button is re-added by another script
@@ -13591,32 +13626,30 @@ setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
     wrap.style.cssText = 'margin-top:18px;padding:14px;border:1.5px solid rgba(124,58,237,.35);border-radius:12px;background:linear-gradient(135deg,rgba(91,33,182,.12),rgba(124,58,237,.06))';
     wrap.innerHTML =
       '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'+
-        '<div style="font-size:13px;font-weight:800;color:#C084FC">🟢 LIVE + I  &amp;  LIVE + Multi-Department</div>'+
+        '<div style="font-size:13px;font-weight:800;color:#C084FC">🟢 LIVE + Multi-Department Access</div>'+
         '<span style="font-size:10px;color:#94A3B8;font-weight:500">Dev only</span>'+
       '</div>'+
       '<div style="font-size:11px;color:#94A3B8;margin-bottom:12px;line-height:1.6">'+
-        'The <strong style="color:#fff">LIVE + I</strong> chooser has been removed from the top bar — open it here. '+
-        'Grant a staff member <strong style="color:#C084FC">LIVE +</strong> access and pick which departments / sections / positions they can monitor.'+
+        'Grant a staff member <strong style="color:#C084FC">LIVE +</strong> access. Their welcome screen will then show <strong style="color:#C084FC">LIVE +</strong> instead of LIVE, letting them monitor on-duty staff across the selected departments.'+
       '</div>'+
-      '<button onclick="openLiveIModal()" style="width:100%;background:linear-gradient(135deg,#5B21B6,#7C3AED);color:#fff;border:none;border-radius:10px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:14px">🟢 Open LIVE + I Chooser</button>'+
-      '<div style="font-size:11px;font-weight:700;color:#C084FC;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">➕ Grant LIVE + Multi-Dept Access</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px">'+
+      '<div style="font-size:11px;font-weight:700;color:#C084FC;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">➕ Grant Access</div>'+
+      '<div style="display:grid;grid-template-columns:160px 1fr auto;gap:8px;align-items:end;margin-bottom:10px">'+
         '<div><label class="cp-lbl2">Employee ID</label>'+
           '<input id="lpIdInp" class="cp-inp2" placeholder="e.g. E001" maxlength="10" style="text-transform:uppercase;font-family:\'DM Mono\',monospace;font-size:13px;letter-spacing:2px" oninput="this.value=this.value.toUpperCase()"></div>'+
-        '<div><label class="cp-lbl2">Departments (comma-separated)</label>'+
-          '<input id="lpDeptsInp" class="cp-inp2" placeholder="Front Office, Housekeeping, F&amp;B"></div>'+
+        '<div><label class="cp-lbl2">Departments</label>'+
+          '<select id="lpDeptsSel" class="cp-inp2" multiple size="4" style="min-height:88px;padding:6px"></select>'+
+          '<div style="font-size:9px;color:#64748B;margin-top:3px">Hold Ctrl / Cmd to pick multiple</div></div>'+
         '<button class="bgold" style="padding:9px 18px;white-space:nowrap;margin-bottom:0" onclick="lpAddAccess()">+ Grant</button>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'+
-        '<div><label class="cp-lbl2">Sections (optional)</label>'+
-          '<input id="lpSecsInp" class="cp-inp2" placeholder="Front Desk, Pool, Lobby"></div>'+
-        '<div><label class="cp-lbl2">Positions (optional)</label>'+
-          '<input id="lpPosInp" class="cp-inp2" placeholder="Receptionist, Bellman"></div>'+
       '</div>'+
       '<div id="lpMsg" style="font-size:11px;min-height:16px;margin-bottom:10px;color:#4ADE80"></div>'+
       '<div id="lpList" style="display:flex;flex-direction:column;gap:6px"></div>';
 
     body.appendChild(wrap);
+    // Populate departments dropdown
+    const dSel = wrap.querySelector('#lpDeptsSel');
+    if (dSel && typeof getAllDepts === 'function') {
+      dSel.innerHTML = getAllDepts().map(d => `<option value="${d}">${d}</option>`).join('');
+    }
     lpRender();
   }
 
@@ -13624,16 +13657,15 @@ setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
     const id = (document.getElementById('lpIdInp')?.value||'').trim().toUpperCase();
     const msg = document.getElementById('lpMsg');
     if (!id) { if(msg) msg.textContent='⚠️ Enter an Employee ID'; return; }
-    const split = s => (s||'').split(',').map(x=>x.trim()).filter(Boolean);
-    const depts     = split(document.getElementById('lpDeptsInp')?.value);
-    const sections  = split(document.getElementById('lpSecsInp')?.value);
-    const positions = split(document.getElementById('lpPosInp')?.value);
-    if (!depts.length) { if(msg) msg.textContent='⚠️ Add at least one department'; return; }
+    const sel = document.getElementById('lpDeptsSel');
+    const depts = sel ? Array.from(sel.selectedOptions).map(o=>o.value) : [];
+    if (!depts.length) { if(msg) msg.textContent='⚠️ Pick at least one department'; return; }
     window.LIVEPLUS_ACCESS = window.LIVEPLUS_ACCESS || {};
-    window.LIVEPLUS_ACCESS[id] = { depts, sections, positions };
+    window.LIVEPLUS_ACCESS[id] = { depts, sections: [], positions: [] };
     if (typeof _saveLivePlusAccess === 'function') _saveLivePlusAccess();
     if(msg) msg.textContent = '✅ Granted LIVE + access to ' + id;
-    ['lpIdInp','lpDeptsInp','lpSecsInp','lpPosInp'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+    const idEl = document.getElementById('lpIdInp'); if (idEl) idEl.value='';
+    if (sel) Array.from(sel.options).forEach(o => o.selected = false);
     lpRender();
   };
   window.lpRemoveAccess = function(id){
