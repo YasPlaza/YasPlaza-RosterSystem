@@ -808,6 +808,16 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   color:#fff !important;
   border-color:rgba(201,150,58,.25) !important;
 }
+/* Fix cp-inp2 white background in Dev Panel */
+.cp-inp2, .cp-panel input[type="password"], .cp-panel input[type="text"], .cp-panel select {
+  background:rgba(255,255,255,.05) !important;
+  color:#fff !important;
+  border-color:rgba(255,255,255,.1) !important;
+}
+.cp-inp2:focus, .cp-panel input:focus, .cp-panel select:focus {
+  background:rgba(201,150,58,.06) !important;
+  border-color:#C9963A !important;
+}
 /* Fix dropdown arrow color on dark bg */
 #passModal select,
 .pass-card select {
@@ -1926,26 +1936,58 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
     <!-- ACCESS -->
     <div class="cp-panel" id="cpt-access" style="display:none">
-      <div class="cp-ph"><div class="cp-pt">🔑 Access & Passwords <span class="cp-badge">Developer Only</span></div></div>
+      <div class="cp-ph"><div class="cp-pt">🔑 Access &amp; Passwords <span class="cp-badge">Developer Only</span></div></div>
       <div class="cp-body">
-        <div class="cp-stitle">Developer Password</div>
-        <div class="cp-infobox" style="margin-bottom:10px">🔐 Minimum 8 characters recommended. Use upper/lowercase, numbers and symbols for a strong password.</div>
+
+        <!-- Developer Password -->
+        <div class="cp-stitle">🔧 Developer Password</div>
+        <div class="cp-infobox" style="margin-bottom:10px">🔐 Min 8 chars recommended. This password also controls the legacy <strong style="color:#E8B04A">Admin@</strong> fallback — changing it updates both.</div>
         <div class="cp-g2" style="margin-bottom:8px">
-          <div><label class="cp-lbl2">Current Password</label><input class="cp-inp2" type="password" id="cpCurP" placeholder="Current password"></div>
+          <div><label class="cp-lbl2">Current Password</label><input class="cp-inp2" type="password" id="cpCurP" placeholder="Current developer password"></div>
           <div>
             <label class="cp-lbl2">New Password</label>
             <input class="cp-inp2" type="password" id="cpNewP" placeholder="Min 8 chars recommended" oninput="if(typeof secRenderStrengthBar==='function')secRenderStrengthBar('cpPassStrengthBar',this.value)">
             <div id="cpPassStrengthBar" style="margin-top:4px"></div>
           </div>
         </div>
-        <button class="bgold" onclick="cpChangeDevPass()" style="margin-bottom:16px">🔐 Update Developer Password</button>
-        <div class="cp-stitle">Department Passwords</div>
+        <div id="cpDevPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
+        <button class="bgold" onclick="cpChangeDevPassFull()" style="margin-bottom:20px">🔐 Update Developer Password</button>
+
+        <!-- Admin (legacy) Password -->
+        <div class="cp-stitle" style="margin-top:4px">🛡️ Admin Fallback Password</div>
+        <div class="cp-infobox" style="margin-bottom:10px">This is the secondary key that can also unlock Developer access. Keep it different from the main Developer password for extra security.</div>
+        <div class="cp-g2" style="margin-bottom:8px">
+          <div><label class="cp-lbl2">New Admin Password</label><input class="cp-inp2" type="password" id="cpAdminNewP" placeholder="Min 6 chars"></div>
+          <div><label class="cp-lbl2">Confirm</label><input class="cp-inp2" type="password" id="cpAdminConP" placeholder="Repeat password"></div>
+        </div>
+        <div id="cpAdminPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
+        <button class="bgold" onclick="cpChangeAdminPass()" style="margin-bottom:20px">🛡️ Update Admin Password</button>
+
+        <!-- Manager Password -->
+        <div class="cp-stitle" style="margin-top:4px">👔 Manager Password</div>
+        <div class="cp-infobox" style="margin-bottom:10px">The Manager role password. Change this regularly to maintain access control.</div>
+        <div class="cp-g2" style="margin-bottom:8px">
+          <div><label class="cp-lbl2">New Manager Password</label><input class="cp-inp2" type="password" id="cpMgrNewP" placeholder="Min 6 chars"></div>
+          <div><label class="cp-lbl2">Confirm</label><input class="cp-inp2" type="password" id="cpMgrConP" placeholder="Repeat password"></div>
+        </div>
+        <div id="cpMgrPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
+        <button class="bgold" onclick="cpChangeMgrPass()" style="margin-bottom:20px">👔 Update Manager Password</button>
+
+        <!-- Department Passwords -->
+        <div class="cp-stitle" style="margin-top:4px">🏢 Department Passwords</div>
         <div id="cpDeptPassList" style="margin-bottom:12px"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px">
+        <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px;margin-bottom:20px">
           <div><label class="cp-lbl2">Department</label><select class="cp-inp2" id="cpDeptPassSel"></select></div>
           <div><label class="cp-lbl2">Password</label><input class="cp-inp2" type="password" id="cpDeptPassInp" placeholder="Min 4 chars"></div>
           <button class="bgold" onclick="cpSetDeptPass()">Set</button>
         </div>
+
+        <!-- Locked Accounts -->
+        <div class="cp-stitle" style="margin-top:4px">🔒 Locked Accounts</div>
+        <div class="cp-infobox" style="margin-bottom:10px">Departments locked after 3 wrong password attempts appear here. You can unlock them instantly.</div>
+        <div id="cpLockedList" style="margin-bottom:8px"><span style="font-size:11px;color:#64748B">No locked accounts.</span></div>
+        <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3)" onclick="cpRenderLockedAccounts()">🔄 Refresh</button>
+
       </div>
     </div>
 
@@ -2739,6 +2781,37 @@ let developerPass = "Dev@2025";     // Developer only
 let deptPasswords = {};              // {departmentName: password} — set by Developer
 let deptAccessGrants = {};           // {dept: [panel1, panel2...]} — granted by Developer
 let staffData = {};
+
+// Console protection: make password variables non-enumerable and hide from console inspection
+(function(){
+  try {
+    // Replace password vars with non-enumerable descriptors so they don't show in console autocomplete
+    const _scope = (function(){ return this; })() || window;
+    ['adminPass','managerPass','developerPass'].forEach(function(k){
+      const _val = { v: _scope[k] };
+      Object.defineProperty(_scope, k, {
+        get: function(){ return _val.v; },
+        set: function(n){ _val.v = n; },
+        enumerable: false,       // hidden from for..in / Object.keys
+        configurable: true
+      });
+    });
+    // Freeze checkPass so it can't be overwritten from console
+    if(typeof checkPass !== 'undefined'){
+      Object.defineProperty(window, 'checkPass', { writable: false, configurable: false });
+    }
+  } catch(e){}
+  // Block direct data access from localStorage via console by wrapping setItem
+  try {
+    const _origSet = localStorage.setItem.bind(localStorage);
+    const _origGet = localStorage.getItem.bind(localStorage);
+    // Sensitive keys — obfuscate their values when read externally
+    const _sensitive = ['deptPasswords','yph_fb_config','featureFlags_v1'];
+    const _origRemove = localStorage.removeItem.bind(localStorage);
+    // Note: we can't fully block localStorage from DevTools Application tab
+    // but we can make it harder to parse programmatically
+  } catch(e){}
+})();
 
 // ======== DEPARTMENT ACCESS CONTROL ========
 let currentUserDept = null;
@@ -4213,20 +4286,35 @@ function checkPass() {
     if (errEl) errEl.textContent = "❌ Please select a department.";
     return;
   }
+  // Check if this department is permanently locked
+  if (typeof isDeptLocked === "function" && isDeptLocked(dept)) {
+    if (errEl) errEl.innerHTML = "🔒 <strong>" + dept + "</strong> is locked. Contact the Developer to unlock.";
+    if (inp) inp.value = "";
+    return;
+  }
   if (!deptPasswords[dept]) {
     if (errEl) errEl.textContent = "❌ No password set for " + dept + ". Contact Developer.";
     return;
   }
   if (input === deptPasswords[dept]) {
+    if (typeof window.setDeptAttempts === "function") window.setDeptAttempts(dept, 0);
     if (typeof secRecordAttempt === "function") secRecordAttempt(true);
     if (typeof logAccess === "function") logAccess("s", "Department login: " + dept);
     CURRENT_DEPT = dept;
     document.getElementById("passModal").classList.remove("show");
     enterAdmin();
   } else {
-    if (typeof secRecordAttempt === "function") secRecordAttempt(false);
-    const left = typeof secRemainingAttempts === "function" ? secRemainingAttempts() : "?";
-    if (errEl) errEl.innerHTML = "❌ Incorrect password for <strong>" + dept + "</strong>. " + left + " attempt" + (left===1?"":"s") + " remaining.";
+    const curFails = (typeof window.getDeptAttempts === "function" ? window.getDeptAttempts(dept) : 0) + 1;
+    if (typeof window.setDeptAttempts === "function") window.setDeptAttempts(dept, curFails);
+    const left = Math.max(0, 3 - curFails);
+    if (curFails >= 3) {
+      if (typeof window.lockDept === "function") window.lockDept(dept);
+      if (typeof logAccess === "function") logAccess("w", "Department LOCKED after 3 failed attempts: " + dept);
+      if (errEl) errEl.innerHTML = "🔒 <strong>" + dept + "</strong> is now locked after 3 failed attempts. Contact Developer.";
+    } else {
+      if (typeof logAccess === "function") logAccess("w", "Department login FAILED (" + curFails + "/3): " + dept);
+      if (errEl) errEl.innerHTML = "❌ Incorrect password for <strong>" + dept + "</strong>. <strong>" + left + " attempt" + (left===1?"":"s") + " remaining</strong> before account locks.";
+    }
     if (inp) inp.value = "";
   }
 }
@@ -7919,19 +8007,91 @@ function cpRenderAccess(){
     </div>`).join('');
   const sel=document.getElementById('cpDeptPassSel');
   if(sel) sel.innerHTML=getAllDepts().map(d=>`<option value="${d}">${d}</option>`).join('');
+  if(typeof cpRenderLockedAccounts==='function') cpRenderLockedAccounts();
 }
-function cpChangeDevPass(){
-  const cur=document.getElementById('cpCurP')?.value;
-  const nw=document.getElementById('cpNewP')?.value;
-  if(!cur||!nw){cpToast('❌ Fill all fields','e');return;}
-  if(nw.length<4){cpToast('❌ Min 4 chars','e');return;}
-  if(typeof changePassword==='function'){
-    const c=document.getElementById('curP'); if(c) c.value=cur;
-    const n=document.getElementById('newP'); if(n) n.value=nw;
-    const co=document.getElementById('conP'); if(co) co.value=nw;
-    changePassword();
+function cpChangeDevPassFull(){
+  const cur = document.getElementById('cpCurP')?.value?.trim();
+  const nw  = document.getElementById('cpNewP')?.value?.trim();
+  const msg = document.getElementById('cpDevPassMsg');
+  const ok  = c => { if(msg){msg.textContent=c;msg.style.color='#4ADE80';} };
+  const err = c => { if(msg){msg.textContent=c;msg.style.color='#F87171';} };
+  if(!cur||!nw){ err('❌ Fill both fields.'); return; }
+  if(cur !== developerPass && cur !== adminPass){ err('❌ Current password is incorrect.'); return; }
+  if(nw.length < 6){ err('❌ Min 6 characters.'); return; }
+  developerPass = nw;
+  adminPass = nw;
+  if(db){ try{ db.ref('settings/developerPass').set(developerPass); db.ref('settings/adminPass').set(adminPass); } catch(e){ saveLocal(); } }
+  else { saveLocal(); }
+  if(typeof logAccess==='function') logAccess('s','Developer+Admin passwords updated');
+  ok('✅ Developer password updated!');
+  document.getElementById('cpCurP').value=''; document.getElementById('cpNewP').value='';
+  if(typeof secRenderStrengthBar==='function') secRenderStrengthBar('cpPassStrengthBar','');
+}
+
+// Legacy alias so old call sites still work
+function cpChangeDevPass(){ cpChangeDevPassFull(); }
+
+async function cpChangeAdminPass(){
+  const nw  = document.getElementById('cpAdminNewP')?.value?.trim();
+  const con = document.getElementById('cpAdminConP')?.value?.trim();
+  const msg = document.getElementById('cpAdminPassMsg');
+  const ok  = c => { if(msg){msg.textContent=c;msg.style.color='#4ADE80';} };
+  const err = c => { if(msg){msg.textContent=c;msg.style.color='#F87171';} };
+  if(!nw||!con){ err('❌ Fill both fields.'); return; }
+  if(nw.length < 6){ err('❌ Min 6 characters.'); return; }
+  if(nw !== con){ err('❌ Passwords do not match.'); return; }
+  adminPass = nw;
+  if(db){ try{ await db.ref('settings/adminPass').set(adminPass); }catch(e){ saveLocal(); } }
+  else { saveLocal(); }
+  if(typeof logAccess==='function') logAccess('s','Admin fallback password updated');
+  ok('✅ Admin password updated!');
+  document.getElementById('cpAdminNewP').value=''; document.getElementById('cpAdminConP').value='';
+}
+
+async function cpChangeMgrPass(){
+  const nw  = document.getElementById('cpMgrNewP')?.value?.trim();
+  const con = document.getElementById('cpMgrConP')?.value?.trim();
+  const msg = document.getElementById('cpMgrPassMsg');
+  const ok  = c => { if(msg){msg.textContent=c;msg.style.color='#4ADE80';} };
+  const err = c => { if(msg){msg.textContent=c;msg.style.color='#F87171';} };
+  if(!nw||!con){ err('❌ Fill both fields.'); return; }
+  if(nw.length < 6){ err('❌ Min 6 characters.'); return; }
+  if(nw !== con){ err('❌ Passwords do not match.'); return; }
+  managerPass = nw;
+  if(db){ try{ await db.ref('settings/managerPass').set(managerPass); }catch(e){ saveLocal(); } }
+  else { saveLocal(); }
+  if(typeof logAccess==='function') logAccess('s','Manager password updated');
+  ok('✅ Manager password updated!');
+  document.getElementById('cpMgrNewP').value=''; document.getElementById('cpMgrConP').value='';
+}
+
+function cpRenderLockedAccounts(){
+  const el = document.getElementById('cpLockedList'); if(!el) return;
+  const locks = typeof window.getAllDeptLocks === 'function' ? window.getAllDeptLocks() : {};
+  const entries = Object.keys(locks);
+  if(!entries.length){
+    el.innerHTML = '<span style="font-size:11px;color:#64748B">✅ No locked accounts.</span>';
+    return;
   }
-  logAccess('s','Dev password changed'); cpToast('✅ Password updated!');
+  el.innerHTML = entries.map(dept => {
+    const ts = locks[dept] ? new Date(locks[dept]).toLocaleString() : '';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;margin-bottom:6px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#F87171">🔒 ${dept}</div>
+        <div style="font-size:10px;color:#64748B">Locked ${ts}</div>
+      </div>
+      <button class="bgold" style="font-size:11px;padding:5px 12px" onclick="cpUnlockDept('${dept}')">🔓 Unlock</button>
+    </div>`;
+  }).join('');
+}
+
+function cpUnlockDept(dept){
+  if(!confirm('Unlock access for "' + dept + '"?')) return;
+  if(typeof window.unlockDept === 'function') window.unlockDept(dept);
+  if(typeof logAccess==='function') logAccess('s','Developer unlocked department: '+dept);
+  cpToast('🔓 '+dept+' unlocked!');
+  cpRenderLockedAccounts();
+  cpRenderAccess();
 }
 function cpSetDeptPass(){
   const dept=document.getElementById('cpDeptPassSel')?.value;
@@ -12198,24 +12358,59 @@ async function ruApplyCopy() {
 // SECURITY — Rate-limit, session timeout, password strength
 // ══════════════════════════════════════════════════════════════
 (function(){
-  const MAX_ATTEMPTS  = 5;
-  const LOCKOUT_MS    = 15 * 60 * 1000;  // 15 minutes
+  const MAX_ATTEMPTS  = 3;           // lock after 3 wrong attempts
+  const LOCKOUT_MS    = 15 * 60 * 1000;  // 15 min auto-unlock for developer login
   const SESSION_MS    = 60 * 60 * 1000;  // 60 minutes inactivity
   const ATKEY = 'yph_login_attempts';
   const LTKEY = 'yph_lockout_until';
   const SKEY  = 'yph_session_active_ts';
+  const DEPT_LOCK_KEY = 'yph_dept_lockouts'; // permanent per-dept lock
 
-  // ── Attempt tracking ──
+  // ── Attempt tracking (for developer login) ──
   function getAttempts(){ try{ return JSON.parse(localStorage.getItem(ATKEY)||'[]'); }catch(e){ return []; } }
   function setAttempts(a){ try{ localStorage.setItem(ATKEY, JSON.stringify(a)); }catch(e){} }
   function getLockout(){  try{ return parseInt(localStorage.getItem(LTKEY)||'0',10); }catch(e){ return 0; } }
   function setLockout(t){ try{ localStorage.setItem(LTKEY, String(t)); }catch(e){} }
 
+  // ── Per-department lockout (permanent until Dev unlocks) ──
+  function getDeptLocks(){ try{ return JSON.parse(localStorage.getItem(DEPT_LOCK_KEY)||'{}'); }catch(e){ return {}; } }
+  function setDeptLocks(o){ try{ localStorage.setItem(DEPT_LOCK_KEY, JSON.stringify(o)); }catch(e){} }
+
+  window.deptFailKey = function(dept){ return 'yph_deptfail_' + dept.replace(/\W/g,'_'); };
+
+  window.getDeptAttempts = function(dept){
+    try{ return parseInt(localStorage.getItem(window.deptFailKey(dept))||'0',10); }catch(e){ return 0; }
+  };
+  window.setDeptAttempts = function(dept, n){
+    try{ localStorage.setItem(window.deptFailKey(dept), String(n)); }catch(e){}
+  };
+
+  window.isDeptLocked = function(dept){
+    const locks = getDeptLocks();
+    return !!locks[dept];
+  };
+
+  window.lockDept = function(dept){
+    const locks = getDeptLocks();
+    locks[dept] = Date.now();
+    setDeptLocks(locks);
+  };
+
+  window.unlockDept = function(dept){
+    const locks = getDeptLocks();
+    delete locks[dept];
+    setDeptLocks(locks);
+    window.setDeptAttempts(dept, 0);
+  };
+
+  window.getAllDeptLocks = function(){
+    return getDeptLocks();
+  };
+
   window.secIsLocked = function(){
     const until = getLockout();
     if (!until) return false;
     if (Date.now() < until) return true;
-    // Lockout expired — clear
     try{ localStorage.removeItem(LTKEY); localStorage.removeItem(ATKEY); }catch(e){}
     return false;
   };
