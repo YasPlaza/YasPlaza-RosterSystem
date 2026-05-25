@@ -2811,26 +2811,42 @@ function initFirebase(config) {
       firebase.initializeApp(config);
       db = firebase.database();
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
-      // Must authenticate before any db.ref().on() calls.
-      // Anonymous Auth satisfies rules (auth != null) without requiring staff accounts.
+      // Sign in anonymously so rules (auth != null) allow reads.
+      // Managers/Developer will upgrade to email auth via checkPass().
       firebase.auth().signInAnonymously()
-        .then(function() {
+        .then(function(){ setupRealtimeListeners(); })
+        .catch(function(err){
+          console.warn("Anon auth failed:", err.code);
+          // Still try to connect — rules may allow public read
           setupRealtimeListeners();
-        })
-        .catch(function(err) {
-          console.warn("Firebase auth failed:", err.code, err.message);
-          if (err.code === "auth/operation-not-allowed") {
-            updateStatus("offline","Enable Anonymous Auth in Firebase Console");
-          } else {
-            updateStatus("offline","Auth Failed – " + err.code);
-          }
-          db = null;
         });
     } catch(e) {
       console.warn("Firebase connect failed:", e.message);
       db = null;
       updateStatus("offline","Offline Mode");
     }
+  });
+}
+
+// ── Firebase email/password sign-in for managers/developer ──
+function fbSignInEmail(email, password, onSuccess, onError) {
+  if (!window.firebase || !firebase.auth) { onSuccess(); return; }
+  firebase.auth().signInWithEmailAndPassword(email, password)
+    .then(function(cred) {
+      console.log("[YPH] Firebase auth: signed in as", cred.user.email);
+      onSuccess(cred.user);
+    })
+    .catch(function(err) {
+      console.warn("[YPH] Firebase sign-in failed:", err.code);
+      onError(err);
+    });
+}
+
+function fbSignOut() {
+  if (!window.firebase || !firebase.auth) return;
+  firebase.auth().signOut().then(function(){
+    // Re-sign anonymously so reads still work after logout
+    firebase.auth().signInAnonymously().catch(function(){});
   });
 }
 
@@ -4072,6 +4088,7 @@ function closeFbSetup() { document.getElementById("fbSetupModal").classList.remo
 // NAVIGATION
 // ═══════════════════════════════════════════════════
 function backToLanding() {
+  if (typeof fbSignOut === 'function') fbSignOut();
   ["empPortal","app"].forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove("show");el.style.display="";} });
   const liveDash = document.getElementById('liveDashWindow');
   if (liveDash) liveDash.style.display = 'none';
@@ -4152,13 +4169,17 @@ function checkPass() {
     return;
   }
 
-  const remaining = typeof secRemainingAttempts === "function" ? secRemainingAttempts() : 5;
-
   if (ADMIN_ROLE === "developer") {
     if (input === developerPass || input === adminPass) {
       if (typeof secRecordAttempt === "function") secRecordAttempt(true);
       if (typeof logAccess === "function") logAccess("s", "Developer login success");
       CURRENT_DEPT = "all";
+      // Try Firebase email auth for developer (uses stored dev email)
+      const devEmail = (typeof settingsData !== 'undefined' && settingsData.devEmail) ? settingsData.devEmail : "dev@yas-roster.local";
+      if (window.firebase && firebase.auth) {
+        firebase.auth().signInWithEmailAndPassword(devEmail, input)
+          .catch(function(){ /* No Firebase account yet — anonymous session is fine */ });
+      }
       enterAdmin();
     } else {
       if (typeof secRecordAttempt === "function") secRecordAttempt(false);
@@ -4184,6 +4205,12 @@ function checkPass() {
     if (typeof secRecordAttempt === "function") secRecordAttempt(true);
     if (typeof logAccess === "function") logAccess("s", "Department login: " + dept);
     CURRENT_DEPT = dept;
+    // Try Firebase email auth for department manager
+    const mgrEmail = dept.toLowerCase().replace(/\s+/g,'.') + "@yas-roster.local";
+    if (window.firebase && firebase.auth) {
+      firebase.auth().signInWithEmailAndPassword(mgrEmail, input)
+        .catch(function(){ /* No Firebase account yet — anonymous session is fine */ });
+    }
     document.getElementById("passModal").classList.remove("show");
     enterAdmin();
   } else {
