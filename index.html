@@ -30,8 +30,6 @@
   --sh:0 4px 24px rgba(15,30,53,.1);
   --sh-lg:0 16px 56px rgba(15,30,53,.18);
 }
-</style>
-<script>
 
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ROSTER INPUT — Tab navigation, live validation, avatar
@@ -213,8 +211,6 @@ function _empResetTabs() {
   empUpdateALRemaining();
 }
 
-</script>
-<style>
 
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-height:100vh}
@@ -878,8 +874,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 .cp-ni-icon{display:inline-block;width:22px;text-align:center;margin-right:4px}
 .cp-nav-item{display:flex;align-items:center}
 #cpPassStrengthBar{min-height:18px}
-#liveDashWindow select,#liveDashWindow select option{background:#0F1E35 !important;color:#fff !important}
-#liveDashWindow select:focus,#liveDashWindow select:hover{background:#1B2D4A !important}
 </style></head>
 <body>
 
@@ -1055,21 +1049,21 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   </div>
   <!-- Filters row -->
   <div style="background:rgba(255,255,255,.02);border-bottom:1px solid rgba(255,255,255,.06);padding:10px 20px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-    <select id="liveDeptFilter" style="display:none;background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="all" style="background:#0F1E35;color:#fff">All Departments</option>
+    <select id="liveDeptFilter" style="display:none">
+      <option value="all">All Departments</option>
     </select>
-    <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="all" style="background:#0F1E35;color:#fff">🏨 All Hotels</option>
+    <select id="liveHotelFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="all">🏨 All Hotels</option>
     </select>
-    <select id="liveShiftFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="auto" style="background:#0F1E35;color:#fff">⏰ Current Shift</option>
-      <option value="MOR" style="background:#0F1E35;color:#fff">🌅 Morning</option>
-      <option value="AFT" style="background:#0F1E35;color:#fff">☀️ Afternoon</option>
-      <option value="EVE" style="background:#0F1E35;color:#fff">🌙 Evening/Night</option>
-      <option value="all" style="background:#0F1E35;color:#fff">📋 All Shifts</option>
+    <select id="liveShiftFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="auto">⏰ Current Shift</option>
+      <option value="MOR">🌅 Morning</option>
+      <option value="AFT">☀️ Afternoon</option>
+      <option value="EVE">🌙 Evening/Night</option>
+      <option value="all">📋 All Shifts</option>
     </select>
-    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:#0F1E35;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
-      <option value="" style="background:#0F1E35;color:#fff">📍 All Sections</option>
+    <select id="liveSectionFilter" onchange="renderLiveDash()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none">
+      <option value="">📍 All Sections</option>
     </select>
     <input id="liveSearchInp" oninput="renderLiveDash()" placeholder="🔍 Search staff..." style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 12px;font-size:11px;color:#fff;outline:none;width:180px" onmouseover="" />
     <div style="margin-left:auto;display:flex;gap:8px">
@@ -2789,7 +2783,7 @@ const selectedIds = new Set();
 // FIREBASE — SDK loaded dynamically, never blocks app
 // ═══════════════════════════════════════════════════
 function loadFirebaseSDK(callback) {
-  if (window.firebase && window.firebase.database) { callback(); return; }
+  if (window.firebase && window.firebase.database && window.firebase.auth) { callback(); return; }
   updateStatus("syncing","Connecting…");
   var s1 = document.createElement("script");
   s1.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js";
@@ -2798,7 +2792,13 @@ function loadFirebaseSDK(callback) {
     var s2 = document.createElement("script");
     s2.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js";
     s2.onerror = function(){ updateStatus("offline","Offline Mode"); };
-    s2.onload  = function(){ callback(); };
+    s2.onload  = function(){
+      var s3 = document.createElement("script");
+      s3.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js";
+      s3.onerror = function(){ updateStatus("offline","Offline Mode"); };
+      s3.onload  = function(){ callback(); };
+      document.head.appendChild(s3);
+    };
     document.head.appendChild(s2);
   };
   document.head.appendChild(s1);
@@ -2811,7 +2811,21 @@ function initFirebase(config) {
       firebase.initializeApp(config);
       db = firebase.database();
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
-      setupRealtimeListeners();
+      // Must authenticate before any db.ref().on() calls.
+      // Anonymous Auth satisfies rules (auth != null) without requiring staff accounts.
+      firebase.auth().signInAnonymously()
+        .then(function() {
+          setupRealtimeListeners();
+        })
+        .catch(function(err) {
+          console.warn("Firebase auth failed:", err.code, err.message);
+          if (err.code === "auth/operation-not-allowed") {
+            updateStatus("offline","Enable Anonymous Auth in Firebase Console");
+          } else {
+            updateStatus("offline","Auth Failed – " + err.code);
+          }
+          db = null;
+        });
     } catch(e) {
       console.warn("Firebase connect failed:", e.message);
       db = null;
@@ -4112,9 +4126,8 @@ function populateDeptPassSelect() {
   const sel = document.getElementById("deptPassSelect");
   if (!sel) return;
   const depts = getAllDepts();
-  const optStyle = ' style="background:#0F1E35;color:#fff"';
-  sel.innerHTML = '<option value=""' + optStyle + '>-- Select Department --</option>' +
-    depts.map(d => '<option value="' + d + '"' + optStyle + '>' + d + '</option>').join("");
+  sel.innerHTML = '<option value="">-- Select Department --</option>' +
+    depts.map(d => '<option value="' + d + '">' + d + '</option>').join("");
 }
 
 function onDeptSelectChange() {
@@ -9732,40 +9745,21 @@ function devExportScheduleJSON() {
   }, 500);
   document.addEventListener('click', function(){ mountAll(); }, true);
 
-  // ---------- 3. Configure LIVE dept filter ----------
-  // - Single-dept LIVE: lock & hide to user's department
-  // - LIVE+ multi-dept: show dropdown with all granted departments + "All"
+  // ---------- 3. Lock LIVE dept filter to user's department ----------
   const _origOpenLive = typeof openLiveDashForEmployee === 'function' ? openLiveDashForEmployee : null;
   if (_origOpenLive) {
     window.openLiveDashForEmployee = function(id, emp){
       _origOpenLive(id, emp);
       try {
         const deptSel = document.getElementById('liveDeptFilter');
-        if (!deptSel || !emp) return;
-        const livePlus = window._LIVEPLUS_ACTIVE && window._LIVEPLUS_ACTIVE.id === id ? window._LIVEPLUS_ACTIVE : null;
-        if (livePlus) {
-          // Build allowed-dept list from grant config (fallback: all known depts)
-          let depts = [];
-          const cfg = livePlus.cfg || {};
-          if (Array.isArray(cfg.departments) && cfg.departments.length) depts = cfg.departments.slice();
-          else if (Array.isArray(cfg.depts) && cfg.depts.length) depts = cfg.depts.slice();
-          else if (typeof getAllDepts === 'function') depts = getAllDepts();
-          if (emp.department && !depts.includes(emp.department)) depts.unshift(emp.department);
-          const styleDark = 'background:#0F1E35;color:#fff';
-          deptSel.innerHTML = `<option value="all" style="${styleDark}">🏢 All Departments</option>` +
-            depts.map(d => `<option value="${d}" style="${styleDark}">${d}</option>`).join('');
-          deptSel.value = 'all';
-          deptSel.disabled = false;
-          deptSel.style.cssText = 'background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:6px 10px;font-size:11px;color:#fff;outline:none;display:inline-block';
-          deptSel.onchange = function(){ if (typeof renderLiveDash === 'function') renderLiveDash(); };
-        } else if (emp.department) {
-          // Single-dept user: lock and hide
+        if (deptSel && emp && emp.department) {
+          // Lock and HIDE the dept filter — staff only see their own department
           deptSel.innerHTML = `<option value="${emp.department}">${emp.department}</option>`;
           deptSel.value = emp.department;
           deptSel.disabled = true;
-          deptSel.style.display = 'none';
+          deptSel.style.display = 'none';  // hide completely
+          if (typeof renderLiveDash === 'function') renderLiveDash();
         }
-        if (typeof renderLiveDash === 'function') renderLiveDash();
       } catch(e) { console.error(e); }
     };
   }
