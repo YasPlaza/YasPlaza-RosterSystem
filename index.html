@@ -499,7 +499,7 @@ button.dev-only-btn{display:inline-flex}
 .el{background:rgba(255,255,255,.04);backdrop-filter:blur(20px);border:1px solid rgba(201,150,58,.18);border-radius:22px;padding:38px 34px;width:390px;max-width:100%;text-align:center;animation:fadeUp .4s ease both}
 .el h2{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#fff;margin-bottom:5px}
 .el p{color:var(--slate2);font-size:12px;margin-bottom:22px;line-height:1.5}
-.ei{width:100%;padding:15px;background:rgba(255,255,255,.07);border:2px solid rgba(201,150,58,.25);border-radius:11px;font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#fff;text-align:center;letter-spacing:4px;outline:none;transition:.2s;text-transform:uppercase}
+.ei{width:100%;padding:15px;background:rgba(255,255,255,.07);border:2px solid rgba(201,150,58,.25);border-radius:11px;font-family:'DM Mono',monospace;font-size:20px;font-weight:500;color:#fff;text-align:center;letter-spacing:4px;outline:none;transition:.2s;text-transform:uppercase;box-sizing:border-box}
 .ei:focus{border-color:var(--gold);box-shadow:0 0 0 4px rgba(201,150,58,.12)}
 .ei::placeholder{color:rgba(255,255,255,.18);letter-spacing:2px;font-size:14px}
 .elb{width:100%;padding:14px;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:11px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;margin-top:12px;transition:.25s;box-shadow:0 4px 20px rgba(201,150,58,.38)}
@@ -1145,7 +1145,10 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div style="font-size:34px;margin-bottom:12px">🔐</div>
     <h3 id="passTitle">Developer Access</h3>
     <p id="passHint">Enter Developer password for full system access.</p>
-    <input class="pass-inp" id="passInp" type="password" placeholder="••••••••" maxlength="30" onkeydown="if(event.key==='Enter')checkPass()">
+    <div style="position:relative;width:100%">
+      <input class="pass-inp" id="passInp" type="password" placeholder="••••••••" maxlength="30" onkeydown="if(event.key==='Enter')checkPass()" style="padding-right:50px;width:100%;box-sizing:border-box">
+      <button id="passToggleBtn" onclick="(function(){var i=document.getElementById('passInp');var b=document.getElementById('passToggleBtn');var s=i.type!=='password';i.type=s?'password':'text';b.innerHTML=s?'&#128065;&#65039;&#8203;&#x20E0;':'&#128065;'})()" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;font-size:18px;opacity:.6;transition:.2s" title="Show/Hide Password">👁</button>
+    </div>
     <div class="pass-err" id="passErr"></div>
     <button class="pass-btn" onclick="checkPass()">Unlock →</button>
     <br>
@@ -1256,7 +1259,12 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);border-radius:8px;font-size:11px;color:var(--gold2)">
       💡 <strong>Tip:</strong> Tap any day in your 7-day schedule to see full duty details — shift time, hotel, section &amp; more.
     </div>
-    <input class="ei" id="empIdInp" placeholder="e.g. E001" maxlength="15" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')loginEmp()">
+    <div style="position:relative;width:100%">
+      <input class="ei" id="empIdInp" placeholder="e.g. E001" maxlength="15" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')loginEmp()" style="padding-right:52px">
+      <button id="empIdToggleBtn" onclick="(function(){var i=document.getElementById('empIdInp');var b=document.getElementById('empIdToggleBtn');var showing=i.type!=='password';i.type=showing?'password':'text';b.innerHTML=showing?'<svg width=18 height=18 viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'rgba(201,150,58,.8)\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94\'/><path d=\'M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19\'/><line x1=\'1\' y1=\'1\' x2=\'23\' y2=\'23\'/></svg>':'<svg width=18 height=18 viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'rgba(201,150,58,.8)\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><path d=\'M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z\'/><circle cx=\'12\' cy=\'12\' r=\'3\'/></svg>'})()" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;padding:4px;display:flex;align-items:center;justify-content:center;opacity:.7;transition:.2s" title="Show/Hide ID">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="rgba(201,150,58,.8)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
     <div class="eerr" id="empErr"></div>
     <button class="elb" onclick="loginEmp()">View My Schedule →</button>
     <br>
@@ -1898,42 +1906,81 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 .cpqv{font-size:18px;font-weight:800;color:#C9963A}
 .cpql{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
 @media(max-width:860px){.cp-wrap{grid-template-columns:1fr}.cp-hlth{grid-template-columns:1fr 1fr}}
+
+/* ══ DEV PANEL REDESIGN ADDITIONS ══ */
+/* Sidebar icon-label nav items */
+.cp-nav-item { gap:10px; padding:11px 16px; font-size:12.5px; border-bottom:1px solid rgba(255,255,255,.035); }
+.cp-ni-icon { font-size:16px; width:22px; text-align:center; flex-shrink:0; }
+.cp-nav-item.cpa { background:linear-gradient(90deg,rgba(201,150,58,.2),rgba(201,150,58,.04)); border-left:3px solid #C9963A; }
+/* Quick-action bar */
+#cpQuickBar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.cpqa { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:rgba(255,255,255,.7); font-size:11px; font-weight:600; cursor:pointer; transition:.2s; white-space:nowrap; }
+.cpqa:hover { background:rgba(201,150,58,.15); border-color:rgba(201,150,58,.4); color:#E8B04A; }
+/* Health cards improved */
+.cph { background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); transition:.2s; }
+.cph:hover { border-color:rgba(201,150,58,.22); }
+/* Firebase status banner */
+#cpFbStatusBanner { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:11px; margin-bottom:10px; font-size:12px; font-weight:600; transition:.4s; }
+#cpFbStatusBanner.fb-ok { background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); color:#4ADE80; }
+#cpFbStatusBanner.fb-warn { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3); color:#FCD34D; }
+#cpFbStatusBanner.fb-err { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#F87171; }
+/* Panel section dividers */
+.cp-section-hdr { display:flex; align-items:center; gap:10px; margin:16px 0 10px; }
+.cp-section-hdr span { font-size:10px; font-weight:800; color:#C9963A; text-transform:uppercase; letter-spacing:1.2px; white-space:nowrap; }
+.cp-section-hdr::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(201,150,58,.3),transparent); }
+/* Compact 2-col action grid */
+.cp-action-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cp-action-btn { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 14px; border-radius:11px; border:1.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); cursor:pointer; transition:.2s; text-align:left; }
+.cp-action-btn:hover { background:rgba(201,150,58,.08); border-color:rgba(201,150,58,.25); transform:translateY(-1px); }
+.cp-action-btn .ab-icon { font-size:18px; }
+.cp-action-btn .ab-label { font-size:11px; font-weight:700; color:#fff; }
+.cp-action-btn .ab-desc { font-size:10px; color:#64748B; line-height:1.3; }
+/* Sidebar version badge */
+#cpSideFooter { padding:12px 15px; border-top:1px solid rgba(255,255,255,.06); margin-top:auto; }
+/* onlineStatus improved connection label */
+#onlineStatus { font-weight:700; letter-spacing:.2px; }
 </style>
 
 <div id="cp-outer">
 <div id="cp-topbar-area">
-<!-- TOP BAR -->
-<div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:12px 18px;margin-bottom:14px">
-  <div style="display:flex;align-items:center;gap:10px">
-    <div style="display:flex;align-items:center;gap:10px">
-      <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:9px;font-weight:800;padding:3px 9px;border-radius:5px;letter-spacing:1px">DEV</div>
-      <div style="font-size:17px;font-weight:800;color:#fff">⚙️ Developer <span style="color:#C9963A">Control Panel</span></div>
+<!-- TOP BAR — redesigned -->
+<div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:11px 16px;margin-bottom:12px">
+  <div style="display:flex;align-items:center;gap:12px">
+    <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:8px;font-weight:900;padding:4px 10px;border-radius:6px;letter-spacing:1.5px">DEV</div>
+    <div style="font-size:16px;font-weight:800;color:#fff;font-family:'Syne',sans-serif">⚙️ Control Panel</div>
+    <div id="cpFbStatusPill" style="display:flex;align-items:center;gap:5px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:100px;padding:4px 11px;font-size:10px;font-weight:700;color:#FCD34D;transition:.4s">
+      <div id="cpFbDot" style="width:6px;height:6px;border-radius:50%;background:#FCD34D;animation:blink .8s infinite"></div>
+      <span id="cpFbLabel">Connecting…</span>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:9px">
-    <!-- Quick search -->
-    <div style="position:relative">
-      <input id="cpSearch" placeholder="🔍 Search panel…" oninput="cpSearchPanel(this.value)"
-        style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;border-radius:9px;padding:6px 12px;font-size:11px;width:170px;outline:none;transition:.2s"
-        onfocus="this.style.borderColor='rgba(201,150,58,.6)';this.style.background='rgba(255,255,255,.11)'"
-        onblur="this.style.borderColor='rgba(255,255,255,.12)';this.style.background='rgba(255,255,255,.07)'">
-      <div id="cpSearchResults" style="position:absolute;top:calc(100% + 6px);right:0;background:#0F2240;border:1px solid rgba(201,150,58,.3);border-radius:10px;min-width:200px;z-index:999;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:100px;padding:5px 12px;font-size:11px;color:#10B981;font-weight:600">
-      <div style="width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5);animation:pulse 2s infinite"></div>
-      <span id="cpSystemStatus">All Systems OK</span>
-    </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <input id="cpSearch" placeholder="🔍 Search…" oninput="cpSearchPanel(this.value)"
+      style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:9px;padding:6px 12px;font-size:11px;width:150px;outline:none;transition:.2s"
+      onfocus="this.style.borderColor='rgba(201,150,58,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
+    <div id="cpSearchResults" style="position:absolute;top:calc(100% + 6px);right:0;background:#0F2240;border:1px solid rgba(201,150,58,.3);border-radius:10px;min-width:200px;z-index:999;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>
     <div style="font-family:'DM Mono',monospace;font-size:11px;color:#C9963A;background:rgba(201,150,58,.1);border:1px solid rgba(201,150,58,.2);border-radius:7px;padding:5px 10px" id="cpClock">--:--:--</div>
-    <button onclick="backToLanding()" title="Exit to landing" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.12)'">✕ Exit</button>
+    <button onclick="backToLanding()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.12)'">✕ Exit</button>
   </div>
+</div>
+
+<!-- QUICK ACTION BAR -->
+<div id="cpQuickBar">
+  <button class="cpqa" onclick="cpTab('modules')">🧩 Modules</button>
+  <button class="cpqa" onclick="cpTab('hotels')">🏨 Hotels</button>
+  <button class="cpqa" onclick="cpTab('departments')">🏢 Departments</button>
+  <button class="cpqa" onclick="cpTab('shifts')">⏰ Shifts</button>
+  <button class="cpqa" onclick="cpTab('access')">🔑 Access</button>
+  <button class="cpqa" onclick="cpTab('firebase')">🔥 Firebase</button>
+  <button class="cpqa" onclick="cpTab('security')">🔐 Security</button>
+  <button class="cpqa" onclick="cpTab('logs')">📋 Logs</button>
 </div>
 
 <!-- HEALTH ROW -->
 <div class="cp-hlth">
-  <div class="cph"><div style="font-size:18px">🔥</div><div><div class="cph-lbl">Firebase</div><div class="cph-val gv" id="cpFbSt">Checking...</div></div><div class="cpdot gd"></div></div>
-  <div class="cph"><div style="font-size:18px">👥</div><div><div class="cph-lbl">Total Staff</div><div class="cph-val" id="cpSC">—</div></div></div>
-  <div class="cph"><div style="font-size:18px">🧩</div><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="cpMC">—</div></div></div>
-  <div class="cph"><div style="font-size:18px">🏨</div><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="cpHC">—</div></div></div>
+  <div class="cph"><div style="font-size:20px">🔥</div><div><div class="cph-lbl">Firebase</div><div class="cph-val gv" id="cpFbSt">Checking…</div></div><div class="cpdot gd" id="cpFbDotH" style="animation:blink 1s infinite"></div></div>
+  <div class="cph"><div style="font-size:20px">👥</div><div><div class="cph-lbl">Total Staff</div><div class="cph-val" id="cpSC">—</div></div></div>
+  <div class="cph"><div style="font-size:20px">🧩</div><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="cpMC">—</div></div></div>
+  <div class="cph"><div style="font-size:20px">🏨</div><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="cpHC">—</div></div></div>
 </div>
 </div><!-- /cp-topbar-area -->
 
@@ -1965,7 +2012,17 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           <div class="cpq"><div class="cpqv" style="color:#EF4444" id="qs-off">—</div><div class="cpql">Off</div></div>
           <div class="cpq"><div class="cpqv" style="color:#F59E0B" id="qs-hotels">—</div><div class="cpql">Hotels</div></div>
         </div>
+        <!-- Firebase reconnect shortcut -->
+        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="font-size:9px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🔥 Firebase</div>
+          <div id="cpSideFbStatus" style="font-size:11px;font-weight:600;color:#FCD34D;margin-bottom:6px">● Connecting…</div>
+          <button onclick="if(typeof tryAutoConnect==='function')tryAutoConnect();if(typeof cpToast==='function')cpToast('🔄 Reconnecting to Firebase…');" style="width:100%;padding:6px;background:rgba(201,150,58,.12);border:1px solid rgba(201,150,58,.3);border-radius:7px;color:#C9963A;font-size:10px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(201,150,58,.22)'" onmouseout="this.style.background='rgba(201,150,58,.12)'">🔄 Reconnect</button>
+        </div>
       </div>
+    </div>
+    <!-- Sidebar footer -->
+    <div id="cpSideFooter" style="padding:10px 13px;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(135deg,rgba(13,27,46,.8),rgba(22,37,64,.8));border-radius:0 0 14px 14px;font-size:9px;color:#475569;text-align:center;letter-spacing:.3px">
+      Yas Plaza Hotels · Roster v5
     </div>
   </div>
 
@@ -4325,6 +4382,23 @@ function updateStatus(type, text) {
   if (card) card.innerHTML = `Status: <strong style="color:${type==="online"?"var(--green)":type==="syncing"?"var(--gold)":"var(--red)"}">${text}</strong><br>
     ${db?"Database connected — all changes sync to all users in real time."
        :"No Firebase connection — using local storage (changes only visible on this device)."}`;
+  // Update Dev Panel Firebase pill
+  const pill = document.getElementById('cpFbStatusPill');
+  const pillDot = document.getElementById('cpFbDot');
+  const pillLbl = document.getElementById('cpFbLabel');
+  const sideSt  = document.getElementById('cpSideFbStatus');
+  const hlthSt  = document.getElementById('cpFbSt');
+  const hlthDot = document.getElementById('cpFbDotH');
+  const colors = { online:{pill:'rgba(16,185,129,.12)',border:'rgba(16,185,129,.3)',dot:'#4ADE80',text:'#4ADE80',label:'● Online'},
+                   syncing:{pill:'rgba(245,158,11,.12)',border:'rgba(245,158,11,.3)',dot:'#FCD34D',text:'#FCD34D',label:'● Connecting…'},
+                   offline:{pill:'rgba(239,68,68,.12)',border:'rgba(239,68,68,.3)',dot:'#F87171',text:'#F87171',label:'● Offline'} };
+  const c = colors[type] || colors.syncing;
+  if (pill) { pill.style.background=c.pill; pill.style.borderColor=c.border; pill.style.color=c.text; }
+  if (pillDot) { pillDot.style.background=c.dot; pillDot.style.animation=(type==='online'?'pulse 2s infinite':'blink .8s infinite'); }
+  if (pillLbl) pillLbl.textContent = text;
+  if (sideSt)  { sideSt.textContent=(type==='online'?'✅ Connected':type==='syncing'?'● Connecting…':'🔴 Offline'); sideSt.style.color=c.text; }
+  if (hlthSt)  { hlthSt.textContent=text; hlthSt.style.color=c.text; }
+  if (hlthDot) { hlthDot.style.background=c.dot; hlthDot.style.animation=(type==='online'?'none':'blink 1s infinite'); hlthDot.style.boxShadow=(type==='online'?'0 0 5px rgba(74,222,128,.5)':'none'); }
 }
 
 // ═══════════════════════════════════════════════════
