@@ -3350,7 +3350,7 @@ function selectLatestArchive() {
 }
 function openRequestCenter() {
   hideRequestPopup();
-  if (document.getElementById('app').classList.contains('show')) switchPage('requests');
+  const _app=document.getElementById('app'); if (_app && _app.classList.contains('show')) switchPage('requests');
 }
 function hideRequestPopup() {
   const el = document.getElementById('requestPopup');
@@ -6600,7 +6600,7 @@ window.addEventListener('resize', () => {
 
 function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; }
 document.addEventListener("click",e=>{ 
-  if(!document.getElementById("shiftPop").contains(e.target)) closePop();
+  const _sp=document.getElementById("shiftPop"); if(_sp && !_sp.contains(e.target)) closePop();
   // Close swap partner dropdown when clicking outside
   const swapDropdown = document.getElementById("swapPartnerDropdown");
   const swapSearch = document.getElementById("swapPartnerSearch");
@@ -7953,8 +7953,7 @@ function refreshEmpDash(id) {
   const emp=staffData[id]; if(!emp)return;
   showEmpDash(emp);
   // Flash effect on 7-day grid
-  document.getElementById("eWkGrid").classList.add("updated");
-  setTimeout(()=>document.getElementById("eWkGrid").classList.remove("updated"),800);
+  const _wg=document.getElementById("eWkGrid"); if(_wg){_wg.classList.add("updated");setTimeout(()=>_wg.classList.remove("updated"),800);}
 }
 
 // ═══════════════════════════════════════════════════
