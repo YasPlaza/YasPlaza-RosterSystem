@@ -1483,6 +1483,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--purple),#7C3AED);color:#fff" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
         <button class="btn btn-sm" style="background:linear-gradient(135deg,#0F766E,#0D5F58);color:#fff" onclick="openRotaUpdate()">✏️ Update Rota</button>
         <button class="btn btn-sm" style="background:rgba(201,150,58,.2);color:var(--gold);border:1px solid var(--gold)" onclick="printRoster()">🖨 Print / PDF</button>
+        <button class="btn btn-sm" style="background:rgba(27,107,58,.2);color:#1B6B3A;border:1px solid rgba(27,107,58,.5)" onclick="openExportModal()">📊 Excel Report</button>
       </div>
     </div>
     <div style="font-size:10px;color:var(--slate2);margin-bottom:8px;padding:0 2px" id="rosterFilterInfo"></div>
@@ -4310,7 +4311,7 @@ function updateStatus(type, text) {
 // FIREBASE SETUP UI
 // ═══════════════════════════════════════════════════
 function saveFirebaseConfig() {
-  if (!isDeveloper()) { alert("🔒 Only Developers can reconfigure Firebase."); return; }
+  // Allow first-time setup even before login; only restrict reconfiguration from within admin panel
   var apiKey      = document.getElementById("fb-apiKey").value.trim();
   var databaseURL = document.getElementById("fb-databaseURL").value.trim();
   var authDomain  = document.getElementById("fb-authDomain").value.trim();
@@ -4328,16 +4329,24 @@ function saveFirebaseConfig() {
     messagingSenderId: "155609655910",
     appId: "1:155609655910:web:b0e6c4791f7d8729c69ba7" 
   };
-  document.getElementById("fbErr").textContent = "Connecting…";
+  document.getElementById("fbErr").textContent = "🔄 Connecting to Firebase…";
   initFirebase(config);
-  setTimeout(function(){
-    if (db) {
-      closeFbSetup();
-      if (document.getElementById("app").classList.contains("show")) renderAll();
-    } else {
+  // Poll every 500ms for up to 10 seconds
+  var _fbTries = 0;
+  var _fbPoll = setInterval(function(){
+    _fbTries++;
+    if (typeof db !== 'undefined' && db) {
+      clearInterval(_fbPoll);
+      document.getElementById("fbErr").textContent = "✅ Connected!";
+      setTimeout(function(){
+        closeFbSetup();
+        if (document.getElementById("app") && document.getElementById("app").classList.contains("show")) renderAll();
+      }, 600);
+    } else if (_fbTries >= 20) {
+      clearInterval(_fbPoll);
       document.getElementById("fbErr").textContent = "❌ Connection failed. Check your config values and internet connection.";
     }
-  }, 4000);
+  }, 500);
 }
 function closeFbSetup() { document.getElementById("fbSetupModal").classList.remove("show"); }
 
@@ -7489,8 +7498,18 @@ function loginEmp() {
     db.ref("staff/"+id).once("value").then(snap=>{
       const emp=snap.val();
       if(!emp){
-        document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
-        updateStatus("online","Live Sync ✓");
+        // Firebase returned nothing — try local staffData before giving up
+        const localEmp = staffData[id];
+        if (localEmp) {
+          staffData[id] = localEmp;
+          currentEmpId = id;
+          startEmpListener(id);
+          showEmpDash(localEmp);
+          updateStatus("online","Live Sync ✓");
+        } else {
+          document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
+          updateStatus("online","Live Sync ✓");
+        }
         return;
       }
       staffData[id]=emp;
@@ -8813,12 +8832,13 @@ function landLogin() {
 
   // If Firebase available, do a live lookup so it works even before staffData is fully loaded
   if (typeof db !== 'undefined' && db) {
-    if (errEl) errEl.textContent = '';
+    if (errEl) errEl.textContent = '🔄 Looking up…';
     db.ref('staff/' + id).once('value').then(snap => {
-      const emp = snap.val();
+      const emp = snap.val() || staffData[id]; // check Firebase first, fall back to local
       if (!emp) { if(errEl) errEl.textContent = '❌ Employee ID not found. Please check and try again.'; return; }
       staffData[id] = emp;
       _currentLandEmpId = id;
+      if (errEl) errEl.textContent = '';
       if (isLiveAuthorized(id)) { openAuthSelector(id, emp); } else { openEmpPortalWithId(id); }
     }).catch(() => {
       const emp = staffData[id];
@@ -8959,12 +8979,20 @@ function exitAuthSelector() {
 function openEmpPortalWithId(id) {
   // Hide landing, show empPortal, populate ID and login
   const landing = document.getElementById('landing');
-  if (landing) landing.style.display = 'none';
+  if (landing) { landing.style.display = 'none'; }
   const portal = document.getElementById('empPortal');
-  if (portal) portal.style.display = 'flex';
+  if (portal) { portal.style.display = 'flex'; portal.classList.add('show'); }
+  // Make sure login form is visible
+  const loginForm = document.getElementById('empLoginForm');
+  if (loginForm) loginForm.style.display = 'block';
+  const dashEl = document.getElementById('empDash');
+  if (dashEl) { dashEl.classList.remove('show'); }
   const inp = document.getElementById('empIdInp');
   if (inp) { inp.value = id; }
-  setTimeout(() => { if(typeof loginEmp === 'function') loginEmp(); }, 50);
+  // Clear any previous errors
+  const errEl = document.getElementById('empErr');
+  if (errEl) errEl.textContent = '';
+  setTimeout(() => { if(typeof loginEmp === 'function') loginEmp(); }, 100);
 }
 
 function openLiveDashForEmployee(id, emp) {
