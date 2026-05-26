@@ -4683,7 +4683,7 @@ function saveFirebaseConfig() {
     authDomain: authDomain, 
     databaseURL: databaseURL, 
     projectId: projectId,
-    storageBucket: projectId + ".appspot.com",
+    storageBucket: projectId + ".firebasestorage.app",
     messagingSenderId: "155609655910",
     appId: "1:155609655910:web:b0e6c4791f7d8729c69ba7" 
   };
@@ -4711,7 +4711,7 @@ function saveFirebaseConfig() {
       } else {
         document.getElementById("fbErr").textContent = "❌ " + errMsg + " — check config values and internet connection.";
       }
-    } else if (_fbTries >= 40) {
+    } else if (_fbTries >= 120) {
       clearInterval(_fbPoll);
       document.getElementById("fbErr").textContent = "❌ Timed out. Check your Firebase config, internet connection, and that Anonymous Sign-in is enabled in Firebase Authentication.";
     }
@@ -9026,7 +9026,7 @@ window.addEventListener("load", function() {
         updateStatus("offline", "Offline Mode");
         console.warn("[YPH] Firebase socket did not open within 25s — switching to offline mode.");
       }
-    }, 25000);
+    }, 60000);
   } catch(e) {
     console.warn("Boot error:", e);
     updateStatus("offline","Offline Mode");
