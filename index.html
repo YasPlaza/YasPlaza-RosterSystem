@@ -2250,10 +2250,34 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
     <!-- FIREBASE -->
     <div class="cp-panel" id="cpt-firebase" style="display:none">
-      <div class="cp-ph"><div class="cp-pt">🔥 Firebase Config <span class="cp-badge">Connection</span></div></div>
+      <div class="cp-ph">
+        <div class="cp-pt">🔥 Firebase Config <span class="cp-badge">Connection</span></div>
+        <div style="display:flex;gap:8px">
+          <button class="bx bxg" onclick="_yphFirebaseDiag();if(typeof cpToast==='function')cpToast('🔍 Testing…')">🔍 Test</button>
+          <button class="bgold" onclick="if(typeof tryAutoConnect==='function')tryAutoConnect()">🔄 Reconnect</button>
+        </div>
+      </div>
       <div class="cp-body">
-        <div id="fbStatusCard" style="font-size:12px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:14px"></div>
-        <button class="bgold" onclick="document.getElementById('fbSetupModal').classList.add('show')">⚙️ Reconfigure Firebase</button>
+        <!-- Live status card -->
+        <div id="fbStatusCard" style="font-size:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.7);line-height:1.8;margin-bottom:14px">Checking connection…</div>
+
+        <!-- Config info -->
+        <div style="margin-bottom:14px;padding:12px;background:rgba(201,150,58,.07);border:1px solid rgba(201,150,58,.2);border-radius:10px;font-size:11px;color:rgba(255,255,255,.75);line-height:1.8">
+          <div style="font-weight:700;color:#E8B04A;margin-bottom:6px">📌 Current Firebase Config</div>
+          <div>Project: <span style="font-family:'DM Mono',monospace;color:#C9963A">yas-roster</span></div>
+          <div>Database: <span style="font-family:'DM Mono',monospace;color:#C9963A;font-size:10px">yas-roster-default-rtdb.firebaseio.com</span></div>
+        </div>
+
+        <!-- Fix checklist -->
+        <div style="margin-bottom:14px;padding:12px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);border-radius:10px;font-size:11px;color:rgba(255,255,255,.8);line-height:2">
+          <div style="font-weight:700;color:#F87171;margin-bottom:6px">🛠 If not connecting — check these in Firebase Console:</div>
+          <div>1️⃣ <strong>Authentication</strong> → Sign-in methods → <strong>Anonymous: Enable</strong></div>
+          <div>2️⃣ <strong>Realtime Database</strong> → Rules → paste: <code style="background:rgba(0,0,0,.4);padding:1px 6px;border-radius:4px;font-size:10px">".read":"auth!=null",".write":"auth!=null"</code></div>
+          <div>3️⃣ Database must be in <strong>started</strong> state (not locked)</div>
+        </div>
+
+        <button class="bgold" onclick="document.getElementById('fbSetupModal').classList.add('show')" style="width:100%;margin-bottom:8px">⚙️ Reconfigure Firebase</button>
+        <button class="bx bxn" onclick="_yphFirebaseDiag()" style="width:100%;font-size:11px;padding:8px">🔍 Run Connection Test</button>
       </div>
     </div>
 
@@ -2288,6 +2312,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   }
 }</pre>
           <button onclick="cpCopyFirebaseRules()" class="bx bxg" style="margin-top:8px;font-size:10px">📋 Copy Rules</button>
+          <button onclick="_yphFirebaseDiag();if(typeof cpToast==='function')cpToast('🔍 Testing Firebase connection…')" class="bx bxn" style="margin-top:8px;margin-left:6px;font-size:10px">🔍 Test Connection</button>
         </div>
         <div style="background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
           <div style="font-size:11px;font-weight:700;color:#E8B04A;margin-bottom:10px">🔓 Locked Department Accounts</div>
@@ -3141,14 +3166,24 @@ function initFirebase(config) {
       firebase.initializeApp(config);
       db = firebase.database();
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
+      updateStatus("syncing","Authenticating…");
+      // Monitor raw TCP connectivity
+      db.ref(".info/connected").on("value", function(snap) {
+        if (snap.val() === true) updateStatus("syncing","Connected — loading data…");
+      });
       firebase.auth().signInAnonymously()
-        .then(function(){ setupRealtimeListeners(); })
-        .catch(function(err){
-          console.warn("Anon auth failed:", err.code);
+        .then(function(uc){
+          console.log("[YPH] Firebase anon auth OK:", uc.user.uid);
           setupRealtimeListeners();
+          setTimeout(_yphFirebaseDiag, 5000); // Verify read access after 5s
+        })
+        .catch(function(err){
+          console.warn("[YPH] Anon auth failed ("+err.code+") — trying without auth");
+          setupRealtimeListeners();
+          setTimeout(_yphFirebaseDiag, 5000);
         });
     } catch(e) {
-      console.warn("Firebase connect failed:", e.message);
+      console.warn("[YPH] Firebase init error:", e.message);
       db = null;
       updateStatus("offline","Offline Mode");
     }
@@ -4203,6 +4238,27 @@ function setupRealtimeListeners() {
   });
 }
 
+
+// ═══ FIREBASE DIAGNOSTICS ═══
+function _yphFirebaseDiag() {
+  if (!db) { updateStatus("offline","No DB object"); return; }
+  db.ref("staff").limitToFirst(1).once("value")
+    .then(function(){ updateStatus("online","Live Sync ✓"); })
+    .catch(function(err){
+      console.error("[YPH] Firebase read test failed:", err.code, err.message);
+      if (err.code === "PERMISSION_DENIED") {
+        updateStatus("offline","DB Rules Error — see below");
+        if(typeof cpToast==="function") cpToast("⚠️ Firebase rules block reads. Go to Firebase Console → Realtime Database → Rules and set: {\"rules\":{\".\"read\":\"true\",\".\"write\":\"true\"}}");
+        var warn = document.getElementById("cpFbLabel");
+        if(warn) { warn.textContent="❌ PERMISSION_DENIED"; warn.style.color="#F87171"; }
+      } else if (err.code === "NETWORK_ERROR") {
+        updateStatus("offline","Network Error");
+      } else {
+        updateStatus("offline","Error: " + err.code);
+      }
+    });
+}
+
 // ═══════════════════════════════════════════════════
 // DEVELOPER BROADCAST MESSAGE
 // ═══════════════════════════════════════════════════
@@ -4379,9 +4435,17 @@ function updateStatus(type, text) {
   dot.className = "status-dot " + type;
   txt.textContent = text;
   const card = document.getElementById("fbStatusCard");
-  if (card) card.innerHTML = `Status: <strong style="color:${type==="online"?"var(--green)":type==="syncing"?"var(--gold)":"var(--red)"}">${text}</strong><br>
-    ${db?"Database connected — all changes sync to all users in real time."
-       :"No Firebase connection — using local storage (changes only visible on this device)."}`;
+  if (card) {
+    const col = type==="online"?"#4ADE80":type==="syncing"?"#FCD34D":"#F87171";
+    const icon = type==="online"?"✅":type==="syncing"?"🔄":"🔴";
+    card.style.borderColor = type==="online"?"rgba(74,222,128,.3)":type==="syncing"?"rgba(245,158,11,.3)":"rgba(239,68,68,.3)";
+    card.style.background = type==="online"?"rgba(74,222,128,.06)":type==="syncing"?"rgba(245,158,11,.06)":"rgba(239,68,68,.06)";
+    card.innerHTML = `<div style="font-size:13px;font-weight:700;color:${col};margin-bottom:6px">${icon} ${text}</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.55)">
+        ${db?"✅ Database object ready — changes sync in real time across all devices.":"⚠️ No live database — using local storage only (changes won\'t sync to other devices)."}
+      </div>
+      ${type!=="online"?`<div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,.4)">Last attempt: ${new Date().toLocaleTimeString()}</div>`:""}`;
+  }
   // Update Dev Panel Firebase pill
   const pill = document.getElementById('cpFbStatusPill');
   const pillDot = document.getElementById('cpFbDot');
