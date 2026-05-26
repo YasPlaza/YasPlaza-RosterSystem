@@ -2889,12 +2889,12 @@ try { const _v = localStorage.getItem('rosterViewMode'); if(_v==='weekly'||_v===
 // ═══════════════════════════════════════════════════════════════════
 // FEATURE FLAGS — Developer Control Panel
 // ═══════════════════════════════════════════════════════════════════
-let FEATURE_FLAGS = JSON.parse(localStorage.getItem('featureFlags_v1') || JSON.stringify({
+let FEATURE_FLAGS; try { FEATURE_FLAGS = JSON.parse(localStorage.getItem('featureFlags_v1') || JSON.stringify({
   employeePortal:true, swapShift:true, handover:true, leaveRequests:true,
   autoRoster:true, liveDashboard:true, overtimeTracker:true, analytics:true,
   noticeBoard:true, publicHolidays:true, monthlyPDF:true, pushNotifications:true,
   wellness:false, gamification:false, sickLeaveAutoReplace:false,
-}));
+})); } catch(_e) { FEATURE_FLAGS = {}; }
 function saveFeatureFlags(){
   localStorage.setItem('featureFlags_v1',JSON.stringify(FEATURE_FLAGS));
   if(typeof db!=='undefined'&&db) db.ref('settings/featureFlags').set(FEATURE_FLAGS).catch(()=>{});
@@ -2902,7 +2902,7 @@ function saveFeatureFlags(){
 function isFeatureOn(k){ return FEATURE_FLAGS[k]!==false; }
 
 // HOTELS managed by developer
-let HOTELS_DATA = JSON.parse(localStorage.getItem('hotelsData_v1')||'null');
+let HOTELS_DATA; try { HOTELS_DATA = JSON.parse(localStorage.getItem('hotelsData_v1')||'null'); } catch(_e) { HOTELS_DATA = null; }
 // Initialize from static HOTELS if not yet saved (moved here from above to avoid temporal dead zone)
 if (!HOTELS_DATA) { HOTELS_DATA = HOTELS.map(h=>({...h, active:true})); }
 function saveHotels(){
@@ -2912,7 +2912,7 @@ function saveHotels(){
 }
 
 // Access log
-let ACCESS_LOG = JSON.parse(localStorage.getItem('accessLog_v1')||'[]');
+let ACCESS_LOG; try { ACCESS_LOG = JSON.parse(localStorage.getItem('accessLog_v1')||'[]'); } catch(_e) { ACCESS_LOG = []; }
 function logAccess(type,msg){
   ACCESS_LOG.unshift({type,msg,time:new Date().toLocaleTimeString('en-GB'),date:new Date().toLocaleDateString('en-GB')});
   if(ACCESS_LOG.length>200) ACCESS_LOG=ACCESS_LOG.slice(0,200);
@@ -2920,15 +2920,15 @@ function logAccess(type,msg){
 }
 
 // LIVE access users
-let LIVE_USERS = JSON.parse(localStorage.getItem('liveUsers_v1')||'[]');
+let LIVE_USERS; try { LIVE_USERS = JSON.parse(localStorage.getItem('liveUsers_v1')||'[]'); } catch(_e) { LIVE_USERS = []; }
 function saveLiveUsers(){
   localStorage.setItem('liveUsers_v1',JSON.stringify(LIVE_USERS));
   if(typeof db!=='undefined'&&db) db.ref('settings/liveUsers').set(LIVE_USERS).catch(()=>{});
 }
 
 // Monitored positions for LIVE
-let LIVE_MON_POSITIONS = JSON.parse(localStorage.getItem('liveMonPos_v1')||
-  JSON.stringify(['Duty Manager','FO Manager','Supervisor','Bell Captain','Concierge Supervisor']));
+let LIVE_MON_POSITIONS; try { LIVE_MON_POSITIONS = JSON.parse(localStorage.getItem('liveMonPos_v1')||
+  JSON.stringify(['Duty Manager','FO Manager','Supervisor','Bell Captain','Concierge Supervisor'])); } catch(_e) { LIVE_MON_POSITIONS = []; }
 function saveLiveMonPos(){
   localStorage.setItem('liveMonPos_v1',JSON.stringify(LIVE_MON_POSITIONS));
   if(typeof db!=='undefined'&&db) db.ref('settings/liveMonitoredPositions').set(LIVE_MON_POSITIONS).catch(()=>{});
@@ -3036,7 +3036,7 @@ function seedStaffIfEmpty() {
 }
 let activeSchListener = null;
 let popEmpId = null, popDay = null;
-let sectionOverrides = JSON.parse(localStorage.getItem('sectionOverrides_v1')||'{}'); // {empId:{monthKey:{day:sectionName}}}
+let sectionOverrides; try { sectionOverrides = JSON.parse(localStorage.getItem('sectionOverrides_v1')||'{}'); } catch(_e) { sectionOverrides = {}; } // {empId:{monthKey:{day:sectionName}}}
 function saveSectionOverrides(){
   try{ localStorage.setItem('sectionOverrides_v1', JSON.stringify(sectionOverrides)); }catch(e){}
   if(typeof db !== 'undefined' && db){ try{ db.ref("sectionOverrides").set(sectionOverrides); }catch(e){} }
@@ -3113,7 +3113,9 @@ function tryAutoConnect() {
     }
     // Use provided config as fallback
     var defaultConfig = {
-      apiKey: "AIzaSyCuthoCoNwbdsycK_Tk7Nlcx1YqA0ih8JM",
+      // NOTE: Firebase API key is intentionally client-side (Firebase design).
+    // Restrict this key in Google Cloud Console → API restrictions → HTTP referrers.
+    apiKey: "AIzaSyCuthoCoNwbdsycK_Tk7Nlcx1YqA0ih8JM",
       authDomain: "yas-roster.firebaseapp.com",
       databaseURL: "https://yas-roster-default-rtdb.firebaseio.com",
       projectId: "yas-roster",
@@ -5095,6 +5097,7 @@ function toggleNewPos() {
   const sel = document.getElementById("f-pos");
   const inp = document.getElementById("f-pos-new");
   const btn = document.getElementById("btnTogglePos");
+  if (!sel || !inp || !btn) return;
   if (newPosMode) {
     sel.style.display = "none";
     inp.style.display = "block";
@@ -5337,6 +5340,7 @@ function openHotelPicker(ev, empId, day) {
   popHotelEmpId=empId; popHotelDay=day;
   const pop=document.getElementById("hotelPop");
   const list=document.getElementById("hotelPopList");
+  if(!list) return;
   list.innerHTML=HOTELS.filter(h=>h.id!=="all").map(h=>`
     <div class="spi" style="background:${h.light};border-color:${h.color}" onclick="selectHotel('${h.id}')">
       <span class="spi-c" style="color:${h.color}">${h.name}</span>
@@ -6605,7 +6609,7 @@ function resetStaffForm() {
 function openAddStaff() {
   editingId = null;
   newPosMode = false;
-  document.getElementById("staffMTitle").textContent = "➕ Add Employee";
+  const _smt = document.getElementById("staffMTitle"); if(_smt) _smt.textContent = "➕ Add Employee";
   resetStaffForm();
   document.getElementById("staffModal").style.display = "flex";
   setTimeout(() => { _empResetTabs(); document.getElementById("f-name").focus(); }, 100);
@@ -8158,7 +8162,7 @@ function cpDelShift(k){
 
 function cpRenderAccess(){
   const list=document.getElementById('cpDeptPassList'); if(!list)return;
-  const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
+  let saved; try { saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}'); } catch(_e){ saved={}; }
   list.innerHTML=getAllDepts().map(d=>`
     <div class="cprow">
       <div class="cpav" style="font-size:10px">${d.substring(0,2).toUpperCase()}</div>
@@ -8264,7 +8268,7 @@ function cpSetDeptPass(){
     const i=document.getElementById('setDeptPassInp'); if(i) i.value=pass;
     setDeptPassword();
   } else {
-    const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
+    let saved; try { saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}'); } catch(_e){ saved={}; }
     saved[dept]=pass; localStorage.setItem('deptPasswords',JSON.stringify(saved));
   }
   logAccess('s','Password set for: '+dept); cpToast('✅ Password set for '+dept);
@@ -8514,7 +8518,7 @@ const CP_NOTIFS=[
 ];
 function cpRenderNotifications(){
   const body=document.getElementById('cpNotifBody'); if(!body)return;
-  const saved=JSON.parse(localStorage.getItem('notifFlags_v1')||'{}');
+  const saved=(function(){ try { return JSON.parse(localStorage.getItem('notifFlags_v1')||'{}'); } catch(_e){ return {}; } })();
   body.innerHTML=`<div class="cp-stitle">Notification Types</div>`+
   CP_NOTIFS.map(n=>{
     const on=saved[n.key]!==false;
@@ -8529,7 +8533,7 @@ function cpRenderNotifications(){
   }).join('')+`<button class="bgold" style="margin-top:12px" onclick="cpSaveNotifs()">💾 Save</button>`;
 }
 function cpTogNotif(key,cb){
-  const saved=JSON.parse(localStorage.getItem('notifFlags_v1')||'{}');
+  const saved=(function(){ try { return JSON.parse(localStorage.getItem('notifFlags_v1')||'{}'); } catch(_e){ return {}; } })();
   saved[key]=cb.checked; localStorage.setItem('notifFlags_v1',JSON.stringify(saved));
   const lbl=document.getElementById('nlbl-'+key);
   if(lbl){lbl.textContent=cb.checked?'ON':'OFF';lbl.className='cp-tl '+(cb.checked?'on':'off');}
@@ -8636,7 +8640,7 @@ window.addEventListener("load", function() {
 // ════════════════════════════════════════════════
 // ADDED: Special Event Block Days
 // ════════════════════════════════════════════════
-let blockDays = JSON.parse(localStorage.getItem('blockDays_v1') || '{}');
+let blockDays; try { blockDays = JSON.parse(localStorage.getItem('blockDays_v1') || '{}'); } catch(_e) { blockDays = []; }
 function saveBlockDays(){
   try{ localStorage.setItem('blockDays_v1', JSON.stringify(blockDays)); }catch(e){}
   if(typeof db !== 'undefined' && db){ try{ db.ref("blockDays").set(blockDays); }catch(e){} }
@@ -10597,6 +10601,7 @@ function devExportScheduleJSON() {
 
     // Per-hotel sections
     const sectionsEl = document.getElementById('fcHotelSections');
+    if (!sectionsEl) return;
     sectionsEl.innerHTML = allRowsByHotel.map(({h, rs}) => hotelSection(h, rs)).join('') ||
       '<div style="background:#fff;border-radius:var(--r);padding:30px;text-align:center;color:var(--slate);box-shadow:var(--sh)">No hotels configured. Add hotels in Dev Panel.</div>';
 
@@ -10636,6 +10641,7 @@ function devExportScheduleJSON() {
     if (heavyDep) recs.push({dept:'Front Office',action:`Add early-morning shift coverage`,reason:`${heavyDep} heavy-departure day(s)`});
     if (highDays>=5) recs.push({dept:'All Departments',action:`Cancel/reschedule pending leaves; activate on-call list`,reason:`Sustained high demand`});
     const recBox = document.getElementById('fcRecsBox');
+    if (!recBox) return;
     recBox.innerHTML = recs.length ? `<table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead><tr style="background:#F7FAFF"><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Department</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Recommended Action</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Reason</th></tr></thead>
       <tbody>${recs.map(r=>`<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">${r.dept}</td><td style="padding:7px;color:#1B6B3A;font-weight:600">${r.action}</td><td style="padding:7px;color:var(--slate)">${r.reason}</td></tr>`).join('')}</tbody></table>`
@@ -13063,7 +13069,7 @@ function liveISearchChanged(q) {
   if (!matches.length) { list.innerHTML='<div style="text-align:center;padding:20px;font-size:11px;color:rgba(255,255,255,.35)">No matching employee</div>'; return; }
 
   list.innerHTML = matches.map(s => {
-    const initials = s.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const initials = _esc(s.name).trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase();
     const isLive = typeof isLiveAuthorized === 'function' && isLiveAuthorized(s.id);
     return `<div class="livei-emp" onclick="liveISelect('${s.id}')">
       <div class="livei-av">${initials}</div>
@@ -14125,7 +14131,24 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
 <script>
 // ════════════════════════════════════════════════════════════
 // YPH SECURITY MODULE — injected as standalone script block
-// ════════════════════════════════════════════════════════════
+// ════
+// ── Debug error collector (production-safe) ──
+window._YPH_ERRORS = window._YPH_ERRORS || [];
+// ── XSS-safe HTML escape helper ──
+window._esc = function(str) {
+  if (str == null) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+};
+
+window._yphErr = function(ctx, e) {
+  window._YPH_ERRORS.push({ ctx: ctx, msg: e && e.message, t: new Date().toISOString() });
+  if (window._YPH_ERRORS.length > 50) window._YPH_ERRORS.shift();
+};
 
 // 1. Anti-clickjacking
 if (window.top !== window.self) {
