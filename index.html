@@ -3167,20 +3167,33 @@ function initFirebase(config) {
       db = firebase.database();
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
       updateStatus("syncing","Authenticating…");
-      // Monitor raw TCP connectivity
+
+      // FIX: .info/connected confirms socket is up, then immediately test read access
       db.ref(".info/connected").on("value", function(snap) {
-        if (snap.val() === true) updateStatus("syncing","Connected — loading data…");
+        if (snap.val() === true) {
+          updateStatus("syncing","Connected — verifying access…");
+          db.ref("staff").limitToFirst(1).once("value")
+            .then(function(){ updateStatus("online","Live Sync ✓"); })
+            .catch(function(err){
+              if (err.code === "PERMISSION_DENIED") {
+                updateStatus("offline","DB Rules Error — fix in Firebase Console");
+                if(typeof cpToast==="function") cpToast("⚠️ Firebase rules block access. In Firebase Console → Realtime Database → Rules, set .read and .write to \"auth != null\" and enable Anonymous Sign-in, or temporarily set to true for testing.");
+              } else {
+                updateStatus("offline","Access Error: " + err.code);
+              }
+            });
+        }
       });
+
       firebase.auth().signInAnonymously()
         .then(function(uc){
           console.log("[YPH] Firebase anon auth OK:", uc.user.uid);
           setupRealtimeListeners();
-          setTimeout(_yphFirebaseDiag, 5000); // Verify read access after 5s
         })
         .catch(function(err){
           console.warn("[YPH] Anon auth failed ("+err.code+") — trying without auth");
+          // Anonymous auth may be disabled — attempt direct unauthenticated access
           setupRealtimeListeners();
-          setTimeout(_yphFirebaseDiag, 5000);
         });
     } catch(e) {
       console.warn("[YPH] Firebase init error:", e.message);
@@ -4489,20 +4502,31 @@ function saveFirebaseConfig() {
   };
   document.getElementById("fbErr").textContent = "🔄 Connecting to Firebase…";
   initFirebase(config);
-  // Poll every 500ms for up to 10 seconds
+  // FIX: poll actual status text instead of db object (db is set immediately but conn may fail)
   var _fbTries = 0;
   var _fbPoll = setInterval(function(){
     _fbTries++;
-    if (typeof db !== 'undefined' && db) {
+    var statusTxt = document.getElementById("statusText");
+    var isOnline = statusTxt && statusTxt.textContent === "Live Sync ✓";
+    var isError  = statusTxt && (statusTxt.textContent.indexOf("Error") >= 0 || statusTxt.textContent === "Offline Mode");
+    if (isOnline) {
       clearInterval(_fbPoll);
       document.getElementById("fbErr").textContent = "✅ Connected!";
       setTimeout(function(){
         closeFbSetup();
         if (document.getElementById("app") && document.getElementById("app").classList.contains("show")) renderAll();
       }, 600);
-    } else if (_fbTries >= 20) {
+    } else if (isError) {
       clearInterval(_fbPoll);
-      document.getElementById("fbErr").textContent = "❌ Connection failed. Check your config values and internet connection.";
+      var errMsg = statusTxt ? statusTxt.textContent : "Connection failed";
+      if (errMsg.indexOf("Rules") >= 0 || errMsg.indexOf("PERMISSION") >= 0) {
+        document.getElementById("fbErr").textContent = "❌ DB Rules Error — go to Firebase Console → Realtime Database → Rules and allow read/write, then enable Anonymous Sign-in in Authentication.";
+      } else {
+        document.getElementById("fbErr").textContent = "❌ " + errMsg + " — check config values and internet connection.";
+      }
+    } else if (_fbTries >= 40) {
+      clearInterval(_fbPoll);
+      document.getElementById("fbErr").textContent = "❌ Timed out. Check your Firebase config, internet connection, and that Anonymous Sign-in is enabled in Firebase Authentication.";
     }
   }, 500);
 }
@@ -8804,14 +8828,18 @@ window.addEventListener("load", function() {
     try { setRosterView(rosterViewMode); } catch(e) {}
     // Show cached broadcast message if any
     try { const b = localStorage.getItem('yph_broadcast'); if (b) showBroadcastBanner(b); } catch(e) {}
-    // Firebase connection timeout — if still "Connecting…" after 10s, show offline
+    // Firebase connection timeout — extended to 25s, only go offline if dot is still "syncing"
+    // and we never reached "Connected — verifying…" (i.e. socket never opened)
     setTimeout(function() {
+      const txt = document.getElementById("statusText");
       const dot = document.getElementById("statusDot");
-      if (dot && dot.classList.contains("syncing")) {
+      const stillConnecting = dot && dot.classList.contains("syncing") &&
+        txt && (txt.textContent === "Authenticating…" || txt.textContent === "Connecting…");
+      if (stillConnecting) {
         updateStatus("offline", "Offline Mode");
-        console.warn("[YPH] Firebase did not connect within 10s — switching to offline mode.");
+        console.warn("[YPH] Firebase socket did not open within 25s — switching to offline mode.");
       }
-    }, 10000);
+    }, 25000);
   } catch(e) {
     console.warn("Boot error:", e);
     updateStatus("offline","Offline Mode");
