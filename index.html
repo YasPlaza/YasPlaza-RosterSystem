@@ -3349,9 +3349,18 @@ function loadFirebaseSDK(callback) {
 function initFirebase(config) {
   loadFirebaseSDK(function(){
     try {
-      try { if (firebase.apps && firebase.apps.length) firebase.apps.forEach(function(a){ try{a.delete();}catch(e){} }); } catch(e){}
-      firebase.initializeApp(config);
-      db = firebase.database();
+      try {
+        if (firebase.apps && firebase.apps.length) {
+          // Reuse existing app — do NOT delete it, deleting causes "ref on deleted database" fatal error
+          db = firebase.apps[0].database();
+        } else {
+          firebase.initializeApp(config);
+          db = firebase.database();
+        }
+      } catch(e) {
+        firebase.initializeApp(config);
+        db = firebase.database();
+      }
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
       updateStatus("syncing","Authenticating…");
 
