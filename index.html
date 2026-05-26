@@ -3351,12 +3351,23 @@ function initFirebase(config) {
     try {
       try {
         if (firebase.apps && firebase.apps.length) {
-          // Reuse existing app — do NOT delete it, deleting causes "ref on deleted database" fatal error
+          // App already exists — reuse it, never delete
           db = firebase.apps[0].database();
-        } else {
-          firebase.initializeApp(config);
-          db = firebase.database();
+          // If already connected just re-run listeners
+          firebase.auth().signInAnonymously()
+            .then(function(uc){
+              console.log("[YPH] Firebase anon auth OK:", uc.user.uid);
+              setupRealtimeListeners();
+            })
+            .catch(function(err){
+              console.warn("[YPH] Anon auth failed ("+err.code+") — trying without auth");
+              setupRealtimeListeners();
+            });
+          localStorage.setItem("yph_fb_config", JSON.stringify(config));
+          return;
         }
+        firebase.initializeApp(config);
+        db = firebase.database();
       } catch(e) {
         firebase.initializeApp(config);
         db = firebase.database();
@@ -4291,8 +4302,11 @@ function reloadLocal() {
 
 
 // Update Firebase listeners
+var _listenersSetUp = false;
 function setupRealtimeListeners() {
   if (!db) return;
+  if (_listenersSetUp) { updateStatus("online","Live Sync ✓"); return; }
+  _listenersSetUp = true;
   updateStatus("syncing", "Connecting…");
 
   // Hotel assignments listener
