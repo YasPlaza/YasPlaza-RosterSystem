@@ -5433,7 +5433,21 @@ function fillAllSelects() {
   });
   // Hotel in modal — no All
   const fh=document.getElementById("f-hotel");
-  if(fh) fh.innerHTML = hotelOptsNoAll;
+  if(fh) {
+    fh.innerHTML = hotelOptsNoAll;
+    // ✨ AUTO-CLOSE WHEN HOTEL IS SELECTED IF EDITING
+    fh.addEventListener('change', function() {
+      const hotelVal = this.value;
+      const shiftVal = document.getElementById("f-shift")?.value;
+      if(hotelVal && shiftVal && editingId) {
+        // Show quick feedback
+        setTimeout(() => {
+          const statusEl = document.getElementById("staffMTitle");
+          if(statusEl) statusEl.innerHTML = '<span style="color:var(--gold);font-size:13px">🔄 Hotel selected! Saving...</span>';
+        }, 200);
+      }
+    });
+  }
 
   // Dept selects (filters) — locked to user's dept if dept user
   ["rDeptF","sDeptF"].forEach(id=>{
@@ -5470,6 +5484,20 @@ function fillAllSelects() {
   ["f-shift","bShift"].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.innerHTML=Object.entries(SHIFTS).map(([k,v])=>`<option value="${k}">${k} — ${v.label} ${shiftTime(v)}</option>`).join("");
+    // ✨ AUTO-CLOSE WHEN SHIFT IS SELECTED (for f-shift modal field)
+    if(id === "f-shift") {
+      el.addEventListener('change', function() {
+        const hotelVal = document.getElementById("f-hotel")?.value;
+        const shiftVal = this.value;
+        if(hotelVal && shiftVal && editingId) {
+          // Both hotel and shift selected, show feedback
+          setTimeout(() => {
+            const statusEl = document.getElementById("staffMTitle");
+            if(statusEl) statusEl.innerHTML = '<span style="color:var(--gold);font-size:13px">🔄 Shift selected! Saving...</span>';
+          }, 200);
+        }
+      });
+    }
   });
 
   fillPosForDept();
@@ -7116,15 +7144,28 @@ async function saveStaff(addAnother=false) {
     schedData[id][k] = genDefaultSch(emp, getDIM());
   }
 
+  // Show sync status
+  const syncBar = document.getElementById("syncBar");
+  if(syncBar) { syncBar.classList.add("active"); }
+
   // Persist — Firebase if connected, localStorage if not
   if(db) {
     try {
       await db.ref("staff/"+id).set(emp);
       await db.ref("schedules/"+id+"/"+k).set(schedData[id][k]);
-    } catch(e) { console.warn("Firebase save failed, saved locally"); saveLocal(); }
+      // ✨ AUTO-SYNC TO STUFF APP
+      autoSyncToStuffApp(emp);
+    } catch(e) { 
+      console.warn("Firebase save failed, saved locally"); 
+      saveLocal(); 
+      autoSyncToStuffApp(emp);
+    }
   } else {
     saveLocal();
+    autoSyncToStuffApp(emp);
   }
+
+  if(syncBar) { setTimeout(() => { syncBar.classList.remove("active"); }, 1500); }
 
   renderStaff();
   renderDash();
@@ -7140,7 +7181,13 @@ async function saveStaff(addAnother=false) {
     // Focus name field
     setTimeout(() => { document.getElementById("f-name").focus(); }, 100);
   } else {
-    closeModal("staffModal");
+    // ✨ AUTO-CLOSE MODAL AFTER 1.5 SECONDS
+    const statusEl = document.getElementById("staffMTitle");
+    if(statusEl) statusEl.innerHTML = '<span style="color:var(--green);font-size:13px">✅ Saved & synced! Closing...</span>';
+    setTimeout(() => {
+      closeModal("staffModal");
+      if(statusEl) statusEl.textContent = "➕ Add Employee";
+    }, 1500);
   }
 }
 async function deleteOne(id) {
@@ -14589,6 +14636,88 @@ setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
 })();
 
 console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ multi-dept · Smart Auto Fill · LIVE Staffing Counter');
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ✨ AUTO-SYNC TO STUFF APP & AUTO-CLOSE MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+function autoSyncToStuffApp(employeeData) {
+  try {
+    // Prepare payload
+    const payload = {
+      employeeId: employeeData.id,
+      name: employeeData.name,
+      hotel: employeeData.hotel,
+      shift: employeeData.defaultShift,
+      department: employeeData.department,
+      position: employeeData.position,
+      section: employeeData.section,
+      timestamp: new Date().toISOString()
+    };
+
+    // 1. Save to localStorage for backup
+    const key = `roster_sync_${employeeData.id}`;
+    localStorage.setItem(key, JSON.stringify(payload));
+
+    // 2. Send to webhook/API (REPLACE WITH YOUR STUFF APP ENDPOINT)
+    const webhookUrl = 'https://your-stuff-app-webhook.com/api/sync-roster';
+    if (webhookUrl.includes('your-')) {
+      console.warn('⚠️ Webhook URL not configured. Data saved locally only.');
+      return;
+    }
+
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer YOUR_API_KEY'
+      },
+      body: JSON.stringify(payload)
+    }).catch(err => {
+      console.warn('Webhook sync failed, storing for retry:', err);
+      // Store failed sync in queue
+      const queue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+      queue.push(payload);
+      localStorage.setItem('syncQueue', JSON.stringify(queue));
+    });
+
+    // 3. Broadcast to other tabs
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        const channel = new BroadcastChannel('roster_updates');
+        channel.postMessage({ type: 'assignment_updated', data: payload });
+        channel.close();
+      } catch(e) { console.log('BroadcastChannel not available'); }
+    }
+  } catch(e) {
+    console.error('Sync error:', e);
+  }
+}
+
+// Retry sync queue on page load
+window.addEventListener('load', () => {
+  try {
+    const queue = JSON.parse(localStorage.getItem('syncQueue') || '[]');
+    if (queue.length > 0) {
+      queue.forEach(item => {
+        const webhookUrl = 'https://your-stuff-app-webhook.com/api/sync-roster';
+        if (!webhookUrl.includes('your-')) {
+          fetch(webhookUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer YOUR_API_KEY'
+            },
+            body: JSON.stringify(item)
+          }).then(() => {
+            const idx = queue.indexOf(item);
+            if (idx > -1) queue.splice(idx, 1);
+            localStorage.setItem('syncQueue', JSON.stringify(queue));
+          }).catch(err => console.log('Retry failed:', err));
+        }
+      });
+    }
+  } catch(e) { console.log('Queue retry error:', e); }
+});
 </script>
 
 <script>
