@@ -4371,11 +4371,22 @@ function setupRealtimeListeners() {
 
   // Schedules listener — this fires every time admin changes a shift
   db.ref("schedules").on("value", snap => {
+    if (window._schedWriteLock) return; // ignore echo of our own write
     const fbSched = snap.val();
     if (fbSched && Object.keys(fbSched).length > 0) {
-      schedData = Object.assign({}, schedData, fbSched);
+      // Deep merge: only fill in days that are not already set locally
+      Object.keys(fbSched).forEach(empId => {
+        if (!schedData[empId]) schedData[empId] = {};
+        Object.keys(fbSched[empId]).forEach(monthKey => {
+          if (!schedData[empId][monthKey]) schedData[empId][monthKey] = {};
+          Object.keys(fbSched[empId][monthKey]).forEach(day => {
+            if (!schedData[empId][monthKey][day]) {
+              schedData[empId][monthKey][day] = fbSched[empId][monthKey][day];
+            }
+          });
+        });
+      });
     } else if (!fbSched || Object.keys(fbSched).length === 0) {
-      // Firebase schedules empty — push local up
       const localSchedKeys = Object.keys(schedData);
       if (localSchedKeys.length > 0) {
         localSchedKeys.forEach(k => { try { db.ref("schedules/" + k).set(schedData[k]); } catch(e) {} });
@@ -4385,7 +4396,6 @@ function setupRealtimeListeners() {
     if (active === "roster")   renderRoster();
     if (active === "coverage") renderCoverage();
     if (active === "dash")     renderDash();
-    // KEY FIX: push to employee portal immediately
     if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
@@ -5901,11 +5911,14 @@ async function selectShift(code) {
     if(!schedData[popEmpId][key]) schedData[popEmpId][key]={};
     schedData[popEmpId][key][popDay]=code;
     queueArchiveSnapshot(key, "shift changed");
-    if(db) {
-      try { await db.ref("schedules/"+popEmpId+"/"+key+"/"+popDay).set(code); }
-      catch(e) { saveLocal(); }
-    } else { saveLocal(); }
+    saveLocal();
     renderRoster();
+    if(db) {
+      window._schedWriteLock = true;
+      try { await db.ref("schedules/"+popEmpId+"/"+key+"/"+popDay).set(code); }
+      catch(e) { console.warn("[YPH] Shift save failed:", e); }
+      finally { setTimeout(function(){ window._schedWriteLock = false; }, 2000); }
+    }
   }
   closePop();
 }
