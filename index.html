@@ -1827,206 +1827,415 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 
 <div class="page" id="page-settings">
 <style>
-#page-settings{padding:0}
-#page-settings.active{padding:0;height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden}
-#cp-outer{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 14px 0}
-#cp-topbar-area{flex-shrink:0}
-.cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;overflow:hidden;min-height:0;padding-bottom:14px}
-.cp-sidebar{display:flex;flex-direction:column;gap:10px;overflow-y:auto;height:100%}
-.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden;flex-shrink:0}
-.cp-content{overflow-y:auto;height:100%;padding-right:4px}
-.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden}
-.cp-nav-hdr{padding:11px 15px;background:rgba(201,150,58,.1);border-bottom:1px solid rgba(201,150,58,.2);font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px}
-.cp-nav-item{display:flex;align-items:center;gap:8px;padding:10px 15px;cursor:pointer;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;color:rgba(255,255,255,.6);user-select:none}
-.cp-nav-item:hover{background:rgba(201,150,58,.07);color:#fff}
-.cp-nav-item.cpa{background:linear-gradient(90deg,rgba(201,150,58,.18),transparent);color:#C9963A;border-left:3px solid #C9963A;padding-left:12px}
-.cp-content{display:flex;flex-direction:column;gap:12px}
-.cp-panel{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(255,255,255,.07);border-radius:14px;overflow:hidden}
-.cp-ph{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid rgba(255,255,255,.06)}
-.cp-pt{font-size:13px;font-weight:700;color:#fff;display:flex;align-items:center;gap:8px}
-.cp-badge{font-size:9px;font-weight:600;padding:2px 7px;border-radius:5px;background:rgba(201,150,58,.15);color:#C9963A}
-.cp-body{padding:16px}
-.cp-stitle{font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.cp-stitle::after{content:"";flex:1;height:1px;background:rgba(201,150,58,.2)}
-.mg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:9px}
-.mc{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:11px;padding:13px;transition:.2s;position:relative;overflow:hidden}
-.mc::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
-.mc.mon::before{background:#10B981}.mc.moff::before{background:#EF4444}
-.mc.moff{opacity:.8}
-.mc:hover{border-color:rgba(201,150,58,.22);transform:translateY(-1px)}
-.mc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
-.mc-name{font-size:12px;font-weight:700;color:#fff;margin-bottom:2px}
-.mc-desc{font-size:10px;color:#64748B;line-height:1.4}
-.cp-tog{position:relative;width:38px;height:21px;cursor:pointer;flex-shrink:0}
-.cp-tog input{opacity:0;width:0;height:0}
-.cp-sl{position:absolute;inset:0;background:rgba(239,68,68,.25);border:1px solid rgba(239,68,68,.4);border-radius:100px;transition:.3s}
-.cp-sl::before{content:"";position:absolute;width:15px;height:15px;border-radius:50%;left:3px;top:2px;background:#EF4444;transition:.3s}
-.cp-tog input:checked+.cp-sl{background:rgba(16,185,129,.2);border-color:rgba(16,185,129,.4)}
-.cp-tog input:checked+.cp-sl::before{transform:translateX(17px);background:#10B981}
-.cp-tl{font-size:9px;font-weight:700;font-family:"DM Mono",monospace}
-.cp-tl.on{color:#10B981}.cp-tl.off{color:#EF4444}
-.bx{font-size:10px;font-weight:600;padding:4px 8px;border-radius:6px;border:none;cursor:pointer;transition:.15s}
-.bx:hover{opacity:.85}
-.bxr{background:rgba(239,68,68,.12);color:#EF4444;border:1px solid rgba(239,68,68,.22)}
-.bxg{background:rgba(16,185,129,.12);color:#10B981;border:1px solid rgba(16,185,129,.22)}
-.bxn{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)}
-.bgold{background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-weight:800;border:none;padding:8px 16px;border-radius:9px;cursor:pointer;font-size:11px;transition:.2s}
-.bgold:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,150,58,.35)}
-.bdanger{font-size:11px;font-weight:600;padding:7px 13px;border-radius:8px;background:rgba(239,68,68,.1);color:#EF4444;border:1px solid rgba(239,68,68,.22);cursor:pointer;transition:.15s}
-.bdanger:hover{background:rgba(239,68,68,.2)}
-.cp-inp2{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:7px 10px;color:#fff;font-size:12px;outline:none;transition:.15s;font-family:inherit}
-.cp-inp2:focus{border-color:#C9963A;background:rgba(201,150,58,.06)}
-.cp-lbl2{display:block;font-size:9px;color:#64748B;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.cp-g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
-.cp-infobox{background:rgba(201,150,58,.07);border:1px solid rgba(201,150,58,.2);border-radius:9px;padding:11px;font-size:11px;color:rgba(255,255,255,.65);line-height:1.6;margin-bottom:12px}
-.cp-dangerbox{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.18);border-radius:10px;padding:13px;margin-bottom:10px}
-.cp-dt{font-size:11px;font-weight:700;color:#EF4444;margin-bottom:9px}
-.cp-hlth{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px}
-.cph{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:9px}
-.cph-lbl{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.6px;font-weight:600}
-.cph-val{font-size:13px;font-weight:700;margin-top:2px;color:#fff}
-.cph-val.gv{color:#10B981}.cph-val.av{color:#F59E0B}.cph-val.rv{color:#EF4444}
-.cpdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-left:auto}
-.cpdot.gd{background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5)}
-.cpdot.ad{background:#F59E0B}.cpdot.rd{background:#EF4444}
-.cprow{display:flex;align-items:center;gap:9px;padding:9px 11px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;margin-bottom:7px;transition:.15s}
-.cprow:hover{border-color:rgba(201,150,58,.18)}
-.cpav{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#C9963A,#E8B84B);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#0D1B2E;flex-shrink:0}
-.cp-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.22);border-radius:100px;font-size:10px;color:#93C5FD;margin:3px}
-.cp-pill .xr{cursor:pointer;color:#EF4444;font-weight:700;margin-left:2px}
-.clog{display:flex;flex-direction:column;gap:5px}
-.clog-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,.02);border-radius:7px;font-size:11px;border-left:2px solid var(--lc,rgba(255,255,255,.1))}
-.clog-item.ls{--lc:#10B981}.clog-item.lw{--lc:#F59E0B}.clog-item.le{--lc:#EF4444}.clog-item.li{--lc:#3B82F6}
-.clog-t{flex:1;color:rgba(255,255,255,.65)}
-.clog-d{font-family:"DM Mono",monospace;font-size:9px;color:#64748B}
-.hcard{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:11px;display:flex;align-items:center;gap:9px;margin-bottom:7px}
-.hsw{width:30px;height:30px;border-radius:7px;flex-shrink:0}
-.cpqs{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
-.cpq{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:9px;padding:9px;text-align:center}
-.cpqv{font-size:18px;font-weight:800;color:#C9963A}
-.cpql{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
-@media(max-width:860px){.cp-wrap{grid-template-columns:1fr}.cp-hlth{grid-template-columns:1fr 1fr}}
+/* ═══════════════════════════════════════════════
+   DEV PANEL — REDESIGN v6  (dark command-center)
+═══════════════════════════════════════════════ */
+#page-settings { padding:0 }
+#page-settings.active { padding:0; height:calc(100vh - 56px); display:flex; flex-direction:column; overflow:hidden }
 
-/* ══ DEV PANEL REDESIGN ADDITIONS ══ */
-/* Sidebar icon-label nav items */
-.cp-nav-item { gap:10px; padding:11px 16px; font-size:12.5px; border-bottom:1px solid rgba(255,255,255,.035); }
-.cp-ni-icon { font-size:16px; width:22px; text-align:center; flex-shrink:0; }
-.cp-nav-item.cpa { background:linear-gradient(90deg,rgba(201,150,58,.2),rgba(201,150,58,.04)); border-left:3px solid #C9963A; }
-/* Quick-action bar */
-#cpQuickBar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
-.cpqa { display:flex; align-items:center; gap:6px; padding:7px 14px; border-radius:10px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:rgba(255,255,255,.7); font-size:11px; font-weight:600; cursor:pointer; transition:.2s; white-space:nowrap; }
-.cpqa:hover { background:rgba(201,150,58,.15); border-color:rgba(201,150,58,.4); color:#E8B04A; }
-/* Health cards improved */
-.cph { background:linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.02)); border:1px solid rgba(255,255,255,.08); transition:.2s; }
-.cph:hover { border-color:rgba(201,150,58,.22); }
+/* ── Layout shell ── */
+#cp-outer { flex:1; overflow:hidden; display:flex; flex-direction:column; background:#080E1A; }
+#cp-topbar-area { flex-shrink:0; }
+
+/* ── Top bar ── */
+#cp-topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 20px; height:54px;
+  background:linear-gradient(90deg,#0B1422,#0F1E35);
+  border-bottom:1px solid rgba(201,150,58,.18);
+  position:relative;
+}
+#cp-topbar::after {
+  content:''; position:absolute; bottom:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(201,150,58,.4),transparent);
+}
+.cp-topbar-left  { display:flex; align-items:center; gap:14px; }
+.cp-topbar-right { display:flex; align-items:center; gap:10px; }
+.cp-brand { display:flex; align-items:center; gap:10px; }
+.cp-brand-badge {
+  font-size:9px; font-weight:900; letter-spacing:2px;
+  background:linear-gradient(135deg,#C9963A,#F0C060);
+  color:#080E1A; padding:3px 9px; border-radius:4px;
+}
+.cp-brand-name { font-family:'Syne',sans-serif; font-size:15px; font-weight:800; color:#fff; letter-spacing:.3px; }
+.cp-brand-sep { width:1px; height:18px; background:rgba(255,255,255,.1); }
+#cpFbStatusPill {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.25);
+  border-radius:100px; padding:4px 12px; font-size:10px; font-weight:700;
+  color:#FCD34D; transition:.4s; cursor:default;
+}
+#cpFbDot { width:6px; height:6px; border-radius:50%; background:#FCD34D; animation:blink .8s infinite; }
+#cpClock {
+  font-family:'DM Mono',monospace; font-size:11px; color:#C9963A;
+  background:rgba(201,150,58,.08); border:1px solid rgba(201,150,58,.15);
+  border-radius:7px; padding:5px 11px; letter-spacing:.5px;
+}
+#cpSearch {
+  background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+  color:#fff; border-radius:8px; padding:6px 12px; font-size:11px;
+  width:170px; outline:none; transition:.2s; font-family:inherit;
+}
+#cpSearch::placeholder { color:rgba(255,255,255,.3); }
+#cpSearch:focus { border-color:rgba(201,150,58,.5); background:rgba(201,150,58,.05); }
+#cpSearchResults {
+  position:absolute; top:calc(100% + 6px); right:20px;
+  background:#0F2240; border:1px solid rgba(201,150,58,.3);
+  border-radius:10px; min-width:220px; z-index:999; display:none;
+  box-shadow:0 12px 40px rgba(0,0,0,.6);
+}
+.cp-exit-btn {
+  background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.2);
+  color:rgba(239,68,68,.75); border-radius:8px; padding:5px 14px;
+  font-size:11px; font-weight:700; cursor:pointer; transition:.2s;
+  font-family:inherit; white-space:nowrap;
+}
+.cp-exit-btn:hover { background:rgba(239,68,68,.2); color:#F87171; }
+
+/* ── Health strip ── */
+#cp-health-strip {
+  display:grid; grid-template-columns:repeat(4,1fr);
+  gap:0; border-bottom:1px solid rgba(255,255,255,.05);
+  flex-shrink:0;
+}
+.cp-hs-cell {
+  display:flex; align-items:center; gap:10px; padding:11px 18px;
+  border-right:1px solid rgba(255,255,255,.05);
+  transition:.2s; cursor:default;
+}
+.cp-hs-cell:last-child { border-right:none; }
+.cp-hs-cell:hover { background:rgba(201,150,58,.04); }
+.cp-hs-icon { font-size:18px; flex-shrink:0; }
+.cp-hs-body { display:flex; flex-direction:column; gap:1px; }
+.cp-hs-lbl { font-size:9px; color:#4A6080; font-weight:600; text-transform:uppercase; letter-spacing:.7px; }
+.cp-hs-val { font-size:12px; font-weight:700; color:#fff; }
+.cp-hs-dot { width:7px; height:7px; border-radius:50%; margin-left:auto; flex-shrink:0; }
+.hs-green { color:#34D399; } .hs-amber { color:#FCD34D; } .hs-red { color:#F87171; }
+.dot-green { background:#34D399; box-shadow:0 0 6px rgba(52,211,153,.5); }
+.dot-amber { background:#FCD34D; } .dot-red { background:#F87171; }
+
+/* ── Quick-action bar ── */
+#cpQuickBar {
+  display:flex; align-items:center; gap:6px; padding:10px 18px;
+  border-bottom:1px solid rgba(255,255,255,.04);
+  background:#0A1220; flex-shrink:0; overflow-x:auto;
+}
+#cpQuickBar::-webkit-scrollbar { height:3px; }
+#cpQuickBar::-webkit-scrollbar-thumb { background:rgba(201,150,58,.3); border-radius:3px; }
+.cpqa {
+  display:flex; align-items:center; gap:5px; padding:5px 13px;
+  border-radius:7px; border:1px solid rgba(255,255,255,.07);
+  background:rgba(255,255,255,.03); color:rgba(255,255,255,.55);
+  font-size:10.5px; font-weight:600; cursor:pointer; transition:.18s;
+  white-space:nowrap; font-family:inherit; flex-shrink:0;
+}
+.cpqa:hover { background:rgba(201,150,58,.12); border-color:rgba(201,150,58,.35); color:#E8B04A; }
+.cpqa.active { background:rgba(201,150,58,.15); border-color:rgba(201,150,58,.4); color:#C9963A; }
+.cpqa-sep { width:1px; height:18px; background:rgba(255,255,255,.07); flex-shrink:0; }
+
+/* ── Main layout ── */
+.cp-wrap {
+  display:grid; grid-template-columns:230px 1fr;
+  gap:0; flex:1; overflow:hidden; min-height:0;
+}
+
+/* ── Sidebar ── */
+.cp-sidebar {
+  display:flex; flex-direction:column;
+  border-right:1px solid rgba(255,255,255,.05);
+  background:#0A1220; overflow-y:auto; height:100%;
+}
+.cp-sidebar::-webkit-scrollbar { width:4px; }
+.cp-sidebar::-webkit-scrollbar-thumb { background:rgba(201,150,58,.2); border-radius:4px; }
+
+/* Nav section header */
+.cp-nav-section-hdr {
+  padding:14px 16px 6px; font-size:9px; font-weight:700;
+  color:#2A3F5F; text-transform:uppercase; letter-spacing:1.2px;
+}
+
+/* Nav items */
+.cp-nav-item {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 16px; cursor:pointer; font-size:12px; font-weight:500;
+  border-left:3px solid transparent; transition:.15s;
+  color:rgba(255,255,255,.45); user-select:none; position:relative;
+}
+.cp-nav-item:hover { background:rgba(201,150,58,.06); color:rgba(255,255,255,.8); border-left-color:rgba(201,150,58,.3); }
+.cp-nav-item.cpa {
+  background:linear-gradient(90deg,rgba(201,150,58,.14),transparent);
+  color:#C9963A; border-left-color:#C9963A; font-weight:700;
+}
+.cp-ni-icon { font-size:14px; width:20px; text-align:center; flex-shrink:0; opacity:.8; }
+.cp-nav-item.cpa .cp-ni-icon { opacity:1; }
+.cp-nav-item.danger-item { color:rgba(239,68,68,.5); }
+.cp-nav-item.danger-item:hover { background:rgba(239,68,68,.06); color:#F87171; border-left-color:rgba(239,68,68,.4); }
+.cp-nav-divider { margin:6px 16px; height:1px; background:rgba(255,255,255,.04); }
+
+/* Sidebar stats widget */
+.cp-sidebar-stats {
+  margin:10px 12px; padding:12px;
+  background:rgba(255,255,255,.02); border:1px solid rgba(255,255,255,.06);
+  border-radius:10px;
+}
+.cpqs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-bottom:10px; }
+.cpq { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.06); border-radius:8px; padding:8px; text-align:center; }
+.cpqv { font-size:16px; font-weight:800; color:#C9963A; }
+.cpql { font-size:8px; color:#4A6080; text-transform:uppercase; letter-spacing:.7px; margin-top:2px; }
+
+/* Firebase reconnect widget */
+.cp-fb-widget {
+  margin:0 12px 10px; padding:11px 12px;
+  background:rgba(201,150,58,.05); border:1px solid rgba(201,150,58,.15);
+  border-radius:10px;
+}
+.cp-fb-widget-lbl { font-size:9px; color:#C9963A; font-weight:700; text-transform:uppercase; letter-spacing:.8px; margin-bottom:5px; display:flex; align-items:center; gap:5px; }
+#cpSideFbStatus { font-size:11px; font-weight:600; color:#FCD34D; margin-bottom:7px; }
+.cp-reconnect-btn {
+  width:100%; padding:6px; background:rgba(201,150,58,.1);
+  border:1px solid rgba(201,150,58,.25); border-radius:7px;
+  color:#C9963A; font-size:10px; font-weight:700; cursor:pointer;
+  transition:.2s; font-family:inherit;
+}
+.cp-reconnect-btn:hover { background:rgba(201,150,58,.2); }
+
+/* Sidebar footer */
+#cpSideFooter {
+  padding:11px 14px; border-top:1px solid rgba(255,255,255,.04);
+  font-size:9px; color:#1E3050; text-align:center; letter-spacing:.5px;
+  margin-top:auto; background:#080E1A;
+}
+
+/* ── Content area ── */
+.cp-content { overflow-y:auto; height:100%; background:#0D1729; }
+.cp-content::-webkit-scrollbar { width:5px; }
+.cp-content::-webkit-scrollbar-thumb { background:rgba(201,150,58,.2); border-radius:5px; }
+
+/* ── Panels ── */
+.cp-panel {
+  background:transparent; border:none; border-radius:0;
+  overflow:visible; padding:20px;
+}
+.cp-ph {
+  display:flex; align-items:center; justify-content:space-between;
+  margin-bottom:16px; padding-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.cp-pt { font-size:15px; font-weight:800; color:#fff; display:flex; align-items:center; gap:10px; font-family:'Syne',sans-serif; }
+.cp-badge {
+  font-size:9px; font-weight:600; padding:3px 8px; border-radius:5px;
+  background:rgba(201,150,58,.12); color:#C9963A; border:1px solid rgba(201,150,58,.2);
+  letter-spacing:.3px;
+}
+.cp-body { }
+.cp-stitle {
+  font-size:9px; font-weight:700; color:#C9963A; text-transform:uppercase;
+  letter-spacing:1.2px; margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.cp-stitle::after { content:""; flex:1; height:1px; background:rgba(201,150,58,.15); }
+.mg { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:9px; }
+.mc {
+  background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07);
+  border-radius:11px; padding:13px; transition:.2s; position:relative; overflow:hidden;
+}
+.mc::before { content:""; position:absolute; left:0; top:0; bottom:0; width:3px; border-radius:3px 0 0 3px; }
+.mc.mon::before { background:#10B981; } .mc.moff::before { background:#EF4444; }
+.mc.moff { opacity:.75; }
+.mc:hover { border-color:rgba(201,150,58,.2); transform:translateY(-1px); }
+.mc-top { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:8px; }
+.mc-name { font-size:12px; font-weight:700; color:#fff; margin-bottom:2px; }
+.mc-desc { font-size:10px; color:#4A6080; line-height:1.4; }
+.cp-tog { position:relative; width:38px; height:21px; cursor:pointer; flex-shrink:0; }
+.cp-tog input { opacity:0; width:0; height:0; }
+.cp-sl { position:absolute; inset:0; background:rgba(239,68,68,.25); border:1px solid rgba(239,68,68,.4); border-radius:100px; transition:.3s; }
+.cp-sl::before { content:""; position:absolute; width:15px; height:15px; border-radius:50%; left:3px; top:2px; background:#EF4444; transition:.3s; }
+.cp-tog input:checked+.cp-sl { background:rgba(16,185,129,.2); border-color:rgba(16,185,129,.4); }
+.cp-tog input:checked+.cp-sl::before { transform:translateX(17px); background:#10B981; }
+.cp-tl { font-size:9px; font-weight:700; font-family:"DM Mono",monospace; }
+.cp-tl.on { color:#10B981; } .cp-tl.off { color:#EF4444; }
+.bx { font-size:10px; font-weight:600; padding:4px 9px; border-radius:6px; border:none; cursor:pointer; transition:.15s; font-family:inherit; }
+.bx:hover { opacity:.85; }
+.bxr { background:rgba(239,68,68,.12); color:#EF4444; border:1px solid rgba(239,68,68,.22); }
+.bxg { background:rgba(16,185,129,.12); color:#10B981; border:1px solid rgba(16,185,129,.22); }
+.bxn { background:rgba(255,255,255,.06); color:rgba(255,255,255,.5); border:1px solid rgba(255,255,255,.1); }
+.bgold { background:linear-gradient(135deg,#C9963A,#E8B84B); color:#0D1B2E; font-weight:800; border:none; padding:8px 16px; border-radius:9px; cursor:pointer; font-size:11px; transition:.2s; font-family:inherit; }
+.bgold:hover { transform:translateY(-1px); box-shadow:0 4px 14px rgba(201,150,58,.35); }
+.bdanger { font-size:11px; font-weight:600; padding:7px 13px; border-radius:8px; background:rgba(239,68,68,.1); color:#EF4444; border:1px solid rgba(239,68,68,.22); cursor:pointer; transition:.15s; font-family:inherit; }
+.bdanger:hover { background:rgba(239,68,68,.2); }
+.cp-inp2 { width:100%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:8px; padding:8px 11px; color:#fff; font-size:12px; outline:none; transition:.15s; font-family:inherit; box-sizing:border-box; }
+.cp-inp2:focus { border-color:rgba(201,150,58,.5); background:rgba(201,150,58,.05); }
+.cp-lbl2 { display:block; font-size:9px; color:#4A6080; font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+.cp-g2 { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+.cp-infobox { background:rgba(201,150,58,.06); border:1px solid rgba(201,150,58,.18); border-radius:9px; padding:11px 13px; font-size:11px; color:rgba(255,255,255,.6); line-height:1.6; margin-bottom:12px; }
+.cp-dangerbox { background:rgba(239,68,68,.04); border:1px solid rgba(239,68,68,.15); border-radius:10px; padding:14px; margin-bottom:10px; }
+.cp-dt { font-size:11px; font-weight:700; color:#EF4444; margin-bottom:9px; }
+.cprow { display:flex; align-items:center; gap:9px; padding:9px 11px; background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.06); border-radius:9px; margin-bottom:7px; transition:.15s; }
+.cprow:hover { border-color:rgba(201,150,58,.18); }
+.cpav { width:32px; height:32px; border-radius:50%; background:linear-gradient(135deg,#C9963A,#E8B84B); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:11px; color:#0D1B2E; flex-shrink:0; }
+.cp-pill { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; background:rgba(59,130,246,.1); border:1px solid rgba(59,130,246,.22); border-radius:100px; font-size:10px; color:#93C5FD; margin:3px; }
+.cp-pill .xr { cursor:pointer; color:#EF4444; font-weight:700; margin-left:2px; }
+.clog { display:flex; flex-direction:column; gap:5px; }
+.clog-item { display:flex; align-items:center; gap:8px; padding:7px 10px; background:rgba(255,255,255,.02); border-radius:7px; font-size:11px; border-left:2px solid var(--lc,rgba(255,255,255,.1)); }
+.clog-item.ls{--lc:#10B981}.clog-item.lw{--lc:#F59E0B}.clog-item.le{--lc:#EF4444}.clog-item.li{--lc:#3B82F6}
+.clog-t { flex:1; color:rgba(255,255,255,.65); }
+.clog-d { font-family:"DM Mono",monospace; font-size:9px; color:#4A6080; }
+.hcard { background:rgba(255,255,255,.025); border:1px solid rgba(255,255,255,.07); border-radius:9px; padding:11px; display:flex; align-items:center; gap:9px; margin-bottom:7px; }
+.hsw { width:30px; height:30px; border-radius:7px; flex-shrink:0; }
+
+/* Legacy health row classes (keep for JS compat) */
+.cp-hlth { display:none; } /* hidden — replaced by #cp-health-strip */
+.cph { } .cph-lbl { } .cph-val { } .cph-val.gv{color:#10B981} .cph-val.av{color:#F59E0B} .cph-val.rv{color:#EF4444}
+.cpdot{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-left:auto}
+.cpdot.gd{background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5)}.cpdot.ad{background:#F59E0B}.cpdot.rd{background:#EF4444}
+
 /* Firebase status banner */
-#cpFbStatusBanner { display:flex; align-items:center; gap:10px; padding:10px 16px; border-radius:11px; margin-bottom:10px; font-size:12px; font-weight:600; transition:.4s; }
-#cpFbStatusBanner.fb-ok { background:rgba(16,185,129,.1); border:1px solid rgba(16,185,129,.3); color:#4ADE80; }
-#cpFbStatusBanner.fb-warn { background:rgba(245,158,11,.1); border:1px solid rgba(245,158,11,.3); color:#FCD34D; }
-#cpFbStatusBanner.fb-err { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#F87171; }
-/* Panel section dividers */
+#cpFbStatusBanner { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:9px; margin-bottom:12px; font-size:12px; font-weight:600; transition:.4s; }
+#cpFbStatusBanner.fb-ok { background:rgba(16,185,129,.08); border:1px solid rgba(16,185,129,.25); color:#4ADE80; }
+#cpFbStatusBanner.fb-warn { background:rgba(245,158,11,.08); border:1px solid rgba(245,158,11,.25); color:#FCD34D; }
+#cpFbStatusBanner.fb-err { background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25); color:#F87171; }
 .cp-section-hdr { display:flex; align-items:center; gap:10px; margin:16px 0 10px; }
 .cp-section-hdr span { font-size:10px; font-weight:800; color:#C9963A; text-transform:uppercase; letter-spacing:1.2px; white-space:nowrap; }
 .cp-section-hdr::after { content:''; flex:1; height:1px; background:linear-gradient(90deg,rgba(201,150,58,.3),transparent); }
-/* Compact 2-col action grid */
 .cp-action-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-.cp-action-btn { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 14px; border-radius:11px; border:1.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); cursor:pointer; transition:.2s; text-align:left; }
+.cp-action-btn { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:12px 14px; border-radius:11px; border:1.5px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); cursor:pointer; transition:.2s; text-align:left; font-family:inherit; }
 .cp-action-btn:hover { background:rgba(201,150,58,.08); border-color:rgba(201,150,58,.25); transform:translateY(-1px); }
 .cp-action-btn .ab-icon { font-size:18px; }
 .cp-action-btn .ab-label { font-size:11px; font-weight:700; color:#fff; }
-.cp-action-btn .ab-desc { font-size:10px; color:#64748B; line-height:1.3; }
-/* Sidebar version badge */
-#cpSideFooter { padding:12px 15px; border-top:1px solid rgba(255,255,255,.06); margin-top:auto; }
-/* onlineStatus improved connection label */
+.cp-action-btn .ab-desc { font-size:10px; color:#4A6080; line-height:1.3; }
 #onlineStatus { font-weight:700; letter-spacing:.2px; }
+@media(max-width:860px){.cp-wrap{grid-template-columns:1fr}#cp-health-strip{grid-template-columns:1fr 1fr}}
 </style>
 
 <div id="cp-outer">
+
+<!-- ── TOP BAR ── -->
 <div id="cp-topbar-area">
-<!-- TOP BAR — redesigned -->
-<div style="display:flex;align-items:center;justify-content:space-between;background:linear-gradient(135deg,#0D1B2E,#162540);border:1px solid rgba(201,150,58,.2);border-radius:13px;padding:11px 16px;margin-bottom:12px">
-  <div style="display:flex;align-items:center;gap:12px">
-    <div style="background:linear-gradient(135deg,#C9963A,#E8B84B);color:#0D1B2E;font-size:8px;font-weight:900;padding:4px 10px;border-radius:6px;letter-spacing:1.5px">DEV</div>
-    <div style="font-size:16px;font-weight:800;color:#fff;font-family:'Syne',sans-serif">⚙️ Control Panel</div>
-    <div id="cpFbStatusPill" style="display:flex;align-items:center;gap:5px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:100px;padding:4px 11px;font-size:10px;font-weight:700;color:#FCD34D;transition:.4s">
-      <div id="cpFbDot" style="width:6px;height:6px;border-radius:50%;background:#FCD34D;animation:blink .8s infinite"></div>
+<div id="cp-topbar">
+  <div class="cp-topbar-left">
+    <div class="cp-brand">
+      <span class="cp-brand-badge">DEV</span>
+      <span class="cp-brand-name">Control Panel</span>
+    </div>
+    <span class="cp-brand-sep"></span>
+    <div id="cpFbStatusPill">
+      <div id="cpFbDot"></div>
       <span id="cpFbLabel">Connecting…</span>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px">
-    <input id="cpSearch" placeholder="🔍 Search…" oninput="cpSearchPanel(this.value)"
-      style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:9px;padding:6px 12px;font-size:11px;width:150px;outline:none;transition:.2s"
-      onfocus="this.style.borderColor='rgba(201,150,58,.6)'" onblur="this.style.borderColor='rgba(255,255,255,.1)'">
-    <div id="cpSearchResults" style="position:absolute;top:calc(100% + 6px);right:0;background:#0F2240;border:1px solid rgba(201,150,58,.3);border-radius:10px;min-width:200px;z-index:999;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>
-    <div style="font-family:'DM Mono',monospace;font-size:11px;color:#C9963A;background:rgba(201,150,58,.1);border:1px solid rgba(201,150,58,.2);border-radius:7px;padding:5px 10px" id="cpClock">--:--:--</div>
-    <button onclick="backToLanding()" style="background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.25);color:rgba(239,68,68,.8);border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(239,68,68,.22)'" onmouseout="this.style.background='rgba(239,68,68,.12)'">✕ Exit</button>
+  <div class="cp-topbar-right" style="position:relative">
+    <input id="cpSearch" placeholder="⌕  Search settings…" oninput="cpSearchPanel(this.value)">
+    <div id="cpSearchResults"></div>
+    <div id="cpClock">--:--:--</div>
+    <button class="cp-exit-btn" onclick="backToLanding()">✕ Exit</button>
   </div>
 </div>
 
-<!-- QUICK ACTION BAR -->
+<!-- ── HEALTH STRIP ── -->
+<div id="cp-health-strip">
+  <div class="cp-hs-cell">
+    <span class="cp-hs-icon">🔥</span>
+    <div class="cp-hs-body">
+      <div class="cp-hs-lbl">Firebase</div>
+      <div class="cp-hs-val hs-green" id="cpFbSt">Checking…</div>
+    </div>
+    <div class="cp-hs-dot dot-amber" id="cpFbDotH" style="animation:blink 1s infinite"></div>
+  </div>
+  <div class="cp-hs-cell">
+    <span class="cp-hs-icon">👥</span>
+    <div class="cp-hs-body">
+      <div class="cp-hs-lbl">Total Staff</div>
+      <div class="cp-hs-val" id="cpSC">—</div>
+    </div>
+  </div>
+  <div class="cp-hs-cell">
+    <span class="cp-hs-icon">🧩</span>
+    <div class="cp-hs-body">
+      <div class="cp-hs-lbl">Active Modules</div>
+      <div class="cp-hs-val" id="cpMC">—</div>
+    </div>
+  </div>
+  <div class="cp-hs-cell">
+    <span class="cp-hs-icon">🏨</span>
+    <div class="cp-hs-body">
+      <div class="cp-hs-lbl">Hotels</div>
+      <div class="cp-hs-val" id="cpHC">—</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── HIDDEN legacy health row kept for JS compat ── -->
+<div class="cp-hlth" aria-hidden="true">
+  <div class="cph"><div><div class="cph-lbl">Firebase</div><div class="cph-val gv" id="_legacyFbSt"></div></div><div class="cpdot gd" id="_legacyFbDotH"></div></div>
+  <div class="cph"><div><div class="cph-lbl">Total Staff</div><div class="cph-val" id="_legacySC"></div></div></div>
+  <div class="cph"><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="_legacyMC"></div></div></div>
+  <div class="cph"><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="_legacyHC"></div></div></div>
+</div>
+
+<!-- ── QUICK-ACTION BAR ── -->
 <div id="cpQuickBar">
   <button class="cpqa" onclick="cpTab('modules')">🧩 Modules</button>
   <button class="cpqa" onclick="cpTab('hotels')">🏨 Hotels</button>
   <button class="cpqa" onclick="cpTab('departments')">🏢 Departments</button>
   <button class="cpqa" onclick="cpTab('shifts')">⏰ Shifts</button>
+  <div class="cpqa-sep"></div>
   <button class="cpqa" onclick="cpTab('access')">🔑 Access</button>
+  <button class="cpqa" onclick="cpTab('live')">🟢 LIVE</button>
+  <button class="cpqa" onclick="cpTab('notifications')">🔔 Alerts</button>
+  <div class="cpqa-sep"></div>
   <button class="cpqa" onclick="cpTab('firebase')">🔥 Firebase</button>
   <button class="cpqa" onclick="cpTab('security')">🔐 Security</button>
   <button class="cpqa" onclick="cpTab('logs')">📋 Logs</button>
 </div>
-
-<!-- HEALTH ROW -->
-<div class="cp-hlth">
-  <div class="cph"><div style="font-size:20px">🔥</div><div><div class="cph-lbl">Firebase</div><div class="cph-val gv" id="cpFbSt">Checking…</div></div><div class="cpdot gd" id="cpFbDotH" style="animation:blink 1s infinite"></div></div>
-  <div class="cph"><div style="font-size:20px">👥</div><div><div class="cph-lbl">Total Staff</div><div class="cph-val" id="cpSC">—</div></div></div>
-  <div class="cph"><div style="font-size:20px">🧩</div><div><div class="cph-lbl">Active Modules</div><div class="cph-val" id="cpMC">—</div></div></div>
-  <div class="cph"><div style="font-size:20px">🏨</div><div><div class="cph-lbl">Hotels</div><div class="cph-val" id="cpHC">—</div></div></div>
-</div>
 </div><!-- /cp-topbar-area -->
 
+<!-- ── MAIN LAYOUT ── -->
 <div class="cp-wrap">
+
   <!-- SIDEBAR -->
   <div class="cp-sidebar">
-    <div class="cp-nav" id="cpNav">
-      <div class="cp-nav-hdr" style="display:flex;align-items:center;justify-content:space-between">
-        <span>⚙️ Navigation</span>
-        <span id="cpNavBadge" style="font-size:9px;font-weight:700;background:rgba(201,150,58,.2);color:#C9963A;border:1px solid rgba(201,150,58,.3);border-radius:99px;padding:1px 7px">DEV</span>
-      </div>
+    <div id="cpNav">
+      <div class="cp-nav-section-hdr">System</div>
       <div class="cp-nav-item cpa" id="cpni-modules" onclick="cpTab('modules')"><span class="cp-ni-icon">🧩</span>Feature Modules</div>
-      <div class="cp-nav-item" id="cpni-hotels"      onclick="cpTab('hotels')"><span class="cp-ni-icon">🏨</span>Hotels</div>
-      <div class="cp-nav-item" id="cpni-departments"  onclick="cpTab('departments')"><span class="cp-ni-icon">🏢</span>Departments & Positions</div>
-      <div class="cp-nav-item" id="cpni-shifts"       onclick="cpTab('shifts')"><span class="cp-ni-icon">⏰</span>Shifts</div>
-      <div class="cp-nav-item" id="cpni-access"       onclick="cpTab('access')"><span class="cp-ni-icon">🔑</span>Access & Passwords</div>
-      <div class="cp-nav-item" id="cpni-live"         onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Positions</div>
+      <div class="cp-nav-item" id="cpni-hotels" onclick="cpTab('hotels')"><span class="cp-ni-icon">🏨</span>Hotels</div>
+      <div class="cp-nav-item" id="cpni-departments" onclick="cpTab('departments')"><span class="cp-ni-icon">🏢</span>Departments & Positions</div>
+      <div class="cp-nav-item" id="cpni-shifts" onclick="cpTab('shifts')"><span class="cp-ni-icon">⏰</span>Shifts</div>
+
+      <div class="cp-nav-divider"></div>
+      <div class="cp-nav-section-hdr">Access & Live</div>
+      <div class="cp-nav-item" id="cpni-access" onclick="cpTab('access')"><span class="cp-ni-icon">🔑</span>Access & Passwords</div>
+      <div class="cp-nav-item" id="cpni-live" onclick="cpTab('live')"><span class="cp-ni-icon">🟢</span>LIVE Positions</div>
       <div class="cp-nav-item" id="cpni-notifications" onclick="cpTab('notifications')"><span class="cp-ni-icon">🔔</span>Notifications</div>
-      <div class="cp-nav-item" id="cpni-firebase"     onclick="cpTab('firebase')"><span class="cp-ni-icon">🔥</span>Firebase Config</div>
-      <div class="cp-nav-item" id="cpni-security"    onclick="cpTab('security')"><span class="cp-ni-icon">🔐</span><span class="cp-ni-label">Security</span></div>
-      <div class="cp-nav-item" id="cpni-logs"         onclick="cpTab('logs')"><span class="cp-ni-icon">📋</span>Activity Logs</div>
-      <div class="cp-nav-item" id="cpni-danger"       onclick="cpTab('danger')" style="color:rgba(239,68,68,.7)"><span class="cp-ni-icon">⚠️</span>Danger Zone</div>
+
+      <div class="cp-nav-divider"></div>
+      <div class="cp-nav-section-hdr">Infrastructure</div>
+      <div class="cp-nav-item" id="cpni-firebase" onclick="cpTab('firebase')"><span class="cp-ni-icon">🔥</span>Firebase Config</div>
+      <div class="cp-nav-item" id="cpni-security" onclick="cpTab('security')"><span class="cp-ni-icon">🔐</span>Security</div>
+      <div class="cp-nav-item" id="cpni-logs" onclick="cpTab('logs')"><span class="cp-ni-icon">📋</span>Activity Logs</div>
+
+      <div class="cp-nav-divider"></div>
+      <div class="cp-nav-item danger-item" id="cpni-danger" onclick="cpTab('danger')"><span class="cp-ni-icon">⚠️</span>Danger Zone</div>
     </div>
-    <div class="cp-panel">
-      <div style="padding:13px">
-        <div class="cp-stitle">Quick Stats</div>
-        <div class="cpqs">
-          <div class="cpq"><div class="cpqv" id="qs-on">—</div><div class="cpql">On</div></div>
-          <div class="cpq"><div class="cpqv" style="color:#EF4444" id="qs-off">—</div><div class="cpql">Off</div></div>
-          <div class="cpq"><div class="cpqv" style="color:#F59E0B" id="qs-hotels">—</div><div class="cpql">Hotels</div></div>
-        </div>
-        <!-- Firebase reconnect shortcut -->
-        <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.06)">
-          <div style="font-size:9px;color:#64748B;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:6px">🔥 Firebase</div>
-          <div id="cpSideFbStatus" style="font-size:11px;font-weight:600;color:#FCD34D;margin-bottom:6px">● Connecting…</div>
-          <button onclick="if(typeof tryAutoConnect==='function')tryAutoConnect();if(typeof cpToast==='function')cpToast('🔄 Reconnecting to Firebase…');" style="width:100%;padding:6px;background:rgba(201,150,58,.12);border:1px solid rgba(201,150,58,.3);border-radius:7px;color:#C9963A;font-size:10px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='rgba(201,150,58,.22)'" onmouseout="this.style.background='rgba(201,150,58,.12)'">🔄 Reconnect</button>
-        </div>
+
+    <!-- Sidebar stats widget -->
+    <div class="cp-sidebar-stats" style="margin-top:14px">
+      <div class="cpqs">
+        <div class="cpq"><div class="cpqv" id="qs-on">—</div><div class="cpql">On</div></div>
+        <div class="cpq"><div class="cpqv" style="color:#EF4444" id="qs-off">—</div><div class="cpql">Off</div></div>
+        <div class="cpq"><div class="cpqv" style="color:#F59E0B" id="qs-hotels">—</div><div class="cpql">Hotels</div></div>
       </div>
     </div>
-    <!-- Sidebar footer -->
-    <div id="cpSideFooter" style="padding:10px 13px;border-top:1px solid rgba(255,255,255,.06);background:linear-gradient(135deg,rgba(13,27,46,.8),rgba(22,37,64,.8));border-radius:0 0 14px 14px;font-size:9px;color:#475569;text-align:center;letter-spacing:.3px">
-      Yas Plaza Hotels · Roster v5
+
+    <!-- Firebase reconnect widget -->
+    <div class="cp-fb-widget">
+      <div class="cp-fb-widget-lbl">🔥 Firebase</div>
+      <div id="cpSideFbStatus">● Connecting…</div>
+      <button class="cp-reconnect-btn" onclick="if(typeof tryAutoConnect==='function')tryAutoConnect();if(typeof cpToast==='function')cpToast('🔄 Reconnecting to Firebase…');">🔄 Reconnect</button>
     </div>
+
+    <div id="cpSideFooter">Yas Plaza Hotels · Roster v5</div>
   </div>
 
-  <!-- CONTENT -->
+  <!-- CONTENT PANELS (all IDs and inner HTML untouched) -->
   <div class="cp-content">
 
     <!-- MODULES -->
@@ -2061,12 +2270,10 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
       </div>
       <div class="cp-body" id="cpDeptBody">
-        <!-- Action buttons shown inside body (visible in accordion mode too) -->
         <div style="display:flex;gap:7px;margin-bottom:12px" id="cpDeptActionBtns">
           <button class="bgold" onclick="cpToggleAddDeptForm()" style="font-size:11px;padding:7px 14px">➕ Add Department</button>
           <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3);font-size:11px;padding:7px 14px" onclick="cpAddPos()">+ Position</button>
         </div>
-        <!-- Inline Add Department Form -->
         <div id="cpAddDeptForm" style="display:none;padding:14px;border:1.5px dashed rgba(201,150,58,.4);border-radius:10px;background:rgba(201,150,58,.06);margin-bottom:14px">
           <div style="font-size:11px;font-weight:700;color:#E8B04A;margin-bottom:10px;letter-spacing:.5px">➕ NEW DEPARTMENT</div>
           <div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:flex-start;margin-bottom:10px">
@@ -2099,7 +2306,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           </div>
           <div id="cpNewDeptMsg" style="font-size:11px;margin-top:10px;min-height:14px"></div>
         </div>
-        <!-- Dept list rendered here by cpRenderDepts() -->
       </div>
     </div>
 
@@ -2119,8 +2325,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div class="cp-panel" id="cpt-access" style="display:none">
       <div class="cp-ph"><div class="cp-pt">🔑 Access &amp; Passwords <span class="cp-badge">Developer Only</span></div></div>
       <div class="cp-body">
-
-        <!-- Developer Password -->
         <div class="cp-stitle">🔧 Developer Password</div>
         <div class="cp-infobox" style="margin-bottom:10px">🔐 Min 8 chars recommended. This password also controls the legacy <strong style="color:#E8B04A">Admin@</strong> fallback — changing it updates both.</div>
         <div class="cp-g2" style="margin-bottom:8px">
@@ -2133,8 +2337,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
         <div id="cpDevPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
         <button class="bgold" onclick="cpChangeDevPassFull()" style="margin-bottom:20px">🔐 Update Developer Password</button>
-
-        <!-- Admin (legacy) Password -->
         <div class="cp-stitle" style="margin-top:4px">🛡️ Admin Fallback Password</div>
         <div class="cp-infobox" style="margin-bottom:10px">This is the secondary key that can also unlock Developer access. Keep it different from the main Developer password for extra security.</div>
         <div class="cp-g2" style="margin-bottom:8px">
@@ -2143,8 +2345,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
         <div id="cpAdminPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
         <button class="bgold" onclick="cpChangeAdminPass()" style="margin-bottom:20px">🛡️ Update Admin Password</button>
-
-        <!-- Manager Password -->
         <div class="cp-stitle" style="margin-top:4px">👔 Manager Password</div>
         <div class="cp-infobox" style="margin-bottom:10px">The Manager role password. Change this regularly to maintain access control.</div>
         <div class="cp-g2" style="margin-bottom:8px">
@@ -2153,8 +2353,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
         </div>
         <div id="cpMgrPassMsg" style="font-size:11px;margin-bottom:6px;min-height:16px"></div>
         <button class="bgold" onclick="cpChangeMgrPass()" style="margin-bottom:20px">👔 Update Manager Password</button>
-
-        <!-- Department Passwords -->
         <div class="cp-stitle" style="margin-top:4px">🏢 Department Passwords</div>
         <div id="cpDeptPassList" style="margin-bottom:12px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px;margin-bottom:20px">
@@ -2162,13 +2360,10 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           <div><label class="cp-lbl2">Password</label><input class="cp-inp2" type="password" id="cpDeptPassInp" placeholder="Min 4 chars"></div>
           <button class="bgold" onclick="cpSetDeptPass()">Set</button>
         </div>
-
-        <!-- Locked Accounts -->
         <div class="cp-stitle" style="margin-top:4px">🔒 Locked Accounts</div>
         <div class="cp-infobox" style="margin-bottom:10px">Departments locked after 3 wrong password attempts appear here. You can unlock them instantly.</div>
-        <div id="cpLockedList" style="margin-bottom:8px"><span style="font-size:11px;color:#64748B">No locked accounts.</span></div>
+        <div id="cpLockedList" style="margin-bottom:8px"><span style="font-size:11px;color:#4A6080">No locked accounts.</span></div>
         <button class="bgold" style="background:rgba(201,150,58,.15);color:#C9963A;border:1px solid rgba(201,150,58,.3)" onclick="cpRenderLockedAccounts()">🔄 Refresh</button>
-
       </div>
     </div>
 
@@ -2181,8 +2376,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="cp-body">
         <div class="cp-stitle">Access Users</div>
         <div id="cpLiveUserList" style="margin-bottom:16px"></div>
-
-        <!-- Inline Add/Edit Form -->
         <div id="cpLUForm" style="display:none;background:rgba(201,150,58,.06);border:1.5px dashed rgba(201,150,58,.3);border-radius:10px;padding:12px;margin-bottom:16px">
           <div class="cp-stitle" id="cpLUFormTitle" style="margin-bottom:8px">Add LIVE User</div>
           <div class="cp-g2" style="margin-bottom:8px">
@@ -2217,7 +2410,6 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
             <button class="bgold" onclick="cpSaveLU()">💾 Save</button>
           </div>
         </div>
-
         <div class="cp-stitle">Monitored Positions</div>
         <div class="cp-infobox">📍 Only staff with these positions appear in LIVE. Add or remove as needed.</div>
         <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px" id="cpMonPosList"></div>
@@ -2225,24 +2417,19 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
           <div><label class="cp-lbl2">Add Position to Monitor</label><select class="cp-inp2" id="cpMonPosInput"></select></div>
           <button class="bgold" style="margin-top:18px" onclick="cpAddMonPos()">+ Add</button>
         </div>
-        <!-- Live preview panel injected by JS -->
         <div id="cpLivePreview"></div>
-
-        <!-- ══ AUTHORIZED STAFF — LIVE DASHBOARD ACCESS ══ -->
         <div style="margin-top:22px;padding-top:18px;border-top:1px solid rgba(255,255,255,.08)">
           <div class="cp-stitle" style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
             🟢 Staff LIVE Access
-            <span style="font-size:10px;color:#64748B;font-weight:400">View only — manage in Dev Panel → Live Access</span>
+            <span style="font-size:10px;color:#4A6080;font-weight:400">View only — manage in Dev Panel → Live Access</span>
           </div>
           <div class="cp-infobox" style="margin-bottom:12px">
             Authorized staff (showing below) see a <strong style="color:#4ADE80">LIVE</strong> tile + <strong style="color:#E8B04A">My Roster</strong> tile on login. To <strong>add or remove</strong> IDs, go to <strong style="color:#4ADE80">Dev Panel → 🟢 Live Access</strong>.
           </div>
-          <div id="laList" style="display:flex;flex-direction:column;gap:7px"></div>
         </div>
       </div>
     </div>
 
-    <!-- NOTIFICATIONS -->
     <div class="cp-panel" id="cpt-notifications" style="display:none">
       <div class="cp-ph"><div class="cp-pt">🔔 Push Notifications <span class="cp-badge">FCM Control</span></div></div>
       <div class="cp-body" id="cpNotifBody"></div>
