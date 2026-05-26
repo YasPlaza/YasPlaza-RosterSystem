@@ -4057,7 +4057,7 @@ function setupRealtimeListeners() {
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "roster") renderRoster();
     if (active === "dash") renderDash();
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
   });
@@ -4067,7 +4067,7 @@ function setupRealtimeListeners() {
     swapRequests = snap.val() || {};
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "requests") renderAdminRequests();
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       renderSwapList();
     }
     handleRequestPopups();
@@ -4079,7 +4079,7 @@ function setupRealtimeListeners() {
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "requests") renderAdminRequests();
     if (active === "dash") renderDash();
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       renderLeaveList();
     }
     handleRequestPopups();
@@ -4106,7 +4106,7 @@ function setupRealtimeListeners() {
     if (active === "coverage") renderCoverage();
     updateStatus("online", "Live Sync ✓");
     // Push to employee portal if open
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
   });
@@ -4128,7 +4128,7 @@ function setupRealtimeListeners() {
     if (active === "coverage") renderCoverage();
     if (active === "dash")     renderDash();
     // KEY FIX: push to employee portal immediately
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
   });
@@ -4183,7 +4183,7 @@ function setupRealtimeListeners() {
     }
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "roster") renderRoster();
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
   });
@@ -4197,7 +4197,7 @@ function setupRealtimeListeners() {
     }
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "roster") renderRoster();
-    if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(currentEmpId);
     }
   });
@@ -4275,7 +4275,7 @@ function startEmpListener(empId) {
     if (!schedData[empId]) schedData[empId] = {};
     schedData[empId][key] = snap.val() || {};
     // Refresh if this employee's dash is open
-    if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId === empId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(empId);
     }
   });
@@ -4283,7 +4283,7 @@ function startEmpListener(empId) {
   db.ref("staff/" + empId).on("value", snap => {
     if (snap.val()) {
       staffData[empId] = snap.val();
-      if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+      if (currentEmpId === empId && document.getElementById("empDash")?.classList.contains("show")) {
         refreshEmpDash(empId);
       }
     }
@@ -4293,7 +4293,7 @@ function startEmpListener(empId) {
     const val = snap.val();
     if (!sectionOverrides[empId]) sectionOverrides[empId] = {};
     if (val) sectionOverrides[empId] = val;
-    if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId === empId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(empId);
     }
   });
@@ -4302,7 +4302,7 @@ function startEmpListener(empId) {
     const val = snap.val();
     if (!blockDays[key]) blockDays[key] = {};
     if (val) blockDays[key] = val;
-    if (currentEmpId === empId && document.getElementById("empDash").classList.contains("show")) {
+    if (currentEmpId === empId && document.getElementById("empDash")?.classList.contains("show")) {
       refreshEmpDash(empId);
     }
   });
@@ -6598,7 +6598,7 @@ window.addEventListener('resize', () => {
   if (active === 'roster') renderRoster();
 });
 
-function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; }
+function closePop() { const _p=document.getElementById("shiftPop"); if(_p) _p.style.display="none"; popEmpId=null; popDay=null; }
 document.addEventListener("click",e=>{ 
   const _sp=document.getElementById("shiftPop"); if(_sp && !_sp.contains(e.target)) closePop();
   // Close swap partner dropdown when clicking outside
@@ -8740,6 +8740,14 @@ window.addEventListener("load", function() {
     try { setRosterView(rosterViewMode); } catch(e) {}
     // Show cached broadcast message if any
     try { const b = localStorage.getItem('yph_broadcast'); if (b) showBroadcastBanner(b); } catch(e) {}
+    // Firebase connection timeout — if still "Connecting…" after 10s, show offline
+    setTimeout(function() {
+      const dot = document.getElementById("statusDot");
+      if (dot && dot.classList.contains("syncing")) {
+        updateStatus("offline", "Offline Mode");
+        console.warn("[YPH] Firebase did not connect within 10s — switching to offline mode.");
+      }
+    }, 10000);
   } catch(e) {
     console.warn("Boot error:", e);
     updateStatus("offline","Offline Mode");
