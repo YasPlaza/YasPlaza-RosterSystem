@@ -4756,7 +4756,7 @@ function closeFbSetup() { document.getElementById("fbSetupModal").classList.remo
 // NAVIGATION
 // ═══════════════════════════════════════════════════
 function backToLanding() {
-  if (typeof fbSignOut === 'function') fbSignOut();
+  // Do NOT call fbSignOut — Firebase stays connected permanently in the background
   ["empPortal","app"].forEach(id=>{ const el=document.getElementById(id); if(el){el.classList.remove("show");el.style.display="";} });
   const liveDash = document.getElementById('liveDashWindow');
   if (liveDash) liveDash.style.display = 'none';
@@ -4766,6 +4766,8 @@ function backToLanding() {
   ['landEmpId','empIdInp','passInp','cpLiveAuthIdInp'].forEach(id => { const _el = document.getElementById(id); if (_el) _el.value = ''; });
   _currentLandEmpId = null;
   if (typeof stopLiveDashClock === 'function') stopLiveDashClock();
+  // Update status to show still connected
+  if (typeof updateStatus === 'function' && db) updateStatus("online", "Live Sync ✓");
 }
 function openEmpPortal() {
   document.getElementById("landing").style.display="none";
