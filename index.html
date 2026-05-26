@@ -1093,7 +1093,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div style="margin-bottom:8px">
       <label style="display:block;font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;text-align:left">Employee ID</label>
       <div style="display:flex;gap:8px">
-        <input id="landEmpId" class="pass-inp" placeholder="e.g. E001" maxlength="8" style="letter-spacing:3px;text-align:left;flex:1;padding:14px 16px"
+        <input id="landEmpId" class="pass-inp" placeholder="e.g. E001" maxlength="15" style="letter-spacing:3px;text-align:left;flex:1;padding:14px 16px"
           oninput="this.value=this.value.toUpperCase()"
           onkeydown="if(event.key==='Enter')landLogin()">
         <button onclick="landLogin()" style="background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:12px;padding:14px 20px;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer;transition:.25s;white-space:nowrap;box-shadow:0 4px 20px rgba(201,150,58,.4)">→</button>
@@ -1256,7 +1256,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
     <div style="margin-bottom:12px;padding:8px 12px;background:rgba(201,150,58,.15);border:1px solid rgba(201,150,58,.3);border-radius:8px;font-size:11px;color:var(--gold2)">
       💡 <strong>Tip:</strong> Tap any day in your 7-day schedule to see full duty details — shift time, hotel, section &amp; more.
     </div>
-    <input class="ei" id="empIdInp" placeholder="e.g. E001" maxlength="8" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')loginEmp()">
+    <input class="ei" id="empIdInp" placeholder="e.g. E001" maxlength="15" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')loginEmp()">
     <div class="eerr" id="empErr"></div>
     <button class="elb" onclick="loginEmp()">View My Schedule →</button>
     <br>
@@ -2337,7 +2337,7 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
       <div class="emp-row emp-row-2">
         <div class="emp-fld">
           <label>Employee ID *</label>
-          <input class="inp" id="f-id" placeholder="E001" maxlength="12" autocomplete="off"
+          <input class="inp" id="f-id" placeholder="E001" maxlength="15" autocomplete="off"
             style="font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:2px;font-size:15px"
             oninput="this.value=this.value.toUpperCase();empValidateId(this.value)"
             onblur="empValidateField('f-id')">
@@ -4030,7 +4030,18 @@ function setupRealtimeListeners() {
 
 // Staff listener
   db.ref("staff").on("value", snap => {
-    staffData = snap.val() || {};
+    const fbStaff = snap.val();
+    if (fbStaff && Object.keys(fbStaff).length > 0) {
+      // Firebase has data — merge with local (Firebase wins on conflicts)
+      staffData = Object.assign({}, staffData, fbStaff);
+    } else if (!fbStaff || Object.keys(fbStaff).length === 0) {
+      // Firebase is empty — push local data up to Firebase so it syncs
+      const localKeys = Object.keys(staffData);
+      if (localKeys.length > 0) {
+        localKeys.forEach(k => { try { db.ref("staff/" + k).set(staffData[k]); } catch(e) {} });
+      }
+      // Don't overwrite staffData with empty
+    }
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "staff")    renderStaff();
     if (active === "roster")   renderRoster();
@@ -4045,7 +4056,16 @@ function setupRealtimeListeners() {
 
   // Schedules listener — this fires every time admin changes a shift
   db.ref("schedules").on("value", snap => {
-    schedData = snap.val() || {};
+    const fbSched = snap.val();
+    if (fbSched && Object.keys(fbSched).length > 0) {
+      schedData = Object.assign({}, schedData, fbSched);
+    } else if (!fbSched || Object.keys(fbSched).length === 0) {
+      // Firebase schedules empty — push local up
+      const localSchedKeys = Object.keys(schedData);
+      if (localSchedKeys.length > 0) {
+        localSchedKeys.forEach(k => { try { db.ref("schedules/" + k).set(schedData[k]); } catch(e) {} });
+      }
+    }
     const active = document.querySelector(".tab.active")?.dataset.p;
     if (active === "roster")   renderRoster();
     if (active === "coverage") renderCoverage();
@@ -7491,54 +7511,51 @@ function loginEmp() {
   const id=document.getElementById("empIdInp").value.trim().toUpperCase();
   if(!id){document.getElementById("empErr").textContent="Please enter your Employee ID.";return;}
 
-  // If Firebase connected, fetch directly (works even if staffData not loaded yet)
-  if(db) {
+  // Always try local first for instant response
+  const localEmp = staffData[id];
+  if (localEmp) {
     document.getElementById("empErr").textContent="";
+    currentEmpId=id;
+    if(typeof startEmpListener==='function') startEmpListener(id);
+    showEmpDash(localEmp);
+    renderSwapList();
+    renderLeaveList();
+    try { const cached=localStorage.getItem('yph_broadcast'); if(cached) showBroadcastBanner(cached); } catch(e){}
+    return;
+  }
+
+  // Not in local — try Firebase if connected
+  if(db) {
+    document.getElementById("empErr").textContent="🔄 Looking up…";
     updateStatus("syncing","Looking up…");
+    var _done = false;
+    var _timeout = setTimeout(function(){
+      if(_done) return; _done=true;
+      document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
+      updateStatus("online","Live Sync ✓");
+    }, 5000);
     db.ref("staff/"+id).once("value").then(snap=>{
+      if(_done) return; _done=true; clearTimeout(_timeout);
       const emp=snap.val();
       if(!emp){
-        // Firebase returned nothing — try local staffData before giving up
-        const localEmp = staffData[id];
-        if (localEmp) {
-          staffData[id] = localEmp;
-          currentEmpId = id;
-          startEmpListener(id);
-          showEmpDash(localEmp);
-          updateStatus("online","Live Sync ✓");
-        } else {
-          document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
-          updateStatus("online","Live Sync ✓");
-        }
+        document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
+        updateStatus("online","Live Sync ✓");
         return;
       }
       staffData[id]=emp;
       currentEmpId=id;
-      startEmpListener(id);   // Start real-time listener for this employee
+      if(typeof startEmpListener==='function') startEmpListener(id);
       showEmpDash(emp);
       updateStatus("online","Live Sync ✓");
     }).catch(()=>{
-      // Fallback to local
-      const emp=staffData[id];
-      if(!emp){document.getElementById("empErr").textContent="❌ Employee ID not found.";return;}
-      currentEmpId=id;
-      showEmpDash(emp);
+      if(_done) return; _done=true; clearTimeout(_timeout);
+      document.getElementById("empErr").textContent="❌ Employee ID not found.";
     });
     return;
   }
 
-  // Offline mode — use local data
-  const emp=staffData[id];
-  if(!emp){document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";return;}
-  currentEmpId=id;
-  showEmpDash(emp);
-  renderSwapList();
-  renderLeaveList();
-  // Show cached broadcast if any
-  try {
-    const cached = localStorage.getItem('yph_broadcast');
-    if (cached) showBroadcastBanner(cached);
-  } catch(e) {}
+  // Fully offline — no local match found
+  document.getElementById("empErr").textContent="❌ Employee ID not found. Check with your supervisor.";
 }
 
 
@@ -8831,20 +8848,40 @@ function landLogin() {
   if (errEl) errEl.textContent = '';
 
   // If Firebase available, do a live lookup so it works even before staffData is fully loaded
+  // Always check local data first for instant response
+  const localEmp = staffData[id];
+  if (localEmp) {
+    _currentLandEmpId = id;
+    if (errEl) errEl.textContent = '';
+    if (isLiveAuthorized(id)) { openAuthSelector(id, localEmp); } else { openEmpPortalWithId(id); }
+    return;
+  }
+
+  // Not found locally — try Firebase if connected
   if (typeof db !== 'undefined' && db) {
     if (errEl) errEl.textContent = '🔄 Looking up…';
+    // Add 5-second timeout fallback
+    var _fbLookupDone = false;
+    var _fbLookupTimeout = setTimeout(function() {
+      if (_fbLookupDone) return;
+      _fbLookupDone = true;
+      if (errEl) errEl.textContent = '❌ Employee ID not found. Please check and try again.';
+    }, 5000);
     db.ref('staff/' + id).once('value').then(snap => {
-      const emp = snap.val() || staffData[id]; // check Firebase first, fall back to local
+      if (_fbLookupDone) return;
+      _fbLookupDone = true;
+      clearTimeout(_fbLookupTimeout);
+      const emp = snap.val();
       if (!emp) { if(errEl) errEl.textContent = '❌ Employee ID not found. Please check and try again.'; return; }
       staffData[id] = emp;
       _currentLandEmpId = id;
       if (errEl) errEl.textContent = '';
       if (isLiveAuthorized(id)) { openAuthSelector(id, emp); } else { openEmpPortalWithId(id); }
     }).catch(() => {
-      const emp = staffData[id];
-      if (!emp) { if(errEl) errEl.textContent = '❌ Employee ID not found.'; return; }
-      _currentLandEmpId = id;
-      if (isLiveAuthorized(id)) { openAuthSelector(id, emp); } else { openEmpPortalWithId(id); }
+      if (_fbLookupDone) return;
+      _fbLookupDone = true;
+      clearTimeout(_fbLookupTimeout);
+      if (errEl) errEl.textContent = '❌ Employee ID not found.';
     });
     return;
   }
