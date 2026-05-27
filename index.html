@@ -213,7 +213,7 @@ function _empResetTabs() {
 
 
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-height:100vh}
+body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);height:100vh;overflow:hidden}
 ::-webkit-scrollbar{width:5px;height:5px}
 ::-webkit-scrollbar-thumb{background:var(--gold);border-radius:3px}
 
@@ -334,8 +334,8 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .link-btn{background:none;border:none;color:var(--slate2);cursor:pointer;font-size:11px;margin-top:12px;text-decoration:underline}
 
 /* ════ APP SHELL ════ */
-#app{display:none;flex-direction:column;min-height:100vh;background:var(--ice2)}
-#app.show{display:flex}
+#app{display:none;flex-direction:column;height:100vh;max-height:100vh;overflow:hidden;background:var(--ice2)}
+#app.show{display:flex;flex-direction:column}
 .topbar{background:linear-gradient(90deg,var(--navy),var(--navy2));padding:0 22px;display:flex;align-items:center;height:56px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,.28);position:sticky;top:0;z-index:100}
 .topbar-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#fff;display:flex;align-items:center;gap:8px;flex-shrink:0}
 .topbar-logo span{background:var(--gold);color:#fff;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:14px}
@@ -352,7 +352,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);min-h
 .exit-btn{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:rgba(255,255,255,.65);border-radius:7px;padding:4px 10px;font-size:11px;cursor:pointer;transition:.2s}
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
-.page{display:none;flex:1;height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both}
+.page{display:none;flex:1;height:calc(100vh - 56px);max-height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both;scroll-behavior:auto}
 .page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
@@ -874,7 +874,69 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
 .cp-ni-icon{display:inline-block;width:22px;text-align:center;margin-right:4px}
 .cp-nav-item{display:flex;align-items:center}
 #cpPassStrengthBar{min-height:18px}
-</style></head>
+</style>
+<style id="v8-scroll-fix">
+/* ── v8 SCROLL ARCHITECTURE FIX ─────────────────────────────────
+   Prevents the entire page from scrolling when switching tabs.
+   Each .page handles its own internal scroll.
+   The topbar + nav always stay pinned at the top.
+─────────────────────────────────────────────────────────────────*/
+html, body {
+  height: 100% !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  position: fixed !important;
+  width: 100% !important;
+}
+#app {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  overflow: hidden !important;
+  display: none;
+  flex-direction: column !important;
+}
+#app.show {
+  display: flex !important;
+}
+/* Topbar always on top */
+.topbar {
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 100 !important;
+}
+/* Each page fills remaining height and scrolls internally */
+.page {
+  flex: 1 !important;
+  height: 0 !important; /* flex will expand it to fill */
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: none !important;
+}
+.page.active {
+  display: block !important;
+}
+/* Dev panel special case — full height flex column */
+#page-settings.active {
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+#cp-outer {
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+}
+/* Landing page stays full-screen fixed */
+#landing {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 1000 !important;
+  overflow: hidden !important;
+}
+</style>
+</head>
 <body>
 
 <!-- Developer Broadcast Banner -->
@@ -4428,29 +4490,47 @@ function _switchPageOriginal(name) {
   const pageEl = document.getElementById("page-"+name);
   if (!pageEl) return;
   pageEl.classList.add("active");
-  // Scroll every possible container to top immediately + after render
-  const resetScroll = () => {
-    pageEl.scrollTop = 0;
-    window.scrollTo(0, 0);
-    document.documentElement.scrollTop = 0;
-    document.body.scrollTop = 0;
-    // Also scroll the #app wrapper and any overflow parent
-    const appEl = document.getElementById('app');
-    if (appEl) appEl.scrollTop = 0;
-    // Walk up from pageEl and reset any overflow:auto/scroll parent
-    let el = pageEl.parentElement;
-    while (el && el !== document.body) {
-      const ov = getComputedStyle(el).overflowY;
-      if (ov === 'auto' || ov === 'scroll') el.scrollTop = 0;
-      el = el.parentElement;
-    }
-  };
-  resetScroll();
-  requestAnimationFrame(()=>{ resetScroll(); });
-  setTimeout(resetScroll, 50);
-  setTimeout(resetScroll, 200);
+
+  // ── AGGRESSIVE SCROLL RESET ──
+  // Reset every possible scroll container immediately and after render
+  function resetAllScroll() {
+    try {
+      // 1. The page element itself
+      pageEl.scrollTop = 0;
+      // 2. Window / document
+      window.scrollTo({top: 0, left: 0, behavior: 'instant'});
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      // 3. #app wrapper
+      const appEl = document.getElementById('app');
+      if (appEl) appEl.scrollTop = 0;
+      // 4. cp-outer (dev panel inner scroller)
+      const cpOuter = document.getElementById('cp-outer');
+      if (cpOuter) cpOuter.scrollTop = 0;
+      // 5. Walk up from pageEl and reset any scrolling ancestor
+      let el = pageEl.parentElement;
+      while (el && el !== document.body) {
+        try { el.scrollTop = 0; } catch(e) {}
+        el = el.parentElement;
+      }
+      // 6. Force the topbar into view
+      const topbar = document.querySelector('.topbar');
+      if (topbar) topbar.scrollIntoView({block: 'start', behavior: 'instant'});
+    } catch(e) {}
+  }
+
+  resetAllScroll();
+  requestAnimationFrame(resetAllScroll);
+  setTimeout(resetAllScroll, 30);
+  setTimeout(resetAllScroll, 100);
+  setTimeout(resetAllScroll, 300);
+
   const tabEl = document.querySelector(`[data-p="${name}"]`);
-  if (tabEl) tabEl.classList.add("active");
+  if (tabEl) {
+    tabEl.classList.add("active");
+    // Scroll tab into view in case nav overflows horizontally
+    try { tabEl.scrollIntoView({block:'nearest', inline:'nearest', behavior:'instant'}); } catch(e) {}
+  }
   if(name==="roster")   renderRoster();
   if(name==="staff")    renderStaff();
   if(name==="coverage") renderCoverage();
@@ -15672,7 +15752,7 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
     extra.className = 'v7as-addon';
     extra.style.marginTop = '12px';
     extra.innerHTML = `
-      <div class="v7as-addon-title">🧠 Smart Fill Options</div>
+      <div class="v7as-addon-title">🧠 Smart Fill Options <span style="font-size:9px;background:#EDE9FE;color:#7C3AED;border:1px solid #DDD6FE;border-radius:5px;padding:1px 7px;font-weight:700">SMART</span></div>
       <div class="v7as-chk-row" style="margin-bottom:8px">
         <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectLeave" checked> Respect annual leave</label>
         <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectOff" checked> Respect off days</label>
@@ -15681,7 +15761,7 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div>
-          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Fill Mode</label>
+          <label style="font-size:10px;color:#6D28D9;font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Fill Mode</label>
           <select id="v7FillMode" class="v7as-inp">
             <option value="all">Fill All Empty Cells</option>
             <option value="gap">Fill Coverage Gaps Only</option>
@@ -15689,7 +15769,7 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
           </select>
         </div>
         <div>
-          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">If Cell Has Value</label>
+          <label style="font-size:10px;color:#6D28D9;font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">If Cell Has Value</label>
           <select id="v7FillOverwrite" class="v7as-inp">
             <option value="skip">Skip Existing</option>
             <option value="overwrite">Overwrite All</option>
@@ -15785,36 +15865,39 @@ console.log('[YPH v7] Loaded: Shift filter fix · Excel/CSV/PDF/JSON export · I
 
 /* ── AUTO SCHEDULE ADVANCED PANEL ──────────────────────────────── */
 .v8as-section {
-  background:rgba(91,33,182,.06); border:1px solid rgba(91,33,182,.2);
+  background:#fff; border:1.5px solid #E0D4FA;
   border-radius:10px; padding:12px; margin-bottom:10px;
+  box-shadow:0 2px 8px rgba(91,33,182,.07);
 }
 .v8as-section-title {
-  font-size:11px; font-weight:800; color:#C084FC; margin-bottom:10px;
+  font-size:11px; font-weight:800; color:#6D28D9; margin-bottom:10px;
   display:flex; align-items:center; gap:6px; text-transform:uppercase; letter-spacing:.4px;
 }
 .v8as-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 .v8as-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
-.v8as-lbl { font-size:10px; color:rgba(255,255,255,.5); display:block; margin-bottom:4px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+.v8as-lbl { font-size:10px; color:#6D28D9; display:block; margin-bottom:4px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
 .v8as-inp {
-  width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
-  border-radius:7px; padding:6px 9px; font-size:11px; color:#fff;
+  width:100%; background:#F8F5FF; border:1.5px solid #DDD6FE;
+  border-radius:7px; padding:6px 9px; font-size:11px; color:#1E1B4B;
   font-family:'DM Sans',sans-serif; outline:none; transition:.2s;
 }
-.v8as-inp:focus { border-color:rgba(124,58,237,.5); }
+.v8as-inp:focus { border-color:#7C3AED; background:#fff; box-shadow:0 0 0 3px rgba(124,58,237,.12); }
 .v8as-chk { display:flex; gap:8px; flex-wrap:wrap; }
 .v8as-chk label {
   display:flex; align-items:center; gap:5px; font-size:11px;
-  color:rgba(255,255,255,.7); cursor:pointer; padding:4px 8px;
-  background:rgba(255,255,255,.04); border-radius:6px; border:1px solid rgba(255,255,255,.08);
+  color:#374151; cursor:pointer; padding:5px 10px;
+  background:#F5F3FF; border-radius:7px; border:1.5px solid #EDE9FE;
+  transition:.15s; user-select:none;
 }
-.v8as-chk input[type="checkbox"] { accent-color:#7C3AED; }
+.v8as-chk label:hover { background:#EDE9FE; border-color:#C4B5FD; }
+.v8as-chk input[type="checkbox"] { accent-color:#7C3AED; cursor:pointer; }
 .v8as-analyze-btn {
-  width:100%; background:linear-gradient(135deg,rgba(91,33,182,.35),rgba(124,58,237,.2));
-  border:1px solid rgba(124,58,237,.4); color:#C084FC; border-radius:9px;
-  padding:9px; font-size:11px; font-weight:700; cursor:pointer; transition:.2s;
-  margin-top:6px;
+  width:100%; background:linear-gradient(135deg,#7C3AED,#6D28D9);
+  border:none; color:#fff; border-radius:9px;
+  padding:10px; font-size:11px; font-weight:700; cursor:pointer; transition:.2s;
+  margin-top:6px; box-shadow:0 3px 12px rgba(109,40,217,.25);
 }
-.v8as-analyze-btn:hover { background:linear-gradient(135deg,rgba(91,33,182,.5),rgba(124,58,237,.35)); }
+.v8as-analyze-btn:hover { filter:brightness(1.1); box-shadow:0 5px 16px rgba(109,40,217,.35); }
 </style>
 
 <script>
