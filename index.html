@@ -30,7 +30,8 @@
   --sh:0 4px 24px rgba(15,30,53,.1);
   --sh-lg:0 16px 56px rgba(15,30,53,.18);
 }
-
+</style>
+<script>
 // ═══════════════════════════════════════════════════════════════
 // ENHANCED ROSTER INPUT — Tab navigation, live validation, avatar
 // ═══════════════════════════════════════════════════════════════
@@ -210,8 +211,8 @@ function _empResetTabs() {
   });
   empUpdateALRemaining();
 }
-
-
+</script>
+<style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);height:100vh;overflow:hidden}
 ::-webkit-scrollbar{width:5px;height:5px}
@@ -1304,9 +1305,9 @@ html, body {
 
       <button class="tab"        data-p="sections" onclick="switchPage('sections')">📍 Sections</button>
       <button class="tab"        data-p="dash"     onclick="switchPage('dash')">📈 Summary</button>
-      <button class="tab"        data-p="forecast" onclick="switchPage('forecast')">🏨 Forecast</button>
+      <button class="tab"        data-p="forecast" onclick="switchPage('forecast');setTimeout(function(){if(typeof renderForecast==='function')try{renderForecast();}catch(e){}},80)">🏨 Forecast</button>
       <button class="tab"        data-p="dashboard"  onclick="switchPage('dashboard')">📊 Dashboard</button>
-      <button class="tab"        data-p="settings" onclick="switchPage('settings')">⚙️ Dev Panel</button>
+      <button class="tab"        data-p="settings" onclick="switchPage('settings');setTimeout(function(){if(typeof cpRenderModules==='function')try{cpRenderModules();}catch(e){};if(typeof cpUpdateHealth==='function')try{cpUpdateHealth();}catch(e){};if(typeof window._rebuildDevPanel==='function')try{window._rebuildDevPanel();}catch(e){}},100)">⚙️ Dev Panel</button>
     </div>
     <div class="topbar-r">
       <select class="inp inp-sm" id="deptFilter" onchange="changeDept(this.value)" style="width:130px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.2)">
@@ -1692,7 +1693,9 @@ html, body {
     </div>
 
     <!-- Global KPI Cards (across selected hotels) -->
-    <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px"></div>
+    <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:14px">
+      <div style="background:#fff;border-radius:var(--r);padding:20px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:center;color:var(--slate);font-size:12px;min-height:80px;grid-column:1/-1">⏳ Loading forecast data…</div>
+    </div>
 
     <!-- Suggestions Alert Banner -->
     <div id="fcSuggestionsBox" style="margin-bottom:14px"></div>
@@ -1703,7 +1706,7 @@ html, body {
     <!-- Department Recommendations -->
     <div class="card" style="background:#fff;border-radius:var(--r);padding:16px;box-shadow:var(--sh);margin-bottom:18px">
       <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.5px">💡 Smart Staffing Recommendations</div>
-      <div id="fcRecsBox"></div>
+      <div id="fcRecsBox"><div style="color:var(--slate);font-size:12px">Loading recommendations…</div></div>
     </div>
   </div>
 
@@ -1868,7 +1871,7 @@ html, body {
         <div class="cp-pt">🧩 Feature Modules <span class="cp-badge">ON/OFF Control</span></div>
         <button class="bgold" onclick="cpSaveFlags()">💾 Save All</button>
       </div>
-      <div class="cp-body"><div class="mg" id="cpModGrid"></div></div>
+      <div class="cp-body"><div class="mg" id="cpModGrid"><div style="grid-column:1/-1;padding:20px;text-align:center;color:rgba(255,255,255,.4);font-size:12px">⏳ Loading modules…</div></div></div>
     </div>
 
     <!-- HOTELS -->
@@ -4540,6 +4543,8 @@ function _switchPageOriginal(name) {
   if(name==="settings") renderSettings();
   if(name==="sections") { initSectionsPage(); initRosterRulesUI(); }
   if(name==="handover") initHandoverPage();
+  if(name==="forecast") { setTimeout(function(){ if(typeof renderForecast==='function') try{renderForecast();}catch(e){} }, 60); }
+  if(name==="staffing") { setTimeout(function(){ if(typeof renderStaffingPage==='function') try{renderStaffingPage();}catch(e){} }, 60); }
 }
 var switchPage = _switchPageOriginal;
 
@@ -6656,6 +6661,18 @@ function renderSettings() {
       grantDeptSel.innerHTML = '<option value="">-- Select Department --</option>' +
         getAllDepts().map(d => '<option value="'+d+'">'+d+'</option>').join("");
     }
+    // Initialize the Dev Control Panel content
+    setTimeout(function(){
+      // Force a fresh rebuild if the panel hasn't been built yet
+      const cpOuter = document.getElementById('cp-outer');
+      if (cpOuter) {
+        // Remove stale v6 flag so rebuildDevPanel will reinitialise
+        delete cpOuter.dataset.v6;
+      }
+      if (typeof window._rebuildDevPanel === 'function') try{window._rebuildDevPanel();}catch(e){}
+      if (typeof cpTab === 'function') try{cpTab('modules');}catch(e){}
+      if (typeof cpUpdateHealth === 'function') try{cpUpdateHealth();}catch(e){}
+    }, 80);
   }
 }
 
@@ -14262,7 +14279,13 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
 (function(){
   function rebuildDevPanel() {
     const cpOuter = document.getElementById('cp-outer');
-    if (!cpOuter || cpOuter.dataset.v6) return;
+    if (!cpOuter) return;
+    if (cpOuter.dataset.v6) {
+      // Already built — just re-render content
+      if (typeof cpRenderModules === 'function') try{cpRenderModules();}catch(e){}
+      if (typeof cpUpdateHealth === 'function') try{cpUpdateHealth();}catch(e){}
+      return;
+    }
     cpOuter.dataset.v6 = '1';
 
     // Inject new topbar CSS overrides
@@ -14446,6 +14469,7 @@ Answer concisely and practically. Help with configuration, troubleshooting, or f
 
   setTimeout(rebuildDevPanel, 500);
   setInterval(rebuildDevPanel, 2000);
+  window._rebuildDevPanel = rebuildDevPanel;
 })();
 
 // ════════════════════════════════════════════════════════════════
@@ -14896,26 +14920,29 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
 
 /* ── ENHANCED AUTO SCHEDULE MODAL ADDON ─────────────────────────*/
 .v7as-addon {
-  background:rgba(91,33,182,.08); border:1px solid rgba(91,33,182,.25);
+  background:#F5F3FF; border:1.5px solid #DDD6FE;
   border-radius:12px; padding:14px; margin-bottom:12px;
 }
 .v7as-addon-title {
-  font-size:12px; font-weight:800; color:#C084FC; margin-bottom:10px;
+  font-size:12px; font-weight:800; color:#6D28D9; margin-bottom:10px;
   display:flex; align-items:center; gap:7px;
 }
 .v7as-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
 .v7as-lbl { font-size:11px; color:rgba(255,255,255,.6); font-weight:600; min-width:120px; }
 .v7as-inp {
-  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
-  border-radius:8px; padding:6px 10px; font-size:11px; color:#fff;
+  background:#F8F5FF; border:1.5px solid #DDD6FE;
+  border-radius:8px; padding:6px 10px; font-size:11px; color:#1E1B4B;
   font-family:'DM Sans',sans-serif; outline:none; transition:.2s; flex:1; min-width:80px;
 }
-.v7as-inp:focus { border-color:rgba(124,58,237,.5); }
+.v7as-inp:focus { border-color:#7C3AED; background:#fff; box-shadow:0 0 0 3px rgba(124,58,237,.1); }
 .v7as-chk-row { display:flex; gap:10px; flex-wrap:wrap; }
 .v7as-chk-item {
   display:flex; align-items:center; gap:6px;
-  font-size:11px; color:rgba(255,255,255,.7); cursor:pointer;
+  font-size:11px; color:#374151; cursor:pointer;
+  background:#F5F3FF; border-radius:7px; padding:5px 10px;
+  border:1.5px solid #EDE9FE; transition:.15s; user-select:none;
 }
+.v7as-chk-item:hover { background:#EDE9FE; border-color:#C4B5FD; }
 .v7as-chk-item input { accent-color:#7C3AED; width:14px; height:14px; }
 
 /* ── ROSTER LEGEND BAR (click to filter) ─────────────────────── */
@@ -15733,8 +15760,8 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
     } else {
       el.innerHTML = `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px">
         <div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:8px">⚠️ ${gaps.length} Coverage Gaps Found</div>
-        ${gaps.slice(0,8).map(g=>`<div style="font-size:10.5px;color:rgba(255,255,255,.7);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">${g.type} ${g.msg}</div>`).join('')}
-        ${gaps.length > 8 ? `<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">...and ${gaps.length-8} more gaps</div>` : ''}
+        ${gaps.slice(0,8).map(g=>`<div style="font-size:10.5px;color:#7F1D1D;padding:3px 0;border-bottom:1px solid rgba(185,28,28,.12)">${g.type} ${g.msg}</div>`).join('')}
+        ${gaps.length > 8 ? `<div style="font-size:10px;color:#9B1C1C;margin-top:4px">...and ${gaps.length-8} more gaps</div>` : ''}
       </div>`;
     }
   };
@@ -16513,8 +16540,8 @@ console.log('[YPH v7] Loaded: Shift filter fix · Excel/CSV/PDF/JSON export · I
     } else {
       el.innerHTML = `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto">
         <div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:7px">⚠️ ${gaps.length} Coverage Issues Found</div>
-        ${gaps.slice(0,12).map(g=>`<div style="font-size:10.5px;color:rgba(255,255,255,.7);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">${g.type} ${g.msg}</div>`).join('')}
-        ${gaps.length > 12 ? `<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">...and ${gaps.length-12} more</div>` : ''}
+        ${gaps.slice(0,12).map(g=>`<div style="font-size:10.5px;color:#7F1D1D;padding:3px 0;border-bottom:1px solid rgba(185,28,28,.12)">${g.type} ${g.msg}</div>`).join('')}
+        ${gaps.length > 12 ? `<div style="font-size:10px;color:#9B1C1C;margin-top:4px">...and ${gaps.length-12} more</div>` : ''}
       </div>`;
     }
   };
@@ -16525,6 +16552,477 @@ console.log('[YPH v7] Loaded: Shift filter fix · Excel/CSV/PDF/JSON export · I
 
 console.log('[YPH v8] Loaded: Definitive shift filter fix · Week/Day calendar views · Reliable export button · Enhanced auto schedule');
 </script>
-</body>
-</html>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     YPH v9 — AI FORECAST→SCHEDULE BRIDGE + SMART AL AUTO-FILL
+     Uses Claude API to generate schedule suggestions from forecast data
+     and smart auto-complete for Annual Leave planning
+════════════════════════════════════════════════════════════════════ -->
+<style>
+/* AI Forecast Panel */
+#yph-ai-panel {
+  position:fixed;right:18px;bottom:70px;z-index:3000;
+  width:min(420px,calc(100vw - 32px));
+  background:linear-gradient(145deg,#0F1E35,#1B2D4A);
+  border:1.5px solid rgba(201,150,58,.35);
+  border-radius:18px;
+  box-shadow:0 24px 80px rgba(0,0,0,.55);
+  display:none;flex-direction:column;max-height:80vh;
+  animation:fadeUp .22s ease both;
+  overflow:hidden;
+}
+#yph-ai-panel.open{display:flex}
+.ai-pan-hdr{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:13px 16px;
+  background:linear-gradient(90deg,rgba(201,150,58,.18),transparent);
+  border-bottom:1px solid rgba(201,150,58,.2);
+  flex-shrink:0;
+}
+.ai-pan-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#fff;display:flex;align-items:center;gap:7px}
+.ai-pan-close{background:none;border:none;color:rgba(255,255,255,.5);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;border-radius:5px;transition:.15s}
+.ai-pan-close:hover{color:#fff;background:rgba(255,255,255,.1)}
+.ai-pan-body{padding:14px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px}
+.ai-msg{font-size:11.5px;line-height:1.7;color:rgba(255,255,255,.82);background:rgba(255,255,255,.05);border-radius:10px;padding:11px 13px;border:1px solid rgba(255,255,255,.07)}
+.ai-msg.ai-thinking{color:rgba(255,255,255,.45);border-style:dashed;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.ai-msg strong{color:#E8B04A}
+.ai-msg .ai-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(201,150,58,.15);color:#E8B04A;border:1px solid rgba(201,150,58,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;margin:2px 2px 2px 0}
+.ai-suggestion-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:11px;padding:11px 13px}
+.ai-sug-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;margin-bottom:7px;display:flex;align-items:center;gap:5px}
+.ai-sug-rows{display:grid;gap:5px}
+.ai-sug-row{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:rgba(255,255,255,.75);padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ai-sug-row:last-child{border-bottom:none}
+.ai-apply-btn{background:linear-gradient(135deg,#C9963A,#E8B04A);border:none;border-radius:8px;padding:6px 14px;font-size:10.5px;font-weight:700;color:#0D1B2E;cursor:pointer;transition:.2s;white-space:nowrap;flex-shrink:0}
+.ai-apply-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(201,150,58,.4)}
+.ai-pan-footer{padding:10px 14px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:7px;flex-shrink:0}
+#yph-ai-prompt{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:9px;padding:8px 12px;color:#fff;font-size:11.5px;outline:none;font-family:'DM Sans',sans-serif;resize:none;height:38px;transition:.15s;line-height:1.5}
+#yph-ai-prompt:focus{border-color:#C9963A;background:rgba(201,150,58,.07)}
+#yph-ai-send{background:linear-gradient(135deg,#C9963A,#E8B04A);border:none;border-radius:9px;padding:0 14px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#0D1B2E;cursor:pointer;height:38px;transition:.2s}
+#yph-ai-send:hover{transform:translateY(-1px)}
+/* FAB trigger button */
+#yph-ai-fab{
+  position:fixed;right:18px;bottom:18px;z-index:3001;
+  width:52px;height:52px;border-radius:50%;
+  background:linear-gradient(135deg,#C9963A,#E8B04A);
+  border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;box-shadow:0 8px 28px rgba(201,150,58,.5);
+  transition:.25s;
+}
+#yph-ai-fab:hover{transform:scale(1.08);box-shadow:0 12px 36px rgba(201,150,58,.65)}
+#yph-ai-fab .fab-badge{
+  position:absolute;top:-3px;right:-3px;
+  background:#EF4444;color:#fff;font-size:8px;font-weight:700;
+  border-radius:50%;width:16px;height:16px;display:none;
+  align-items:center;justify-content:center;
+}
+#yph-ai-fab .fab-badge.show{display:flex}
+
+/* AL smart autofill dropdown */
+.al-autofill-drop{
+  position:absolute;z-index:9999;
+  background:linear-gradient(145deg,#0F1E35,#1B2D4A);
+  border:1.5px solid rgba(201,150,58,.4);
+  border-radius:12px;box-shadow:0 16px 48px rgba(0,0,0,.5);
+  padding:8px 0;min-width:220px;max-height:220px;overflow-y:auto;
+  display:none;
+}
+.al-autofill-drop.open{display:block;animation:fadeUp .15s ease both}
+.al-drop-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 14px;cursor:pointer;font-size:11px;color:rgba(255,255,255,.75);transition:.12s}
+.al-drop-item:hover{background:rgba(201,150,58,.12);color:#fff}
+.al-drop-label{font-weight:600}
+.al-drop-badge{font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px}
+.al-drop-badge.ok{background:rgba(16,185,129,.15);color:#4ADE80;border:1px solid rgba(16,185,129,.25)}
+.al-drop-badge.warn{background:rgba(245,158,11,.15);color:#FCD34D;border:1px solid rgba(245,158,11,.25)}
+.al-drop-badge.bad{background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.25)}
+/* Forecast AI suggestion strip added to page-forecast */
+#fcAiStrip{
+  background:linear-gradient(135deg,rgba(201,150,58,.1),rgba(15,30,53,.6));
+  border:1.5px solid rgba(201,150,58,.3);
+  border-radius:14px;padding:14px 16px;margin-bottom:14px;
+  display:none;
+}
+#fcAiStrip.loaded{display:block;animation:fadeUp .25s ease both}
+.fcai-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#E8B04A;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.fcai-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.fcai-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid transparent;cursor:pointer;transition:.15s}
+.fcai-chip:hover{filter:brightness(1.15)}
+.fcai-chip.red{background:rgba(239,68,68,.15);color:#F87171;border-color:rgba(239,68,68,.3)}
+.fcai-chip.amber{background:rgba(245,158,11,.15);color:#FCD34D;border-color:rgba(245,158,11,.3)}
+.fcai-chip.green{background:rgba(16,185,129,.15);color:#4ADE80;border-color:rgba(16,185,129,.3)}
+.fcai-chip.blue{background:rgba(59,130,246,.15);color:#93C5FD;border-color:rgba(59,130,246,.3)}
+.fcai-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.fcai-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 13px}
+.fcai-card-ttl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94A3B8;margin-bottom:6px}
+.fcai-card-val{font-size:12px;color:rgba(255,255,255,.85);line-height:1.6}
+</style>
+
+<!-- AI FAB & Panel HTML -->
+<button id="yph-ai-fab" onclick="yphAiToggle()" title="AI Schedule Assistant">
+  🤖<span class="fab-badge" id="yph-ai-badge">!</span>
+</button>
+
+<div id="yph-ai-panel">
+  <div class="ai-pan-hdr">
+    <div class="ai-pan-title">🤖 AI Schedule Assistant <span style="font-size:9px;font-weight:600;background:rgba(201,150,58,.2);color:#E8B04A;padding:2px 7px;border-radius:5px;margin-left:4px">Forecast-Linked</span></div>
+    <button class="ai-pan-close" onclick="yphAiToggle()">✕</button>
+  </div>
+  <div class="ai-pan-body" id="yph-ai-messages">
+    <div class="ai-msg">👋 Hi! I'm your <strong>AI Schedule Assistant</strong>.<br>I can:<br>• Suggest staffing changes based on <strong>forecast occupancy</strong><br>• Help plan <strong>Annual Leave</strong> around low-occupancy windows<br>• Auto-fill AL recommendations for specific staff<br><br>Click <strong>"Analyse Forecast"</strong> or ask me anything.</div>
+  </div>
+  <div class="ai-pan-footer">
+    <textarea id="yph-ai-prompt" placeholder="Ask about scheduling, AL planning, coverage…" rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();yphAiSend()}"></textarea>
+    <button id="yph-ai-send" onclick="yphAiSend()">↑</button>
+  </div>
+</div>
+
+<!-- AL AutoFill dropdown (positioned dynamically) -->
+<div id="al-autofill-drop" class="al-autofill-drop"></div>
+
+<script>
+(function(){
+'use strict';
+
+// ─── helpers ──────────────────────────────────────────────────
+const FC_KEY = 'yph_forecast_v2';
+function loadFcData(){ try{const v=JSON.parse(localStorage.getItem(FC_KEY)||'[]');return Array.isArray(v)?v:[];}catch(e){return [];} }
+function getFcSummary(){
+  const rows = loadFcData();
+  if(!rows.length) return null;
+  const byHotel={};
+  rows.forEach(r=>{
+    if(!byHotel[r.hotel]) byHotel[r.hotel]={hotel:r.hotel,rows:[]};
+    byHotel[r.hotel].rows.push(r);
+  });
+  return Object.values(byHotel).map(h=>{
+    const occs = h.rows.map(r=>parseFloat(r.occ)||0).filter(Boolean);
+    const avg = occs.length ? (occs.reduce((a,b)=>a+b,0)/occs.length).toFixed(1) : 0;
+    const max = occs.length ? Math.max(...occs).toFixed(1) : 0;
+    const min = occs.length ? Math.min(...occs).toFixed(1) : 0;
+    const highs = h.rows.filter(r=>(parseFloat(r.occ)||0)>=85).map(r=>r.date);
+    const lows  = h.rows.filter(r=>(parseFloat(r.occ)||0)<55).map(r=>r.date);
+    return {hotel:h.hotel,avg,max,min,highs,lows,days:h.rows.length};
+  });
+}
+function getStaffSummary(){
+  try{
+    const sl = typeof staffList==='function'?staffList():[];
+    const depts={};
+    sl.forEach(s=>{ if(!depts[s.department]) depts[s.department]=0; depts[s.department]++; });
+    return {total:sl.length,depts};
+  }catch(e){return{total:0,depts:{}};}
+}
+
+// ─── Panel toggle ──────────────────────────────────────────────
+let _panelOpen = false;
+window.yphAiToggle = function(){
+  _panelOpen = !_panelOpen;
+  const p = document.getElementById('yph-ai-panel');
+  if(p) p.classList.toggle('open', _panelOpen);
+  // Clear badge
+  const badge = document.getElementById('yph-ai-badge');
+  if(badge) badge.classList.remove('show');
+  // Auto-analyse if first open and we have forecast data
+  if(_panelOpen && !_autoAnalysed){
+    _autoAnalysed = true;
+    const fcData = getFcSummary();
+    if(fcData && fcData.length) setTimeout(()=>yphAiForecastAnalyse(false),400);
+  }
+};
+let _autoAnalysed = false;
+
+// ─── Message renderer ──────────────────────────────────────────
+function addMsg(html, thinking=false){
+  const box = document.getElementById('yph-ai-messages');
+  if(!box) return null;
+  const d = document.createElement('div');
+  d.className = 'ai-msg' + (thinking?' ai-thinking':'');
+  d.innerHTML = html;
+  box.appendChild(d);
+  box.scrollTop = 99999;
+  return d;
+}
+
+// ─── Claude API call ───────────────────────────────────────────
+async function callClaude(systemPrompt, userMsg){
+  const resp = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      model:'claude-sonnet-4-20250514',
+      max_tokens:1000,
+      system: systemPrompt,
+      messages:[{role:'user',content:userMsg}]
+    })
+  });
+  const data = await resp.json();
+  return (data.content||[]).map(c=>c.type==='text'?c.text:'').join('');
+}
+
+// ─── Forecast Analyse ──────────────────────────────────────────
+window.yphAiForecastAnalyse = async function(userTriggered=true){
+  if(userTriggered && !_panelOpen) yphAiToggle();
+  const fcData = getFcSummary();
+  const staffInfo = getStaffSummary();
+
+  if(!fcData || !fcData.length){
+    addMsg('⚠️ <strong>No forecast data found.</strong> Please import a forecast Excel/CSV on the Forecast page first, then I can give you schedule suggestions.');
+    return;
+  }
+
+  const thinking = addMsg('🔍 Analysing forecast data…', true);
+
+  const systemPrompt = `You are a hospitality scheduling expert AI for Yas Plaza Hotels, Abu Dhabi.
+You analyse 10-day occupancy forecasts and give actionable, department-specific scheduling recommendations.
+Respond in clean HTML using these elements only: <strong>, <br>, and spans with class "ai-tag".
+Be specific: mention hotel names, dates, and exact staffing actions.
+Keep your response concise (under 250 words). Always end with AL (Annual Leave) windows suggestion.`;
+
+  const userMsg = `Here is the current forecast data for Yas Plaza Hotels:
+${fcData.map(h=>`
+Hotel: ${h.hotel}
+- ${h.days} days of data
+- Average occupancy: ${h.avg}%
+- Peak: ${h.max}%, Low: ${h.min}%
+- High-demand days (≥85%): ${h.highs.join(', ')||'none'}
+- Low-demand days (<55%): ${h.lows.join(', ')||'none'}
+`).join('')}
+Total staff on roster: ${staffInfo.total}
+Departments: ${Object.entries(staffInfo.depts).map(([k,v])=>`${k}(${v})`).join(', ')}
+
+Give me:
+1. Top 3 staffing priority actions for high-demand periods
+2. Which departments to boost and by how much
+3. Best windows to schedule Annual Leave (AL) based on low occupancy
+4. Any shift pattern recommendations`;
+
+  try{
+    const result = await callClaude(systemPrompt, userMsg);
+    if(thinking) thinking.remove();
+    addMsg(result || '⚠️ No response received. Please try again.');
+
+    // Also update the forecast strip on page-forecast
+    renderFcAiStrip(fcData, result);
+    // Show badge if panel closed
+    if(!_panelOpen){
+      const badge = document.getElementById('yph-ai-badge');
+      if(badge) badge.classList.add('show');
+    }
+  }catch(err){
+    if(thinking) thinking.remove();
+    addMsg('❌ <strong>AI error:</strong> ' + err.message + '<br><small style="color:#94A3B8">Check your network or try again.</small>');
+  }
+};
+
+// ─── Free-form chat send ───────────────────────────────────────
+window.yphAiSend = async function(){
+  const inp = document.getElementById('yph-ai-prompt');
+  if(!inp) return;
+  const msg = inp.value.trim();
+  if(!msg) return;
+  inp.value = '';
+  addMsg('👤 <strong>You:</strong> ' + msg.replace(/</g,'&lt;'));
+  const thinking = addMsg('🤖 Thinking…', true);
+
+  const fcData = getFcSummary();
+  const staffInfo = getStaffSummary();
+  const fcContext = fcData && fcData.length
+    ? 'Forecast data: ' + fcData.map(h=>`${h.hotel}: avg ${h.avg}%, highs: ${h.highs.join(',')||'none'}, lows: ${h.lows.join(',')||'none'}`).join(' | ')
+    : 'No forecast data loaded.';
+
+  const systemPrompt = `You are a scheduling assistant for Yas Plaza Hotels, Abu Dhabi.
+Answer concisely using simple HTML: <strong>, <br>.
+Use the provided forecast context when relevant.
+${fcContext}
+Total staff: ${staffInfo.total}. Departments: ${Object.entries(staffInfo.depts).map(([k,v])=>`${k}(${v})`).join(', ')}.`;
+
+  try{
+    const result = await callClaude(systemPrompt, msg);
+    if(thinking) thinking.remove();
+    addMsg('🤖 ' + (result || '⚠️ No response.'));
+  }catch(err){
+    if(thinking) thinking.remove();
+    addMsg('❌ Error: ' + err.message);
+  }
+};
+
+// ─── Forecast AI Strip (on page-forecast) ─────────────────────
+function renderFcAiStrip(fcData, aiText){
+  let strip = document.getElementById('fcAiStrip');
+  if(!strip){
+    strip = document.createElement('div');
+    strip.id = 'fcAiStrip';
+    const fcPage = document.getElementById('page-forecast');
+    if(fcPage){
+      const sugBox = document.getElementById('fcSuggestionsBox');
+      if(sugBox) fcPage.insertBefore(strip, sugBox);
+      else fcPage.insertBefore(strip, fcPage.firstChild);
+    }
+  }
+  const allHighs = fcData.flatMap(h=>h.highs);
+  const allLows  = fcData.flatMap(h=>h.lows);
+  strip.className = 'fcai-strip loaded'; // add to DOM first
+  // Use inline style since class may not apply immediately
+  strip.style.cssText = 'background:linear-gradient(135deg,rgba(201,150,58,.1),rgba(15,30,53,.6));border:1.5px solid rgba(201,150,58,.3);border-radius:14px;padding:14px 16px;margin-bottom:14px;animation:fadeUp .25s ease both';
+  strip.innerHTML = `
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#E8B04A;margin-bottom:10px;display:flex;align-items:center;gap:8px">
+      🤖 AI Schedule Intelligence
+      <span style="font-size:9px;font-weight:600;background:rgba(201,150,58,.15);color:#C9963A;padding:2px 8px;border-radius:5px">Forecast-Linked</span>
+      <button onclick="yphAiForecastAnalyse(true)" style="margin-left:auto;background:linear-gradient(135deg,#C9963A,#E8B04A);border:none;border-radius:7px;padding:4px 12px;font-size:10px;font-weight:700;color:#0D1B2E;cursor:pointer">🔄 Refresh</button>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      ${allHighs.length?`<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(239,68,68,.15);color:#F87171;border:1px solid rgba(239,68,68,.3)">🔴 ${allHighs.length} High-demand day${allHighs.length>1?'s':''}</span>`:''}
+      ${allLows.length?`<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(16,185,129,.15);color:#4ADE80;border:1px solid rgba(16,185,129,.3)">🟢 ${allLows.length} AL window${allLows.length>1?'s':''}</span>`:''}
+      <span onclick="yphAiToggle()" style="display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:999px;font-size:11px;font-weight:700;background:rgba(59,130,246,.15);color:#93C5FD;border:1px solid rgba(59,130,246,.3);cursor:pointer">💬 Ask AI</span>
+    </div>
+    <div style="font-size:11.5px;color:rgba(255,255,255,.8);line-height:1.7;background:rgba(255,255,255,.04);border-radius:9px;padding:11px 13px;border:1px solid rgba(255,255,255,.07)">
+      ${aiText || '<span style="color:rgba(255,255,255,.4)">Click Refresh to generate AI scheduling recommendations from your forecast data.</span>'}
+    </div>
+    ${allLows.length ? `
+    <div style="margin-top:10px;background:rgba(16,185,129,.07);border:1px solid rgba(16,185,129,.2);border-radius:9px;padding:10px 13px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4ADE80;margin-bottom:6px">✅ Recommended AL Windows (Auto-detected)</div>
+      <div style="display:flex;flex-wrap:wrap;gap:5px">
+        ${allLows.slice(0,8).map(d=>`<span style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.25);border-radius:6px;padding:3px 9px;font-size:10.5px;font-weight:600;color:#4ADE80">${d}</span>`).join('')}
+        ${allLows.length>8?`<span style="color:#94A3B8;font-size:10px;padding:3px 6px">+${allLows.length-8} more</span>`:''}
+      </div>
+      <button onclick="yphAiOpenAlPlanner()" style="margin-top:8px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:7px;padding:5px 14px;font-size:10.5px;font-weight:700;color:#4ADE80;cursor:pointer">📅 Open AL Planner</button>
+    </div>` : ''}
+  `;
+}
+
+// ─── Smart AL AutoFill ─────────────────────────────────────────
+// Hook into f-al (Annual Leave balance) input for smart suggestions
+function initALAutofill(){
+  const alInp = document.getElementById('f-al');
+  const alUsed = document.getElementById('f-alused');
+  if(!alInp) return;
+
+  const drop = document.getElementById('al-autofill-drop');
+
+  function showAlDrop(targetEl){
+    const fcData = getFcSummary();
+    const allLows = fcData ? fcData.flatMap(h=>h.lows) : [];
+    const unique = [...new Set(allLows)].slice(0,6);
+
+    if(!unique.length){
+      drop.innerHTML='<div style="padding:10px 14px;font-size:11px;color:rgba(255,255,255,.4)">Import forecast data for smart AL suggestions</div>';
+    } else {
+      // Build suggestions: common AL balances + forecast-based windows
+      const suggestions = [
+        {val:21,label:'21 days',note:'Standard UAE',cls:'ok'},
+        {val:30,label:'30 days',note:'Accrued max',cls:'ok'},
+        {val:14,label:'14 days',note:'Half year',cls:'warn'},
+        {val:7, label:'7 days', note:'Low balance',cls:'bad'},
+      ];
+      drop.innerHTML = `
+        <div style="padding:6px 14px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B">Smart AL Suggestions</div>
+        ${suggestions.map(s=>`
+          <div class="al-drop-item" onclick="document.getElementById('f-al').value='${s.val}';document.getElementById('f-al').dispatchEvent(new Event('input'));document.getElementById('al-autofill-drop').classList.remove('open')">
+            <span class="al-drop-label" style="color:rgba(255,255,255,.8)">${s.label}</span>
+            <span class="al-drop-badge ${s.cls}">${s.note}</span>
+          </div>`).join('')}
+        <div style="padding:6px 14px 4px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#4ADE80;margin-top:4px;border-top:1px solid rgba(255,255,255,.06)">📅 Low-Demand Windows (Forecast)</div>
+        ${unique.map(d=>`
+          <div class="al-drop-item" onclick="yphAlSuggestDate('${d}');document.getElementById('al-autofill-drop').classList.remove('open')">
+            <span class="al-drop-label" style="color:#4ADE80">${d}</span>
+            <span class="al-drop-badge ok">AL recommended</span>
+          </div>`).join('')}
+      `;
+    }
+
+    // Position near input
+    const rect = targetEl.getBoundingClientRect();
+    drop.style.cssText = `top:${rect.bottom+window.scrollY+4}px;left:${rect.left+window.scrollX}px;min-width:${rect.width}px;position:absolute;display:block;z-index:9999`;
+    drop.classList.add('open');
+  }
+
+  alInp.addEventListener('focus', ()=>showAlDrop(alInp));
+  alInp.addEventListener('input', ()=>showAlDrop(alInp));
+  document.addEventListener('click', e=>{
+    if(!drop.contains(e.target) && e.target!==alInp) drop.classList.remove('open');
+  });
+}
+
+// Suggest a leave date – shows notification
+window.yphAlSuggestDate = function(date){
+  addMsg(`📅 Scheduling leave for <strong>${date}</strong> is recommended — this is a forecast low-demand window. Open the Roster page and mark the employee's shift as <span class="ai-tag">AL</span> for that date.`);
+  if(!_panelOpen) yphAiToggle();
+};
+
+// Open AL Planner panel
+window.yphAiOpenAlPlanner = function(){
+  if(!_panelOpen) yphAiToggle();
+  const fcData = getFcSummary();
+  const lows = fcData ? [...new Set(fcData.flatMap(h=>h.lows))] : [];
+  if(!lows.length){ addMsg('⚠️ No low-demand windows found in current forecast data.'); return; }
+  addMsg(`📋 <strong>AL Planning Windows</strong> (low occupancy from forecast):<br>${lows.map(d=>`<span class="ai-tag">📅 ${d}</span>`).join(' ')}<br><br>These dates have occupancy below 55%. Scheduling Annual Leave on these days minimises operational impact. Ask me about specific staff or departments!`);
+};
+
+// ─── Schedule auto-suggest on forecast page ────────────────────
+// Re-render AI strip whenever forecast page becomes active
+const _origSP = window.switchPage;
+window.switchPage = function(name){
+  if(_origSP) _origSP(name);
+  if(name==='forecast'){
+    setTimeout(()=>{
+      const fcData = getFcSummary();
+      if(fcData && fcData.length){
+        // Show strip without AI text first (fast)
+        renderFcAiStrip(fcData, null);
+        // Badge the FAB
+        const badge = document.getElementById('yph-ai-badge');
+        if(badge && !_autoAnalysed) badge.classList.add('show');
+      }
+    }, 200);
+  }
+};
+
+// ─── Auto-analyse on first forecast data loaded ────────────────
+const _origFcHandle = window.fcHandleFile;
+window.fcHandleFile = async function(evt){
+  if(_origFcHandle) await _origFcHandle(evt);
+  setTimeout(()=>{
+    const fcData = getFcSummary();
+    if(fcData && fcData.length){
+      renderFcAiStrip(fcData, null);
+      const badge = document.getElementById('yph-ai-badge');
+      if(badge) badge.classList.add('show');
+    }
+  }, 800);
+};
+
+// ─── Init ──────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', ()=>{
+  initALAutofill();
+  // Also re-init when staff modal opens (AL input might be recreated)
+  document.addEventListener('click', e=>{
+    if(e.target && (e.target.id==='btnAddStaff' || e.target.closest('[onclick*="openAddStaff"]'))){
+      setTimeout(initALAutofill, 400);
+    }
+  });
+  // Check if forecast data already exists on load
+  const existing = getFcSummary();
+  if(existing && existing.length){
+    const badge = document.getElementById('yph-ai-badge');
+    if(badge) badge.classList.add('show');
+    const fp = document.getElementById('page-forecast');
+    if(fp && fp.classList.contains('active')) renderFcAiStrip(existing, null);
+  }
+});
+
+// Also hook the Analyse button already in the forecast section
+setTimeout(()=>{
+  const analyseBtnArea = document.getElementById('v8AsAnalysis');
+  if(analyseBtnArea){
+    const aiLink = document.createElement('button');
+    aiLink.style.cssText='margin-top:8px;background:linear-gradient(135deg,#C9963A,#E8B04A);border:none;border-radius:8px;padding:6px 16px;font-size:11px;font-weight:700;color:#0D1B2E;cursor:pointer;display:block';
+    aiLink.textContent='🤖 Get AI Forecast Suggestions';
+    aiLink.onclick = ()=>yphAiForecastAnalyse(true);
+    analyseBtnArea.parentElement && analyseBtnArea.parentElement.appendChild(aiLink);
+  }
+}, 3000);
+
+})();
+</script>
 
