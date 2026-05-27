@@ -13742,6 +13742,2706 @@ setTimeout(_wireEnhancedButtons, 2500); // retry in case render is delayed
 
 console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ multi-dept · Smart Auto Fill · LIVE Staffing Counter');
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- YPH v7 — FULL UPGRADE: SHIFT FILTER FIX + IMPORT/EXPORT +    -->
+<!--           CALENDAR VIEW + ENHANCED AUTO SCHEDULE              -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── ROSTER TOOLBAR v6 ───────────────────────────────────────── */
+.rtb-v6 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1.5px solid #E8EEF8;
+  border-radius: 14px;
+  box-shadow: 0 2px 16px rgba(15,30,53,.07);
+  margin-bottom: 10px;
+}
+.rtb-v6 .rtb-filters {
+  display: flex; gap: 5px; align-items: center; flex-wrap: wrap; flex: 1;
+}
+.rtb-v6 .rtb-actions {
+  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+}
+/* Pill Buttons */
+.rpill {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 13px; border-radius: 100px;
+  font-size: 11.5px; font-weight: 700; font-family: 'DM Sans', sans-serif;
+  cursor: pointer; border: 1.5px solid transparent;
+  transition: all .18s ease; white-space: nowrap; outline: none;
+  letter-spacing: .01em;
+}
+.rpill:active { transform: scale(.96); }
+/* Templates */
+.rpill-tpl { background: #FFF5E0; color: #B8620A; border-color: #F3C672; }
+.rpill-tpl:hover { background: #FFE8B0; border-color: #E8A020; }
+/* Fair Dist */
+.rpill-fair { background: #E6F9EE; color: #1B6B3A; border-color: #6BCB8A; }
+.rpill-fair:hover { background: #C9F2D6; border-color: #2DB55D; }
+/* Balance */
+.rpill-bal { background: #E8F0FE; color: #2756C5; border-color: #85A8F8; }
+.rpill-bal:hover { background: #CCDCfD; border-color: #4A80EF; }
+/* Export */
+.rpill-exp { background: #F3F0FF; color: #5B21B6; border-color: #A78BFA; }
+.rpill-exp:hover { background: #E0D9FF; border-color: #7C3AED; }
+/* Month/Week toggle */
+.rpill-toggle-wrap {
+  display: inline-flex; background: #F1F4FA; border: 1.5px solid #DCE3F0;
+  border-radius: 100px; padding: 2px; gap: 0;
+}
+.rpill-toggle {
+  padding: 5px 13px; border-radius: 100px; font-size: 11.5px; font-weight: 700;
+  background: transparent; color: #6B7EA0; border: none; cursor: pointer; transition: .18s;
+}
+.rpill-toggle.active {
+  background: #fff; color: #0F1E35;
+  box-shadow: 0 2px 8px rgba(15,30,53,.12);
+}
+/* Smart Auto Fill */
+.rpill-smart {
+  background: #fff; color: #475569;
+  border: 1.5px solid #CBD5E1;
+  display: inline-flex; align-items: center; gap: 5px;
+}
+.rpill-smart:hover { border-color: #94A3B8; background: #F8FAFC; }
+.rpill-smart .smart-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #22C55E;
+  box-shadow: 0 0 0 2px rgba(34,197,94,.3);
+  animation: smartPulse 1.8s ease-in-out infinite;
+}
+@keyframes smartPulse { 0%,100%{box-shadow:0 0 0 2px rgba(34,197,94,.3)} 50%{box-shadow:0 0 0 4px rgba(34,197,94,.1)} }
+/* Auto Schedule */
+.rpill-auto {
+  background: linear-gradient(135deg, #5B21B6, #7C3AED); color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 12px rgba(91,33,182,.3);
+}
+.rpill-auto:hover { box-shadow: 0 5px 18px rgba(91,33,182,.45); filter: brightness(1.07); }
+/* Update Rota */
+.rpill-rota {
+  background: linear-gradient(135deg, #0F766E, #0D9488); color: #fff;
+  border-color: transparent;
+  box-shadow: 0 3px 12px rgba(15,118,110,.3);
+}
+.rpill-rota:hover { box-shadow: 0 5px 18px rgba(15,118,110,.45); filter: brightness(1.07); }
+/* Print */
+.rpill-print {
+  background: #FDF3E3; color: #C9963A; border-color: #E8B04A;
+}
+.rpill-print:hover { background: #FDEAC5; border-color: #C9963A; }
+/* Filter inputs */
+.rtb-inp {
+  height: 32px; padding: 0 10px; border-radius: 8px;
+  border: 1.5px solid #DCE3F0; background: #F8FAFC;
+  font-size: 11px; font-family: 'DM Sans', sans-serif;
+  color: #1B2D4A; outline: none; transition: .2s;
+}
+.rtb-inp:focus { border-color: #85A8F8; background: #fff; }
+.rtb-inp::placeholder { color: #94A3B8; }
+
+/* ── SHIFT FILTER PANEL (click legend pill to filter) ─────────── */
+#shiftRosterFilter {
+  position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+  background: linear-gradient(135deg, #0F1E35, #1B2D4A);
+  border: 1.5px solid rgba(201,150,58,.4);
+  border-radius: 14px; padding: 12px 18px;
+  display: none; align-items: center; gap: 12px;
+  z-index: 2500; box-shadow: 0 12px 40px rgba(0,0,0,.5);
+  animation: dropIn .25s ease both;
+}
+@keyframes dropIn { from{opacity:0;transform:translateX(-50%) translateY(-10px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+#shiftRosterFilter.show { display: flex; }
+.srf-label { font-size:11px; color:rgba(255,255,255,.6); font-weight:700; text-transform:uppercase; letter-spacing:.6px; }
+.srf-active { font-size:12px; color:#fff; font-weight:700; display:flex; align-items:center; gap:6px; }
+.srf-count { font-size:11px; background:rgba(255,255,255,.1); border-radius:6px; padding:2px 8px; color:rgba(255,255,255,.8); }
+.srf-close { background:rgba(239,68,68,.15); border:1px solid rgba(239,68,68,.3); color:#F87171; border-radius:7px; padding:4px 10px; font-size:11px; font-weight:700; cursor:pointer; }
+
+/* ── DEV PANEL v6 REDESIGN ───────────────────────────────────── */
+#cp-outer {
+  font-family: 'DM Sans', sans-serif !important;
+}
+/* New topbar */
+.cpv6-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  background: linear-gradient(135deg, #060F1E 0%, #0D1B35 50%, #08152A 100%);
+  border-bottom: 1px solid rgba(201,150,58,.25);
+  padding: 0 24px; height: 58px; position: sticky; top: 0; z-index: 200;
+}
+.cpv6-brand {
+  display: flex; align-items: center; gap: 12px;
+}
+.cpv6-badge {
+  background: linear-gradient(135deg, #C9963A, #E8B84B);
+  color: #040A14; font-size: 9px; font-weight: 900;
+  padding: 3px 9px; border-radius: 6px; letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.cpv6-title {
+  font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: #fff;
+}
+.cpv6-title span { color: #C9963A; }
+.cpv6-tools {
+  display: flex; align-items: center; gap: 8px;
+}
+.cpv6-search {
+  background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+  border-radius: 9px; padding: 7px 13px; font-size: 11px; color: #fff;
+  width: 180px; outline: none; transition: .2s; font-family: 'DM Sans', sans-serif;
+}
+.cpv6-search:focus { border-color: rgba(201,150,58,.5); background: rgba(255,255,255,.1); }
+.cpv6-status {
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(16,185,129,.08); border: 1px solid rgba(16,185,129,.25);
+  border-radius: 100px; padding: 5px 12px; font-size: 10.5px; color: #10B981; font-weight: 700;
+}
+.cpv6-clock {
+  font-family: 'DM Mono', monospace; font-size: 12px; color: #C9963A;
+  background: rgba(201,150,58,.1); border: 1px solid rgba(201,150,58,.2);
+  border-radius: 7px; padding: 5px 11px;
+}
+.cpv6-exit {
+  background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25);
+  color: #F87171; border-radius: 8px; padding: 6px 12px; font-size: 11px;
+  font-weight: 700; cursor: pointer; transition: .2s; font-family: 'DM Sans', sans-serif;
+}
+.cpv6-exit:hover { background: rgba(239,68,68,.22); }
+
+/* Stat cards row */
+.cpv6-stats {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+  padding: 16px 24px 0;
+}
+.cpv6-stat {
+  background: linear-gradient(135deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border: 1px solid rgba(255,255,255,.08); border-radius: 12px;
+  padding: 14px 18px; transition: .2s; cursor: default;
+}
+.cpv6-stat:hover { border-color: rgba(201,150,58,.3); }
+.cpv6-stat-icon { font-size: 22px; margin-bottom: 8px; }
+.cpv6-stat-lbl { font-size: 10px; color: rgba(255,255,255,.4); text-transform: uppercase; letter-spacing: .7px; font-weight: 700; margin-bottom: 4px; }
+.cpv6-stat-val { font-size: 22px; font-weight: 800; color: #fff; font-family: 'Syne', sans-serif; }
+.cpv6-stat-sub { font-size: 10px; color: rgba(255,255,255,.35); margin-top: 2px; }
+.cpv6-stat.gold .cpv6-stat-val { color: #C9963A; }
+.cpv6-stat.green .cpv6-stat-val { color: #4ADE80; }
+.cpv6-stat.blue .cpv6-stat-val { color: #60A5FA; }
+.cpv6-stat.purple .cpv6-stat-val { color: #C084FC; }
+
+/* Nav pills */
+.cpv6-nav {
+  display: flex; gap: 4px; padding: 14px 24px 0; flex-wrap: wrap;
+}
+.cpv6-nitem {
+  display: flex; align-items: center; gap: 7px;
+  padding: 8px 14px; border-radius: 9px; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; color: rgba(255,255,255,.5);
+  transition: .18s; border: 1px solid transparent;
+  white-space: nowrap;
+}
+.cpv6-nitem:hover { background: rgba(255,255,255,.06); color: rgba(255,255,255,.8); }
+.cpv6-nitem.cpv6-active {
+  background: rgba(201,150,58,.12); color: #E8B04A;
+  border-color: rgba(201,150,58,.3);
+}
+.cpv6-nitem .cni { font-size: 14px; }
+.cpv6-nitem.danger { color: rgba(239,68,68,.6); }
+.cpv6-nitem.danger:hover { background: rgba(239,68,68,.08); color: #F87171; }
+.cpv6-nitem.danger.cpv6-active { background: rgba(239,68,68,.12); color: #F87171; border-color: rgba(239,68,68,.3); }
+
+/* Content area */
+.cpv6-content {
+  padding: 16px 24px 24px;
+}
+
+/* AI Support Panel */
+#cpv6-ai-support {
+  background: linear-gradient(135deg, rgba(91,33,182,.15), rgba(124,58,237,.08));
+  border: 1.5px solid rgba(124,58,237,.35);
+  border-radius: 14px; padding: 20px; margin-bottom: 16px;
+}
+.cpv6-ai-header {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.cpv6-ai-icon {
+  width: 38px; height: 38px; background: linear-gradient(135deg, #5B21B6, #7C3AED);
+  border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.cpv6-ai-chat {
+  max-height: 220px; overflow-y: auto; margin-bottom: 12px;
+  background: rgba(0,0,0,.2); border-radius: 10px; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.cpv6-ai-msg {
+  max-width: 85%; padding: 9px 13px; border-radius: 11px; font-size: 12px; line-height: 1.55;
+}
+.cpv6-ai-msg.user {
+  align-self: flex-end; background: rgba(201,150,58,.2); color: #E8B04A;
+  border: 1px solid rgba(201,150,58,.25);
+}
+.cpv6-ai-msg.bot {
+  align-self: flex-start; background: rgba(124,58,237,.2); color: rgba(255,255,255,.9);
+  border: 1px solid rgba(124,58,237,.3);
+}
+.cpv6-ai-inp-row {
+  display: flex; gap: 8px;
+}
+.cpv6-ai-inp {
+  flex: 1; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12);
+  border-radius: 9px; padding: 9px 13px; font-size: 12px; color: #fff;
+  font-family: 'DM Sans', sans-serif; outline: none; transition: .2s;
+}
+.cpv6-ai-inp:focus { border-color: rgba(124,58,237,.5); background: rgba(255,255,255,.1); }
+.cpv6-ai-send {
+  background: linear-gradient(135deg, #5B21B6, #7C3AED); color: #fff;
+  border: none; border-radius: 9px; padding: 9px 16px; font-size: 11px;
+  font-weight: 700; cursor: pointer; transition: .2s; font-family: 'DM Sans', sans-serif;
+}
+.cpv6-ai-send:hover { filter: brightness(1.1); }
+.cpv6-ai-send:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Shift Filter Roster Chip */
+.sfrc {
+  display: flex; align-items: center; gap: 7px;
+  position: fixed; top: 64px; right: 18px; z-index: 2400;
+  background: linear-gradient(135deg, var(--navy), var(--navy2));
+  border: 1.5px solid rgba(201,150,58,.4);
+  border-radius: 100px; padding: 7px 16px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.4);
+  cursor: pointer; display: none; font-size: 12px; color: #fff; font-weight: 700;
+  animation: fadeUp .2s ease;
+}
+.sfrc.show { display: flex; }
+.sfrc-pill { border-radius: 6px; padding: 2px 8px; font-size: 11px; font-weight: 800; margin-right: 2px; }
+.sfrc-count { opacity: .7; font-size: 11px; font-weight: 500; }
+.sfrc-x { opacity: .6; font-size: 14px; margin-left: 4px; }
+
+/* Legend Row redesign */
+.legend-row-v6 {
+  display: flex; gap: 5px; flex-wrap: wrap; align-items: center;
+  padding: 8px 12px; background: var(--ice2);
+  border: 1.5px solid #E8EEF8; border-radius: 10px;
+  margin-bottom: 8px;
+}
+.legend-row-v6 .lr-label {
+  font-size: 9px; font-weight: 800; color: var(--slate2);
+  text-transform: uppercase; letter-spacing: .6px; margin-right: 4px;
+}
+.lv6-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px; border-radius: 7px; font-size: 10.5px; font-weight: 800;
+  cursor: pointer; transition: all .15s; border: 1.5px solid transparent;
+  user-select: none;
+}
+.lv6-pill:hover { transform: scale(1.06); filter: brightness(1.08); }
+.lv6-pill.lv6-active {
+  outline: 2.5px solid #C9963A; outline-offset: 1.5px;
+  box-shadow: 0 0 0 4px rgba(201,150,58,.2);
+}
+
+/* Second page (Staff page) roster-filter view */
+.spage-filter-bar {
+  background: linear-gradient(135deg, #0F1E35, #1B2D4A);
+  border-radius: 12px; padding: 12px 16px; margin-bottom: 12px;
+  display: none; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.spage-filter-bar.show { display: flex; }
+.sfb-label { font-size: 11px; color: rgba(255,255,255,.5); font-weight: 700; }
+.sfb-shift-badges { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.sfb-badge {
+  padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 800;
+  cursor: pointer; border: 1.5px solid transparent; transition: .15s;
+}
+.sfb-badge:hover { transform: scale(1.05); }
+.sfb-badge.sfb-active { outline: 2px solid #C9963A; outline-offset: 2px; }
+.sfb-roster-table {
+  width: 100%; border-collapse: collapse; font-size: 11.5px;
+}
+.sfb-roster-table th {
+  background: rgba(255,255,255,.06); color: rgba(255,255,255,.5);
+  padding: 7px 10px; text-align: left; font-weight: 700; font-size: 10px;
+  text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid rgba(255,255,255,.08);
+}
+.sfb-roster-table td {
+  padding: 8px 10px; border-bottom: 1px solid rgba(255,255,255,.05); color: rgba(255,255,255,.85);
+}
+.sfb-roster-table tr:hover td { background: rgba(255,255,255,.03); }
+
+@media (max-width: 768px) {
+  .cpv6-stats { grid-template-columns: 1fr 1fr; }
+  .cpv6-topbar { padding: 0 14px; height: auto; padding: 10px 14px; flex-wrap: wrap; gap: 8px; }
+  .cpv6-nav { padding: 10px 14px 0; }
+  .cpv6-content { padding: 12px 14px 20px; }
+  .rtb-v6 { padding: 8px 10px; }
+}
+</style>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// YPH v6 — ROSTER TOOLBAR REDESIGN
+// ════════════════════════════════════════════════════════════════
+(function(){
+  function rebuildRosterToolbar() {
+    const rosterPage = document.getElementById('page-roster');
+    if (!rosterPage || rosterPage.querySelector('.rtb-v6')) return;
+
+    // Find and hide the old filter bar (fb div)
+    const oldFb = rosterPage.querySelector('.fb');
+    if (!oldFb) return;
+
+    // Grab references to existing filter elements before hiding
+    const rSearch = document.getElementById('rSearch');
+    const rHotelF = document.getElementById('rHotelF');
+    const rDeptF  = document.getElementById('rDeptF');
+    const rPosF   = document.getElementById('rPosF');
+    const rSecF   = document.getElementById('rSecF');
+    if (!rSearch) return; // page not ready yet
+
+    // Hide old bar
+    oldFb.style.display = 'none';
+
+    // Build new toolbar
+    const tb = document.createElement('div');
+    tb.className = 'rtb-v6';
+    tb.innerHTML = `
+      <div class="rtb-filters">
+        <input class="rtb-inp" id="rtbSearch" placeholder="🔍 Name / ID…" oninput="document.getElementById('rSearch').value=this.value;renderRoster()" style="width:130px">
+        <select class="rtb-inp" id="rtbHotel" onchange="document.getElementById('rHotelF').value=this.value;renderRoster()" style="width:140px"></select>
+        <select class="rtb-inp" id="rtbDept" onchange="document.getElementById('rDeptF').value=this.value;renderRoster();syncDeptFilters&&syncDeptFilters('rDeptF')" style="width:140px"></select>
+        <select class="rtb-inp" id="rtbPos" onchange="document.getElementById('rPosF').value=this.value;renderRoster()" style="width:150px"></select>
+        <select class="rtb-inp" id="rtbSec" onchange="document.getElementById('rSecF').value=this.value;renderRoster()" style="width:140px;border-color:#0F766E"></select>
+      </div>
+      <div class="rtb-actions">
+        <!-- Month/Week toggle -->
+        <div class="rpill-toggle-wrap">
+          <button class="rpill-toggle active" id="rtbBtnMonth" onclick="setRosterView('monthly');document.getElementById('rtbBtnMonth').classList.add('active');document.getElementById('rtbBtnWeek').classList.remove('active')">📅 Month</button>
+          <button class="rpill-toggle" id="rtbBtnWeek" onclick="setRosterView('weekly');document.getElementById('rtbBtnWeek').classList.add('active');document.getElementById('rtbBtnMonth').classList.remove('active')">🗓 Week</button>
+        </div>
+        <!-- Week nav (hidden by default) -->
+        <div id="rtbWeekNav" style="display:none;align-items:center;gap:3px">
+          <button class="rpill rpill-smart" style="padding:5px 9px;border-radius:8px" onclick="changeWeek(-1)">‹</button>
+          <span id="rtbWeekLbl" style="font-size:11px;font-weight:700;color:var(--navy);min-width:76px;text-align:center"></span>
+          <button class="rpill rpill-smart" style="padding:5px 9px;border-radius:8px" onclick="changeWeek(1)">›</button>
+        </div>
+        <!-- Smart Auto Fill -->
+        <button class="rpill rpill-smart" onclick="openBulk()" title="Smart Auto Fill">
+          <span class="smart-dot"></span> Smart Auto Fill
+        </button>
+        <!-- Auto Schedule -->
+        <button class="rpill rpill-auto" onclick="openAutoSchedule()">🤖 Auto Schedule</button>
+        <!-- Update Rota -->
+        <button class="rpill rpill-rota" onclick="openRotaUpdate()">✏️ Update Rota</button>
+        <!-- Print -->
+        <button class="rpill rpill-print" onclick="printRoster()">🖨 Print / PDF</button>
+      </div>
+    `;
+    rosterPage.insertBefore(tb, rosterPage.firstChild);
+
+    // Sync select options from original selects
+    function syncOpts(srcId, dstId) {
+      const src = document.getElementById(srcId);
+      const dst = document.getElementById(dstId);
+      if (!src || !dst) return;
+      dst.innerHTML = src.innerHTML;
+      dst.value = src.value;
+    }
+    function periodicSync() {
+      syncOpts('rHotelF','rtbHotel'); syncOpts('rDeptF','rtbDept');
+      syncOpts('rPosF','rtbPos');     syncOpts('rSecF','rtbSec');
+    }
+    periodicSync();
+    setInterval(periodicSync, 2500);
+
+    // Mirror weekLabel
+    setInterval(function(){
+      const wl = document.getElementById('weekLabel');
+      const rtl = document.getElementById('rtbWeekLbl');
+      if (wl && rtl) rtl.textContent = wl.textContent;
+    }, 400);
+
+    // Mirror weekNav visibility
+    setInterval(function(){
+      const wn = document.getElementById('weekNav');
+      const rtwn = document.getElementById('rtbWeekNav');
+      if (wn && rtwn) rtwn.style.display = wn.style.display === 'none' ? 'none' : 'flex';
+    }, 400);
+  }
+
+  // Wait for DOM
+  setTimeout(rebuildRosterToolbar, 800);
+  setInterval(rebuildRosterToolbar, 3000);
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v6 — DEV PANEL REDESIGN
+// ════════════════════════════════════════════════════════════════
+(function(){
+  function rebuildDevPanel() {
+    const cpOuter = document.getElementById('cp-outer');
+    if (!cpOuter || cpOuter.dataset.v6) return;
+    cpOuter.dataset.v6 = '1';
+
+    // Inject new topbar CSS overrides
+    const topbarArea = document.getElementById('cp-topbar-area');
+    if (topbarArea) {
+      topbarArea.style.cssText = 'background:linear-gradient(135deg,#060F1E,#0D1B35,#08152A);border-bottom:1px solid rgba(201,150,58,.2);padding:0';
+
+      // Replace topbar content
+      topbarArea.innerHTML = `
+        <!-- v6 Topbar -->
+        <div class="cpv6-topbar">
+          <div class="cpv6-brand">
+            <div class="cpv6-badge">DEV</div>
+            <div class="cpv6-title">⚙️ Developer <span>Control Panel</span></div>
+          </div>
+          <div class="cpv6-tools">
+            <div style="position:relative">
+              <input id="cpSearch" class="cpv6-search" placeholder="🔍 Search panel…" oninput="cpSearchPanel&&cpSearchPanel(this.value)">
+              <div id="cpSearchResults" style="position:absolute;top:calc(100%+6px);right:0;background:#0F2240;border:1px solid rgba(201,150,58,.3);border-radius:10px;min-width:200px;z-index:999;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5)"></div>
+            </div>
+            <div class="cpv6-status">
+              <div style="width:6px;height:6px;border-radius:50%;background:#10B981;box-shadow:0 0 5px rgba(16,185,129,.5);animation:pulse 2s infinite"></div>
+              <span id="cpSystemStatus">All Systems OK</span>
+            </div>
+            <div class="cpv6-clock" id="cpClock">--:--:--</div>
+            <button class="cpv6-exit" onclick="backToLanding&&backToLanding()">✕ Exit</button>
+          </div>
+        </div>
+        <!-- v6 Stats Row -->
+        <div class="cpv6-stats">
+          <div class="cpv6-stat gold">
+            <div class="cpv6-stat-icon">👥</div>
+            <div class="cpv6-stat-lbl">Total Staff</div>
+            <div class="cpv6-stat-val" id="cpSC">—</div>
+            <div class="cpv6-stat-sub">Across all hotels</div>
+          </div>
+          <div class="cpv6-stat green">
+            <div class="cpv6-stat-icon">🔥</div>
+            <div class="cpv6-stat-lbl">Firebase</div>
+            <div class="cpv6-stat-val gv" id="cpFbSt" style="font-size:14px">Checking…</div>
+            <div class="cpv6-stat-sub"><span class="cpdot gd" style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px"></span>Database</div>
+          </div>
+          <div class="cpv6-stat blue">
+            <div class="cpv6-stat-icon">🧩</div>
+            <div class="cpv6-stat-lbl">Active Modules</div>
+            <div class="cpv6-stat-val" id="cpMC">—</div>
+            <div class="cpv6-stat-sub">Feature flags</div>
+          </div>
+          <div class="cpv6-stat purple">
+            <div class="cpv6-stat-icon">🏨</div>
+            <div class="cpv6-stat-lbl">Hotels</div>
+            <div class="cpv6-stat-val" id="cpHC">—</div>
+            <div class="cpv6-stat-sub">Properties configured</div>
+          </div>
+        </div>
+        <!-- v6 Nav Pills -->
+        <div class="cpv6-nav" id="cpv6NavRow">
+          <div class="cpv6-nitem cpv6-active" data-tab="modules"   onclick="cpTab('modules');cpv6SetNav(this)"><span class="cni">🧩</span>Feature Modules</div>
+          <div class="cpv6-nitem" data-tab="hotels"      onclick="cpTab('hotels');cpv6SetNav(this)"><span class="cni">🏨</span>Hotels</div>
+          <div class="cpv6-nitem" data-tab="departments" onclick="cpTab('departments');cpv6SetNav(this)"><span class="cni">🏢</span>Departments</div>
+          <div class="cpv6-nitem" data-tab="shifts"      onclick="cpTab('shifts');cpv6SetNav(this)"><span class="cni">⏰</span>Shifts</div>
+          <div class="cpv6-nitem" data-tab="access"      onclick="cpTab('access');cpv6SetNav(this)"><span class="cni">🔑</span>Access</div>
+          <div class="cpv6-nitem" data-tab="live"        onclick="cpTab('live');cpv6SetNav(this)"><span class="cni">🟢</span>LIVE</div>
+          <div class="cpv6-nitem" data-tab="ai"          onclick="cpv6OpenAI();cpv6SetNav(this)"><span class="cni">🤖</span>AI Support</div>
+          <div class="cpv6-nitem" data-tab="notifications" onclick="cpTab('notifications');cpv6SetNav(this)"><span class="cni">🔔</span>Notifications</div>
+          <div class="cpv6-nitem" data-tab="firebase"    onclick="cpTab('firebase');cpv6SetNav(this)"><span class="cni">🔥</span>Firebase</div>
+          <div class="cpv6-nitem" data-tab="logs"        onclick="cpTab('logs');cpv6SetNav(this)"><span class="cni">📋</span>Logs</div>
+          <div class="cpv6-nitem danger" data-tab="danger" onclick="cpTab('danger');cpv6SetNav(this)"><span class="cni">⚠️</span>Danger Zone</div>
+        </div>
+        <!-- AI Support Panel (hidden by default) -->
+        <div id="cpv6AiPanel" style="display:none;padding:16px 24px 0">
+          <div id="cpv6-ai-support">
+            <div class="cpv6-ai-header">
+              <div class="cpv6-ai-icon">🤖</div>
+              <div>
+                <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff">AI Developer Support</div>
+                <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">Ask questions about the roster system, get help with configuration</div>
+              </div>
+              <div style="margin-left:auto;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.3);border-radius:8px;padding:4px 12px;font-size:10px;font-weight:700;color:#C084FC">Claude AI</div>
+            </div>
+            <div class="cpv6-ai-chat" id="cpv6AiChat">
+              <div class="cpv6-ai-msg bot">👋 Hello! I'm your AI assistant for the Yas Plaza Hotels Roster System. I can help with:<br><br>• Configuring shifts &amp; departments<br>• Understanding roster features<br>• Troubleshooting Firebase sync<br>• Auto-schedule rules &amp; logic<br><br>What can I help you with today?</div>
+            </div>
+            <div class="cpv6-ai-inp-row">
+              <input class="cpv6-ai-inp" id="cpv6AiInp" placeholder="Ask anything about the roster system…" onkeydown="if(event.key==='Enter')cpv6AiSend()">
+              <button class="cpv6-ai-send" id="cpv6AiSendBtn" onclick="cpv6AiSend()">Send →</button>
+            </div>
+            <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;text-align:center">Powered by Claude · Responses are context-aware for this system</div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Style the cp-wrap
+    const cpWrap = cpOuter.querySelector('.cp-wrap');
+    if (cpWrap) {
+      cpWrap.style.cssText = 'display:flex;background:linear-gradient(180deg,#0A1628,#08121E);min-height:calc(100vh - 200px)';
+      // Hide sidebar (we now use top nav pills)
+      const sidebar = cpWrap.querySelector('.cp-sidebar');
+      if (sidebar) sidebar.style.display = 'none';
+      // Style content
+      const content = cpWrap.querySelector('.cp-content');
+      if (content) {
+        content.style.cssText = 'flex:1;padding:16px 24px 24px;min-width:0';
+      }
+    }
+  }
+
+  window.cpv6SetNav = function(el) {
+    document.querySelectorAll('.cpv6-nitem').forEach(n => n.classList.remove('cpv6-active'));
+    el.classList.add('cpv6-active');
+    // Hide AI panel if switching away
+    if (!el.dataset.tab || el.dataset.tab !== 'ai') {
+      const aip = document.getElementById('cpv6AiPanel');
+      if (aip) aip.style.display = 'none';
+    }
+  };
+
+  window.cpv6OpenAI = function() {
+    const aip = document.getElementById('cpv6AiPanel');
+    if (aip) { aip.style.display = aip.style.display === 'none' ? 'block' : 'none'; }
+    // Hide all cp-panels
+    document.querySelectorAll('.cp-panel').forEach(p => p.style.display = 'none');
+  };
+
+  // AI Chat functionality
+  window.cpv6AiSend = async function() {
+    const inp = document.getElementById('cpv6AiInp');
+    const chat = document.getElementById('cpv6AiChat');
+    const btn = document.getElementById('cpv6AiSendBtn');
+    if (!inp || !chat || !inp.value.trim()) return;
+
+    const q = inp.value.trim();
+    inp.value = '';
+    btn.disabled = true;
+    btn.textContent = '...';
+
+    // Add user msg
+    const userMsg = document.createElement('div');
+    userMsg.className = 'cpv6-ai-msg user';
+    userMsg.textContent = q;
+    chat.appendChild(userMsg);
+
+    // Add typing indicator
+    const typing = document.createElement('div');
+    typing.className = 'cpv6-ai-msg bot';
+    typing.innerHTML = '<span style="opacity:.5">🤖 Thinking…</span>';
+    chat.appendChild(typing);
+    chat.scrollTop = chat.scrollHeight;
+
+    // Build context
+    const staffCount = (typeof staffList === 'function') ? staffList().length : '?';
+    const systemCtx = `You are an AI assistant embedded in the Yas Plaza Hotels Staff Roster System. 
+This is a web-based hotel staff scheduling application with features: Firebase sync, multiple hotels, 
+shift management (Morning/Afternoon/Evening/Night/Flex/OFF/Leave types), Auto Schedule, Smart Auto Fill, 
+LIVE dashboard, and developer control panel. There are ${staffCount} staff members currently loaded.
+Answer concisely and practically. Help with configuration, troubleshooting, or feature explanations.`;
+
+    try {
+      const resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          system: systemCtx,
+          messages: [{ role: 'user', content: q }]
+        })
+      });
+      const data = await resp.json();
+      const ans = (data.content && data.content[0]) ? data.content[0].text : 'Sorry, I could not get a response.';
+      typing.innerHTML = ans.replace(/\n/g, '<br>');
+    } catch(e) {
+      typing.innerHTML = '⚠️ Could not connect to AI. Check your internet connection.';
+    }
+
+    btn.disabled = false;
+    btn.textContent = 'Send →';
+    chat.scrollTop = chat.scrollHeight;
+  };
+
+  setTimeout(rebuildDevPanel, 500);
+  setInterval(rebuildDevPanel, 2000);
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v6 — SHIFT LEGEND CLICK-TO-FILTER (Second Page = Who's on same shift)
+// ════════════════════════════════════════════════════════════════
+(function(){
+  let _activeShiftFilter = null;
+
+  // Inject the persistent shift-filter chip
+  function injectShiftChip() {
+    if (document.getElementById('sfChipV6')) return;
+    const chip = document.createElement('div');
+    chip.id = 'sfChipV6';
+    chip.className = 'sfrc';
+    chip.innerHTML = `
+      <span class="sfrc-pill" id="sfrcPill"></span>
+      <span id="sfrcLabel" style="font-size:11px">Filtering roster</span>
+      <span class="sfrc-count" id="sfrcCount"></span>
+      <span class="sfrc-x" onclick="clearShiftFilter()">✕</span>
+    `;
+    document.body.appendChild(chip);
+  }
+
+  // Inject "Who's on this shift?" modal
+  function injectWhoModal() {
+    if (document.getElementById('whoShiftModal')) return;
+    const m = document.createElement('div');
+    m.id = 'whoShiftModal';
+    m.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(6px);z-index:4000;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = `
+      <div style="background:linear-gradient(135deg,#1B2D4A,#0F1E35);border:1.5px solid rgba(201,150,58,.4);border-radius:22px;padding:28px;width:560px;max-width:96vw;max-height:85vh;overflow-y:auto;animation:fadeUp .2s ease">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+          <div id="whoModalShiftBadge" style="padding:5px 14px;border-radius:9px;font-size:14px;font-weight:800"></div>
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#fff" id="whoModalTitle">Staff on this shift</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px" id="whoModalSub"></div>
+          </div>
+          <button onclick="closeWhoModal()" style="margin-left:auto;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer">✕ Close</button>
+        </div>
+        <!-- Date selector -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;align-items:center;flex-wrap:wrap">
+          <div style="font-size:11px;color:rgba(255,255,255,.5);font-weight:700">View day:</div>
+          <div id="whoDatePills" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+        </div>
+        <div id="whoStaffList" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    `;
+    document.body.appendChild(m);
+  }
+
+  window.openWhoShiftModal = function(shiftCode, shiftDef) {
+    injectWhoModal();
+    _activeShiftFilter = shiftCode;
+    const m = document.getElementById('whoShiftModal');
+    m.style.display = 'flex';
+
+    // Set badge
+    const badge = document.getElementById('whoModalShiftBadge');
+    if (badge && shiftDef) {
+      badge.textContent = shiftCode;
+      badge.style.background = shiftDef.bg || '#334155';
+      badge.style.color = shiftDef.color || '#fff';
+      badge.style.border = '1.5px solid ' + (shiftDef.border || 'rgba(255,255,255,.2)');
+    }
+    document.getElementById('whoModalTitle').textContent = 'Staff on ' + (shiftDef ? shiftDef.label || shiftCode : shiftCode);
+
+    // Build day pills for current month
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+    const dp = document.getElementById('whoDatePills');
+    dp.innerHTML = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.7);cursor:pointer;transition:.15s';
+      btn.textContent = d;
+      if (d === today.getDate()) { btn.style.background='rgba(201,150,58,.2)';btn.style.borderColor='rgba(201,150,58,.4)';btn.style.color='#E8B04A'; }
+      btn.onclick = () => { document.querySelectorAll('#whoDatePills button').forEach(b=>{b.style.background='rgba(255,255,255,.05)';b.style.borderColor='rgba(255,255,255,.12)';b.style.color='rgba(255,255,255,.7)'}); btn.style.background='rgba(201,150,58,.2)';btn.style.borderColor='rgba(201,150,58,.4)';btn.style.color='#E8B04A'; loadWhoForDay(shiftCode, d, shiftDef); };
+      dp.appendChild(btn);
+    }
+    loadWhoForDay(shiftCode, today.getDate(), shiftDef);
+  };
+
+  function loadWhoForDay(shiftCode, day, shiftDef) {
+    const list = document.getElementById('whoStaffList');
+    if (!list) return;
+    const sub = document.getElementById('whoModalSub');
+
+    if (typeof staffList !== 'function' || typeof YEAR === 'undefined' || typeof MONTH === 'undefined') {
+      list.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:12px;padding:12px">Roster data not loaded yet.</div>';
+      return;
+    }
+
+    const staff = staffList();
+    const _whoY = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const _whoM = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = _whoY + '-' + _whoM;
+    const matched = [];
+
+    staff.forEach(emp => {
+      const empSch = (window.schedData && window.schedData[emp.id] && window.schedData[emp.id][k]) ? window.schedData[emp.id][k] : {};
+      const code = String(empSch[day] || '').toUpperCase().trim();
+      if (code === shiftCode.toUpperCase()) matched.push({emp, code});
+    });
+
+    if (sub) sub.textContent = matched.length + ' staff · Day ' + day + ' of ' + new Date(_whoY, _whoM+1, 0).getDate();
+
+    if (!matched.length) {
+      list.innerHTML = '<div style="text-align:center;padding:24px;color:rgba(255,255,255,.4);font-size:12px">No staff on this shift on day ' + day + '</div>';
+      return;
+    }
+
+    list.innerHTML = matched.map(({emp}) => {
+      const initials = (emp.name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:11px">
+        <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--navy2),var(--navy3));display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:var(--gold2);flex-shrink:0">${initials}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${emp.name||'Unknown'}</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.45);margin-top:2px">${emp.department||''} ${emp.position?'· '+emp.position:''}</div>
+        </div>
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4)">${emp.hotel||''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  window.closeWhoModal = function() {
+    const m = document.getElementById('whoShiftModal');
+    if (m) m.style.display = 'none';
+  };
+
+  window.clearShiftFilter = function() {
+    _activeShiftFilter = null;
+    const chip = document.getElementById('sfChipV6');
+    if (chip) chip.classList.remove('show');
+    // Remove any dimming
+    document.querySelectorAll('.row-dim-filter').forEach(r => r.classList.remove('row-dim-filter'));
+    // Remove legend active state
+    document.querySelectorAll('.lv6-active').forEach(p => p.classList.remove('lv6-active'));
+    document.querySelectorAll('.sp.legend-active').forEach(p => p.classList.remove('legend-active'));
+  };
+
+  // Intercept shift legend clicks — make existing pills clickable
+  function wireShiftLegendClicks() {
+    // Wire up any existing shift pills in legend area
+    document.querySelectorAll('[data-legend-pill]').forEach(pill => {
+      if (pill.dataset.v6wired) return;
+      pill.dataset.v6wired = '1';
+      pill.addEventListener('click', function() {
+        const code = this.dataset.legendPill || this.textContent.trim();
+        const shiftDef = (typeof SHIFTS !== 'undefined') ? SHIFTS[code] : null;
+        openWhoShiftModal(code, shiftDef);
+      });
+    });
+  }
+  setInterval(wireShiftLegendClicks, 1200);
+  setTimeout(injectShiftChip, 600);
+
+  // Override renderRoster to also wire legend after each render
+  const _origRR = window.renderRoster;
+  if (typeof _origRR === 'function') {
+    window.renderRoster = function() {
+      const r = _origRR.apply(this, arguments);
+      setTimeout(wireShiftLegendClicks, 300);
+      return r;
+    };
+  }
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v6 — SECOND PAGE SHIFT-ROSTER FILTER (Staff Page)
+// When user clicks a shift pill on the staff/roster page,
+// a filter bar appears showing who shares that shift day-by-day.
+// ════════════════════════════════════════════════════════════════
+(function(){
+  // Add "Roster Filter" tab button to staff page header
+  function injectStaffPageFilterBtn() {
+    const staffPage = document.getElementById('page-staff');
+    if (!staffPage || staffPage.dataset.v6filter) return;
+    staffPage.dataset.v6filter = '1';
+
+    // Find filter bar
+    const fb = staffPage.querySelector('.fb');
+    if (!fb) return;
+
+    // Add a "🔍 Roster Filter" button
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-sm';
+    btn.style.cssText = 'background:rgba(15,118,110,.12);color:#0F766E;border:1.5px solid rgba(15,118,110,.3);margin-left:4px';
+    btn.title = 'Filter by shift — see who shares a roster';
+    btn.innerHTML = '🔍 Roster Filter';
+    btn.onclick = toggleRosterFilterPanel;
+
+    // Insert before last child of fb
+    const actionDiv = fb.querySelector('div[style*="margin-left:auto"]');
+    if (actionDiv) fb.insertBefore(btn, actionDiv);
+    else fb.appendChild(btn);
+
+    // Inject filter panel below fb
+    const panel = document.createElement('div');
+    panel.id = 'staffRosterFilterPanel';
+    panel.className = 'spage-filter-bar';
+    panel.innerHTML = `
+      <div class="sfb-label">Filter by shift:</div>
+      <div class="sfb-shift-badges" id="sfbBadges"></div>
+      <div style="margin-left:auto">
+        <select id="sfbDaySelect" style="background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:8px;padding:5px 10px;font-size:11px;color:#fff;outline:none" onchange="sfbRender()">
+          <option value="">Today</option>
+        </select>
+      </div>
+    `;
+    fb.parentNode.insertBefore(panel, fb.nextSibling);
+
+    // Inject results table
+    const results = document.createElement('div');
+    results.id = 'sfbResults';
+    results.style.cssText = 'display:none;background:linear-gradient(135deg,#0F1E35,#1B2D4A);border:1.5px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;margin-bottom:10px';
+    fb.parentNode.insertBefore(results, panel.nextSibling);
+
+    populateSfbShifts();
+    populateSfbDays();
+  }
+
+  function toggleRosterFilterPanel() {
+    const panel = document.getElementById('staffRosterFilterPanel');
+    const results = document.getElementById('sfbResults');
+    if (!panel) return;
+    const showing = panel.classList.contains('show');
+    if (showing) {
+      panel.classList.remove('show');
+      if (results) results.style.display = 'none';
+    } else {
+      panel.classList.add('show');
+      populateSfbShifts();
+      populateSfbDays();
+    }
+  }
+
+  function populateSfbShifts() {
+    const badges = document.getElementById('sfbBadges');
+    if (!badges || badges.dataset.populated) return;
+    if (typeof SHIFTS === 'undefined') return;
+    badges.dataset.populated = '1';
+    badges.innerHTML = '';
+    Object.entries(SHIFTS).slice(0, 16).forEach(([code, def]) => {
+      if (def.off || def.leave) return;
+      const b = document.createElement('span');
+      b.className = 'sfb-badge';
+      b.style.cssText = `background:${def.bg||'#334'};color:${def.color||'#fff'};border:1.5px solid ${def.border||'rgba(255,255,255,.2)'}`;
+      b.textContent = code;
+      b.dataset.code = code;
+      b.onclick = function() {
+        document.querySelectorAll('.sfb-badge').forEach(x=>x.classList.remove('sfb-active'));
+        this.classList.add('sfb-active');
+        sfbRender();
+      };
+      badges.appendChild(b);
+    });
+  }
+
+  function populateSfbDays() {
+    const sel = document.getElementById('sfbDaySelect');
+    if (!sel || sel.options.length > 2) return;
+    const today = new Date();
+    const daysInMonth = new Date(today.getFullYear(), today.getMonth()+1, 0).getDate();
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const opt = document.createElement('option');
+      opt.value = d;
+      opt.textContent = monthNames[today.getMonth()] + ' ' + d;
+      if (d === today.getDate()) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  }
+
+  window.sfbRender = function() {
+    const results = document.getElementById('sfbResults');
+    if (!results) return;
+    const activeBadge = document.querySelector('.sfb-badge.sfb-active');
+    if (!activeBadge) { results.style.display='none'; return; }
+
+    const code = activeBadge.dataset.code;
+    const daySel = document.getElementById('sfbDaySelect');
+    const day = daySel ? (parseInt(daySel.value) || new Date().getDate()) : new Date().getDate();
+
+    if (typeof staffList !== 'function' || typeof YEAR === 'undefined') {
+      results.style.display = 'block';
+      results.innerHTML = '<div style="color:rgba(255,255,255,.4);font-size:12px;padding:10px">Roster data not loaded.</div>';
+      return;
+    }
+
+    const staff = staffList();
+    const _sfbY = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const _sfbM = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = _sfbY + '-' + _sfbM;
+    const matched = staff.filter(emp => {
+      const empSch = (window.schedData && window.schedData[emp.id] && window.schedData[emp.id][k]) ? window.schedData[emp.id][k] : {};
+      return String(empSch[day]||'').toUpperCase().trim() === code.toUpperCase();
+    });
+
+    const def = (typeof SHIFTS !== 'undefined') ? SHIFTS[code] : {};
+    results.style.display = 'block';
+    results.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="background:${(def&&def.bg)||'#334'};color:${(def&&def.color)||'#fff'};border:1.5px solid ${(def&&def.border)||'rgba(255,255,255,.2)'};border-radius:7px;padding:4px 12px;font-size:13px;font-weight:800">${code}</span>
+        <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff">${matched.length} staff on day ${day}</span>
+        <span style="font-size:11px;color:rgba(255,255,255,.4)">${def&&def.label?'· '+def.label:''}</span>
+      </div>
+      ${matched.length === 0
+        ? '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.35);font-size:12px">No staff found on this shift for this day.</div>'
+        : `<table class="sfb-roster-table">
+          <thead><tr><th>Name</th><th>ID</th><th>Department</th><th>Position</th><th>Hotel</th></tr></thead>
+          <tbody>
+            ${matched.map(emp=>`<tr>
+              <td><span style="font-weight:700;color:#fff">${emp.name||'—'}</span></td>
+              <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold2)">${emp.id||'—'}</span></td>
+              <td><span style="font-size:11px;color:rgba(255,255,255,.7)">${emp.department||'—'}</span></td>
+              <td><span style="font-size:11px;color:rgba(255,255,255,.6)">${emp.position||'—'}</span></td>
+              <td><span style="font-size:10px;color:rgba(255,255,255,.45)">${emp.hotel||'—'}</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>`
+      }
+    `;
+  };
+
+  setTimeout(injectStaffPageFilterBtn, 1200);
+  setInterval(injectStaffPageFilterBtn, 3000);
+})();
+
+console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel redesign · AI support · Shift filter · Who\'s on roster');
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- YPH v7 — SHIFT FILTER FIX + IMPORT/EXPORT + CALENDAR + AUTO  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── WHO-IS-ON-SHIFT MODAL ────────────────────────────────────── */
+#v7WhoModal {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.72); backdrop-filter:blur(8px);
+  z-index:9000; align-items:center; justify-content:center; padding:20px;
+}
+#v7WhoModal.show { display:flex; }
+.v7wm-card {
+  background:linear-gradient(135deg,#111E32,#0C1726);
+  border:1.5px solid rgba(201,150,58,.45);
+  border-radius:22px; padding:26px; width:620px;
+  max-width:96vw; max-height:86vh; overflow-y:auto;
+  animation:fadeUp .22s ease both;
+  box-shadow:0 32px 80px rgba(0,0,0,.65);
+}
+.v7wm-head { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.v7wm-badge { padding:5px 14px; border-radius:9px; font-size:15px; font-weight:800; }
+.v7wm-title { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; color:#fff; }
+.v7wm-sub { font-size:11px; color:rgba(255,255,255,.45); margin-top:2px; }
+.v7wm-daypills { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:16px; }
+.v7wm-dp {
+  padding:4px 9px; border-radius:7px; font-size:11px; font-weight:700;
+  border:1.5px solid rgba(255,255,255,.1); background:rgba(255,255,255,.05);
+  color:rgba(255,255,255,.6); cursor:pointer; transition:.14s;
+}
+.v7wm-dp:hover { background:rgba(255,255,255,.1); color:#fff; }
+.v7wm-dp.v7wm-today { background:rgba(201,150,58,.18); border-color:rgba(201,150,58,.4); color:#E8B04A; }
+.v7wm-dp.v7wm-sel { background:rgba(201,150,58,.28); border-color:#C9963A; color:#E8B04A; box-shadow:0 0 0 2px rgba(201,150,58,.2); }
+.v7wm-row {
+  display:flex; align-items:center; gap:12px; padding:10px 13px;
+  background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07);
+  border-radius:11px; margin-bottom:7px; transition:.15s;
+}
+.v7wm-row:hover { background:rgba(255,255,255,.07); border-color:rgba(201,150,58,.2); }
+.v7wm-av {
+  width:38px; height:38px; border-radius:10px; flex-shrink:0;
+  background:linear-gradient(135deg,#1B2D4A,#243B5F);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-weight:800; font-size:13px; color:#E8B04A;
+}
+.v7wm-name { font-weight:700; font-size:13px; color:#fff; }
+.v7wm-meta { font-size:10px; color:rgba(255,255,255,.45); margin-top:2px; }
+.v7wm-empty { text-align:center; padding:28px; color:rgba(255,255,255,.35); font-size:12px; }
+
+/* ── EXPORT MODAL ─────────────────────────────────────────────── */
+#v7ExportModal {
+  display:none; position:fixed; inset:0;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(8px);
+  z-index:8500; align-items:center; justify-content:center; padding:20px;
+}
+#v7ExportModal.show { display:flex; }
+.v7ex-card {
+  background:linear-gradient(135deg,#111E32,#0C1726);
+  border:1.5px solid rgba(201,150,58,.4);
+  border-radius:22px; padding:26px; width:520px;
+  max-width:96vw; max-height:88vh; overflow-y:auto;
+  animation:fadeUp .22s ease both; box-shadow:0 28px 72px rgba(0,0,0,.6);
+}
+.v7ex-title { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; color:#fff; margin-bottom:4px; }
+.v7ex-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:18px; }
+.v7ex-btn {
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px;
+  padding:18px 12px; border-radius:13px; cursor:pointer;
+  border:1.5px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04);
+  transition:.18s; color:#fff;
+}
+.v7ex-btn:hover { border-color:rgba(201,150,58,.5); background:rgba(201,150,58,.08); transform:translateY(-2px); }
+.v7ex-btn-icon { font-size:26px; }
+.v7ex-btn-label { font-family:'Syne',sans-serif; font-size:13px; font-weight:800; }
+.v7ex-btn-sub { font-size:10px; color:rgba(255,255,255,.45); }
+/* Import section */
+.v7ex-import-area {
+  border:2px dashed rgba(201,150,58,.35); border-radius:12px;
+  padding:20px; text-align:center; cursor:pointer; transition:.2s;
+  background:rgba(201,150,58,.04);
+}
+.v7ex-import-area:hover { border-color:rgba(201,150,58,.6); background:rgba(201,150,58,.09); }
+.v7ex-import-area.dragover { border-color:#C9963A; background:rgba(201,150,58,.14); }
+
+/* ── CALENDAR VIEW ────────────────────────────────────────────── */
+#v7CalendarView {
+  display:none; padding:0;
+}
+#v7CalendarView.show { display:block; }
+.v7cal-grid {
+  display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-top:10px;
+}
+.v7cal-hdr {
+  text-align:center; font-size:10px; font-weight:800; color:var(--slate2);
+  text-transform:uppercase; letter-spacing:.5px; padding:6px 0;
+}
+.v7cal-day {
+  background:#fff; border:1.5px solid #E8EEF8; border-radius:10px;
+  padding:6px 5px; min-height:88px; cursor:pointer; transition:.15s; position:relative;
+}
+.v7cal-day:hover { border-color:var(--gold); box-shadow:0 2px 10px rgba(201,150,58,.15); }
+.v7cal-day.v7cal-today { border-color:var(--gold); background:var(--gold-l); }
+.v7cal-day.v7cal-weekend { background:#FFF5F5; border-color:#FFCDD2; }
+.v7cal-day.v7cal-other { background:#F8FAFC; opacity:.5; }
+.v7cal-dn { font-size:12px; font-weight:800; color:var(--navy); margin-bottom:4px; }
+.v7cal-today .v7cal-dn { color:var(--gold); }
+.v7cal-shifts { display:flex; flex-direction:column; gap:2px; }
+.v7cal-sp {
+  border-radius:5px; padding:2px 6px; font-size:9.5px; font-weight:800;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer;
+}
+.v7cal-more { font-size:9px; color:var(--slate2); margin-top:2px; }
+.v7cal-count-badge {
+  position:absolute; top:4px; right:5px;
+  font-size:9px; font-weight:700; background:var(--ice); color:var(--slate2);
+  border-radius:5px; padding:1px 5px;
+}
+
+/* ── ENHANCED AUTO SCHEDULE MODAL ADDON ─────────────────────────*/
+.v7as-addon {
+  background:rgba(91,33,182,.08); border:1px solid rgba(91,33,182,.25);
+  border-radius:12px; padding:14px; margin-bottom:12px;
+}
+.v7as-addon-title {
+  font-size:12px; font-weight:800; color:#C084FC; margin-bottom:10px;
+  display:flex; align-items:center; gap:7px;
+}
+.v7as-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:8px; }
+.v7as-lbl { font-size:11px; color:rgba(255,255,255,.6); font-weight:600; min-width:120px; }
+.v7as-inp {
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  border-radius:8px; padding:6px 10px; font-size:11px; color:#fff;
+  font-family:'DM Sans',sans-serif; outline:none; transition:.2s; flex:1; min-width:80px;
+}
+.v7as-inp:focus { border-color:rgba(124,58,237,.5); }
+.v7as-chk-row { display:flex; gap:10px; flex-wrap:wrap; }
+.v7as-chk-item {
+  display:flex; align-items:center; gap:6px;
+  font-size:11px; color:rgba(255,255,255,.7); cursor:pointer;
+}
+.v7as-chk-item input { accent-color:#7C3AED; width:14px; height:14px; }
+
+/* ── ROSTER LEGEND BAR (click to filter) ─────────────────────── */
+#v7LegendBar {
+  display:none; gap:5px; flex-wrap:wrap; align-items:center;
+  padding:8px 12px; margin-bottom:8px;
+  background:var(--ice2); border:1.5px solid #E2EAFC;
+  border-radius:10px;
+}
+#v7LegendBar.show { display:flex; }
+.v7lb-label { font-size:9px; font-weight:800; color:var(--slate2); text-transform:uppercase; letter-spacing:.6px; margin-right:4px; white-space:nowrap; }
+.v7lb-pill {
+  padding:3px 10px; border-radius:7px; font-size:10.5px; font-weight:800;
+  cursor:pointer; transition:all .14s; border:1.5px solid transparent;
+  user-select:none; position:relative;
+}
+.v7lb-pill:hover { transform:scale(1.07); filter:brightness(1.08); }
+.v7lb-pill.v7lb-active {
+  outline:2.5px solid #C9963A; outline-offset:2px;
+  box-shadow:0 0 0 5px rgba(201,150,58,.18);
+}
+.v7lb-pill .v7lb-cnt {
+  display:inline-block; background:rgba(0,0,0,.18); border-radius:4px;
+  padding:0 4px; font-size:9px; margin-left:3px; font-weight:700;
+}
+/* Active filter chip */
+#v7FilterChip {
+  display:none; position:fixed; bottom:80px; right:16px;
+  background:linear-gradient(135deg,var(--navy),var(--navy2));
+  border:1.5px solid rgba(201,150,58,.45); border-radius:100px;
+  padding:8px 16px; box-shadow:0 8px 28px rgba(0,0,0,.45);
+  z-index:2600; cursor:pointer; font-size:12px; font-weight:700;
+  color:#fff; align-items:center; gap:8px; animation:fadeUp .2s ease;
+}
+#v7FilterChip.show { display:flex; }
+
+/* View toggle extra pill */
+.rtb-toggle-extra {
+  padding:5px 13px; border-radius:100px; font-size:11.5px; font-weight:700;
+  background:transparent; color:#6B7EA0; border:none; cursor:pointer; transition:.18s;
+}
+.rtb-toggle-extra:hover { background:rgba(0,0,0,.06); color:#1B2D4A; }
+.rtb-toggle-extra.active { background:#fff; color:#0F1E35; box-shadow:0 2px 8px rgba(15,30,53,.12); }
+
+@media(max-width:768px){
+  .v7cal-grid { grid-template-columns:repeat(7,1fr); gap:2px; }
+  .v7cal-day { min-height:60px; padding:4px 3px; }
+  .v7ex-grid { grid-template-columns:1fr; }
+}
+</style>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// YPH v7 ① — SHIFT FILTER: FIXED "WHO'S ON ROSTER" MODAL
+// Works by directly reading schedData + staffData at click time
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  // ── Build/show modal ──
+  function ensureModal() {
+    if (document.getElementById('v7WhoModal')) return;
+    const m = document.createElement('div');
+    m.id = 'v7WhoModal';
+    m.innerHTML = `
+      <div class="v7wm-card">
+        <div class="v7wm-head">
+          <div class="v7wm-badge" id="v7wmBadge"></div>
+          <div>
+            <div class="v7wm-title" id="v7wmTitle">Staff on this shift</div>
+            <div class="v7wm-sub" id="v7wmSub"></div>
+          </div>
+          <button onclick="v7CloseWho()" style="margin-left:auto;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer">✕ Close</button>
+        </div>
+        <div style="margin-bottom:12px">
+          <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px">Select Day</div>
+          <div class="v7wm-daypills" id="v7wmDayPills"></div>
+        </div>
+        <div id="v7wmList"></div>
+      </div>`;
+    document.body.appendChild(m);
+  }
+
+  window.v7CloseWho = function() {
+    const m = document.getElementById('v7WhoModal');
+    if (m) { m.classList.remove('show'); }
+    clearV7Filter();
+  };
+
+  window.v7OpenWho = function(code) {
+    ensureModal();
+    const shifts = (typeof SHIFTS !== 'undefined') ? SHIFTS : {};
+    const def = shifts[code] || {};
+    const badge = document.getElementById('v7wmBadge');
+    if (badge) {
+      badge.textContent = code;
+      badge.style.background = def.bg || '#334155';
+      badge.style.color = def.color || '#fff';
+      badge.style.border = '1.5px solid ' + (def.border || 'rgba(255,255,255,.25)');
+    }
+    const t = document.getElementById('v7wmTitle');
+    if (t) t.textContent = 'Staff on ' + (def.label || code);
+
+    // Build day pills
+    const today = new Date();
+    const y = (typeof YEAR !== 'undefined') ? YEAR : today.getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : today.getMonth();
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const dp = document.getElementById('v7wmDayPills');
+    dp.innerHTML = '';
+    for (let d = 1; d <= daysInMonth; d++) {
+      const btn = document.createElement('button');
+      btn.className = 'v7wm-dp' + (d === today.getDate() && y === today.getFullYear() && mo === today.getMonth() ? ' v7wm-today v7wm-sel' : '');
+      btn.textContent = d;
+      btn.dataset.day = d;
+      btn.onclick = () => {
+        document.querySelectorAll('.v7wm-dp').forEach(b => b.classList.remove('v7wm-sel'));
+        btn.classList.add('v7wm-sel');
+        v7LoadDay(code, d);
+      };
+      dp.appendChild(btn);
+    }
+    // Load today or day 1
+    const initDay = (y === today.getFullYear() && mo === today.getMonth()) ? today.getDate() : 1;
+    v7LoadDay(code, initDay);
+
+    document.getElementById('v7WhoModal').classList.add('show');
+  };
+
+  function v7LoadDay(code, day) {
+    const list = document.getElementById('v7wmList');
+    const sub = document.getElementById('v7wmSub');
+    if (!list) return;
+
+    // Safety checks
+    if (typeof staffData === 'undefined' || typeof schedData === 'undefined') {
+      list.innerHTML = '<div class="v7wm-empty">Roster data not ready. Please wait a moment and try again.</div>';
+      return;
+    }
+
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = y + '-' + mo;
+    const allStaff = Object.values(staffData);
+    const matched = [];
+
+    allStaff.forEach(emp => {
+      const empSch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      const dayCode = String(empSch[day] || '').toUpperCase().trim();
+      if (dayCode === code.toUpperCase()) matched.push(emp);
+    });
+
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    if (sub) sub.textContent = matched.length + ' staff on day ' + day + ' / ' + daysInMonth;
+
+    if (!matched.length) {
+      list.innerHTML = '<div class="v7wm-empty">No staff assigned to <strong>' + code + '</strong> on day ' + day + '</div>';
+      return;
+    }
+
+    list.innerHTML = matched.map(emp => {
+      const words = (emp.name || '?').split(' ').filter(Boolean);
+      const init = words.length >= 2 ? (words[0][0] + words[words.length-1][0]).toUpperCase() : (words[0] ? words[0][0].toUpperCase() : '?');
+      const hotel = (typeof HOTELS !== 'undefined') ? (HOTELS.find(h => h.id === emp.hotel) || {name: emp.hotel}) : {name: emp.hotel};
+      return `<div class="v7wm-row">
+        <div class="v7wm-av">${init}</div>
+        <div style="flex:1;min-width:0">
+          <div class="v7wm-name">${emp.name || '—'}</div>
+          <div class="v7wm-meta">${emp.department || ''} ${emp.position ? '· ' + emp.position : ''} ${emp.id ? '· ' + emp.id : ''}</div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.4);flex-shrink:0">${hotel.name || emp.hotel || ''}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Legend bar with clickable shift pills ──
+  function buildLegendBar() {
+    const rosterPage = document.getElementById('page-roster');
+    if (!rosterPage || rosterPage.querySelector('#v7LegendBar')) return;
+
+    // Find where to insert (after .rtb-v6 or before .card)
+    const bar = document.createElement('div');
+    bar.id = 'v7LegendBar';
+    bar.className = 'show';
+
+    const insertTarget = rosterPage.querySelector('.card') || rosterPage.querySelector('#rosterWrap')?.closest('.card');
+    if (insertTarget) rosterPage.insertBefore(bar, insertTarget);
+    else rosterPage.appendChild(bar);
+  }
+
+  function refreshLegendBar() {
+    const bar = document.getElementById('v7LegendBar');
+    if (!bar) return;
+    if (typeof SHIFTS === 'undefined' || typeof schedData === 'undefined') return;
+
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = y + '-' + mo;
+
+    // Count per shift across all staff for entire month
+    const counts = {};
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    Object.values(staffData || {}).forEach(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const c = String(sch[d] || '').toUpperCase().trim();
+        if (c) counts[c] = (counts[c] || 0) + 1;
+      }
+    });
+
+    bar.innerHTML = '<span class="v7lb-label">📋 Click shift to see who\'s on it →</span>';
+    const shiftOrder = Object.keys(SHIFTS).filter(k => counts[k]);
+    shiftOrder.forEach(code => {
+      if (!counts[code]) return;
+      const def = SHIFTS[code] || {};
+      const pill = document.createElement('span');
+      pill.className = 'v7lb-pill';
+      pill.dataset.code = code;
+      pill.style.cssText = `background:${def.bg||'#eee'};color:${def.color||'#333'};border-color:${def.border||'#ccc'}`;
+      pill.innerHTML = code + `<span class="v7lb-cnt">${counts[code]}</span>`;
+      pill.title = (def.label || code) + ' — click to see who\'s on this shift';
+      pill.onclick = () => {
+        document.querySelectorAll('.v7lb-pill').forEach(p => p.classList.remove('v7lb-active'));
+        pill.classList.add('v7lb-active');
+        v7OpenWho(code);
+        showV7FilterChip(code, def);
+      };
+      bar.appendChild(pill);
+    });
+  }
+
+  function showV7FilterChip(code, def) {
+    let chip = document.getElementById('v7FilterChip');
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.id = 'v7FilterChip';
+      chip.onclick = () => { v7CloseWho(); };
+      document.body.appendChild(chip);
+    }
+    chip.innerHTML = `<span style="padding:2px 9px;border-radius:6px;font-size:11px;font-weight:800;background:${(def&&def.bg)||'#334'};color:${(def&&def.color)||'#fff'}">${code}</span> <span style="opacity:.7;font-size:11px">Viewing roster → tap to clear</span> <span style="opacity:.5">✕</span>`;
+    chip.classList.add('show');
+  }
+
+  function clearV7Filter() {
+    document.querySelectorAll('.v7lb-pill').forEach(p => p.classList.remove('v7lb-active'));
+    const chip = document.getElementById('v7FilterChip');
+    if (chip) chip.classList.remove('show');
+  }
+
+  // Hook into renderRoster
+  let _rr_hooked = false;
+  function hookRenderRoster() {
+    if (_rr_hooked || typeof window.renderRoster !== 'function') return;
+    _rr_hooked = true;
+    const orig = window.renderRoster;
+    window.renderRoster = function() {
+      const r = orig.apply(this, arguments);
+      setTimeout(() => { buildLegendBar(); refreshLegendBar(); }, 200);
+      return r;
+    };
+  }
+
+  setTimeout(() => { buildLegendBar(); refreshLegendBar(); hookRenderRoster(); }, 1500);
+  setInterval(() => { buildLegendBar(); refreshLegendBar(); hookRenderRoster(); }, 5000);
+})();
+
+
+// ════════════════════════════════════════════════════════════════
+// YPH v7 ② — EXPORT MODAL: Excel, PDF, CSV + Import from Excel/CSV
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  function ensureExportModal() {
+    if (document.getElementById('v7ExportModal')) return;
+    const m = document.createElement('div');
+    m.id = 'v7ExportModal';
+    m.innerHTML = `
+      <div class="v7ex-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <div>
+            <div class="v7ex-title">📤 Export / Import Roster</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:3px">Download or upload your roster data</div>
+          </div>
+          <button onclick="v7CloseExport()" style="background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.7);border-radius:8px;padding:6px 13px;font-size:12px;font-weight:600;cursor:pointer">✕</button>
+        </div>
+        <!-- Month/filter selector -->
+        <div style="background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:12px;margin-bottom:16px">
+          <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Export Options</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div>
+              <label style="font-size:10px;color:rgba(255,255,255,.45);display:block;margin-bottom:4px">Hotel Filter</label>
+              <select id="v7exHotel" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 10px;font-size:11px;color:#fff;outline:none">
+                <option value="all">All Hotels</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;color:rgba(255,255,255,.45);display:block;margin-bottom:4px">Department Filter</label>
+              <select id="v7exDept" style="width:100%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);border-radius:8px;padding:7px 10px;font-size:11px;color:#fff;outline:none">
+                <option value="all">All Departments</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <!-- Export buttons -->
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Export As</div>
+        <div class="v7ex-grid" style="margin-bottom:20px">
+          <button class="v7ex-btn" onclick="v7ExportExcel()">
+            <div class="v7ex-btn-icon">📊</div>
+            <div class="v7ex-btn-label">Excel (.xlsx)</div>
+            <div class="v7ex-btn-sub">Full roster with formatting</div>
+          </button>
+          <button class="v7ex-btn" onclick="v7ExportCSVFull()">
+            <div class="v7ex-btn-icon">📄</div>
+            <div class="v7ex-btn-label">CSV</div>
+            <div class="v7ex-btn-sub">Plain data, all systems</div>
+          </button>
+          <button class="v7ex-btn" onclick="v7ExportPDF()">
+            <div class="v7ex-btn-icon">📋</div>
+            <div class="v7ex-btn-label">PDF Print</div>
+            <div class="v7ex-btn-sub">Printer-friendly layout</div>
+          </button>
+          <button class="v7ex-btn" onclick="v7ExportJSON()">
+            <div class="v7ex-btn-icon">🔧</div>
+            <div class="v7ex-btn-label">JSON Backup</div>
+            <div class="v7ex-btn-sub">Full backup with staff data</div>
+          </button>
+        </div>
+        <!-- Import -->
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Import Roster</div>
+        <div class="v7ex-import-area" id="v7ImportDrop"
+          onclick="document.getElementById('v7ImportFileInp').click()"
+          ondragover="event.preventDefault();this.classList.add('dragover')"
+          ondragleave="this.classList.remove('dragover')"
+          ondrop="event.preventDefault();this.classList.remove('dragover');v7HandleImportDrop(event.dataTransfer.files)">
+          <div style="font-size:28px;margin-bottom:8px">📁</div>
+          <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,.8)">Drop Excel or CSV file here</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:4px">or click to browse · Supports .xlsx, .xls, .csv</div>
+          <input type="file" id="v7ImportFileInp" accept=".xlsx,.xls,.csv" style="display:none" onchange="v7HandleImportFiles(this.files)">
+        </div>
+        <div id="v7ImportStatus" style="font-size:11px;min-height:18px;margin-top:8px;color:#4ADE80"></div>
+        <div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.07)">
+          <div style="font-size:10px;color:rgba(255,255,255,.3)">💡 Import tip: Your Excel/CSV must have columns: ID, Name, Department, and Day 1…Day 31 (or Date columns). Use the CSV export as a template.</div>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    // Populate selects
+    setTimeout(() => {
+      const hs = document.getElementById('v7exHotel');
+      const ds = document.getElementById('v7exDept');
+      if (hs && typeof HOTELS !== 'undefined') {
+        HOTELS.filter(h => h.id !== 'all').forEach(h => {
+          const o = document.createElement('option'); o.value = h.id; o.textContent = h.name; hs.appendChild(o);
+        });
+      }
+      if (ds && typeof getAllDepts === 'function') {
+        getAllDepts().forEach(d => {
+          const o = document.createElement('option'); o.value = d; o.textContent = d; ds.appendChild(o);
+        });
+      }
+    }, 100);
+  }
+
+  window.v7OpenExport = function() { ensureExportModal(); document.getElementById('v7ExportModal').classList.add('show'); };
+  window.v7CloseExport = function() { const m = document.getElementById('v7ExportModal'); if (m) m.classList.remove('show'); };
+
+  // ── Helper: get filtered staff ──
+  function getExportStaff() {
+    const hf = document.getElementById('v7exHotel')?.value || 'all';
+    const df = document.getElementById('v7exDept')?.value || 'all';
+    let staff = Object.values(staffData || {});
+    if (hf !== 'all') staff = staff.filter(e => e.hotel === hf || e.hotel === 'all');
+    if (df !== 'all') staff = staff.filter(e => e.department === df);
+    return staff;
+  }
+
+  // ── CSV Export ──
+  window.v7ExportCSVFull = function() {
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const MONTHS_N = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const staff = getExportStaff();
+    const k = y + '-' + mo;
+    const days = Array.from({length: daysInMonth}, (_, i) => i + 1);
+    const header = ['ID','Name','Department','Position','Hotel','Default Shift', ...days.map(d => 'Day ' + d), 'Work Days','OFF','Total Hours'];
+    const rows = staff.map(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      let work = 0, off = 0, hrs = 0;
+      days.forEach(d => { const c = sch[d] || ''; const sh = SHIFTS[c]; if (sh && sh.hours > 0) { work++; hrs += sh.hours; } else if (c) off++; });
+      const hotel = (typeof HOTELS !== 'undefined') ? (HOTELS.find(h => h.id === emp.hotel) || {name: emp.hotel}) : {name: emp.hotel};
+      return [emp.id, emp.name, emp.department, emp.position, hotel.name || emp.hotel, emp.defaultShift, ...days.map(d => sch[d] || ''), work, off, hrs];
+    });
+    const csv = [header, ...rows].map(r => r.map(v => '"' + String(v || '').replace(/"/g, '""') + '"').join(',')).join('\n');
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'}));
+    a.download = 'YasPlaza_Roster_' + MONTHS_N[mo] + '_' + y + '.csv';
+    a.click();
+  };
+
+  // ── Excel Export ──
+  window.v7ExportExcel = function() {
+    if (typeof XLSX === 'undefined') { alert('Excel library not loaded. Please check your internet connection.'); return; }
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const MONTHS_N = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const staff = getExportStaff();
+    const k = y + '-' + mo;
+    const days = Array.from({length: daysInMonth}, (_, i) => i + 1);
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // Header rows
+    const headerRow1 = ['ID','Name','Department','Position','Hotel','Shift', ...days.map(d => d), 'Work','OFF','Hrs'];
+    const headerRow2 = ['','','','','','', ...days.map(d => DOW[new Date(y,mo,d).getDay()]), '','',''];
+
+    const dataRows = staff.map(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      let work = 0, off = 0, hrs = 0;
+      days.forEach(d => { const c = sch[d] || ''; const sh = SHIFTS[c]; if (sh && sh.hours > 0) { work++; hrs += sh.hours; } else if (c) off++; });
+      const hotel = (typeof HOTELS !== 'undefined') ? (HOTELS.find(h => h.id === emp.hotel) || {name: emp.hotel}) : {name: emp.hotel};
+      return [emp.id, emp.name, emp.department, emp.position, hotel.name || emp.hotel, emp.defaultShift, ...days.map(d => sch[d] || ''), work, off, hrs];
+    });
+
+    const ws = XLSX.utils.aoa_to_sheet([headerRow1, headerRow2, ...dataRows]);
+
+    // Column widths
+    ws['!cols'] = [{wch:10},{wch:28},{wch:18},{wch:18},{wch:16},{wch:8}, ...days.map(()=>({wch:5})), {wch:7},{wch:7},{wch:7}];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, MONTHS_N[mo] + ' ' + y);
+
+    // Add a summary sheet
+    const depts = [...new Set(staff.map(e => e.department).filter(Boolean))];
+    const summaryData = [['Department','Staff Count','Total Work Days','Total Hours']];
+    depts.forEach(dept => {
+      const ds = staff.filter(e => e.department === dept);
+      let tw = 0, th = 0;
+      ds.forEach(emp => {
+        const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+        days.forEach(d => { const sh = SHIFTS[sch[d]]; if (sh && sh.hours > 0) { tw++; th += sh.hours; } });
+      });
+      summaryData.push([dept, ds.length, tw, th]);
+    });
+    const ws2 = XLSX.utils.aoa_to_sheet(summaryData);
+    ws2['!cols'] = [{wch:22},{wch:14},{wch:18},{wch:14}];
+    XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
+
+    XLSX.writeFile(wb, 'YasPlaza_Roster_' + MONTHS_N[mo] + '_' + y + '.xlsx');
+  };
+
+  // ── PDF Export ──
+  window.v7ExportPDF = function() {
+    v7CloseExport();
+    setTimeout(() => { if (typeof printRoster === 'function') printRoster(); else window.print(); }, 300);
+  };
+
+  // ── JSON Backup ──
+  window.v7ExportJSON = function() {
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const MONTHS_N = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const backup = {
+      exportedAt: new Date().toISOString(),
+      year: y, month: mo,
+      staff: staffData || {},
+      schedules: schedData || {}
+    };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(backup, null, 2)], {type:'application/json'}));
+    a.download = 'YasPlaza_Backup_' + MONTHS_N[mo] + '_' + y + '.json';
+    a.click();
+  };
+
+  // ── Import handler ──
+  window.v7HandleImportFiles = function(files) { if (files && files[0]) v7ProcessImportFile(files[0]); };
+  window.v7HandleImportDrop = function(files) { if (files && files[0]) v7ProcessImportFile(files[0]); };
+
+  window.v7ProcessImportFile = function(file) {
+    const status = document.getElementById('v7ImportStatus');
+    if (status) status.textContent = '⏳ Reading file…';
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (ext === 'json') {
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (data.staff) Object.assign(staffData, data.staff);
+          if (data.schedules) Object.assign(schedData, data.schedules);
+          if (typeof saveLocal === 'function') saveLocal();
+          if (typeof renderRoster === 'function') renderRoster();
+          if (status) status.textContent = '✅ JSON backup restored successfully!';
+        } catch(err) { if (status) status.textContent = '❌ Invalid JSON file: ' + err.message; }
+      };
+      reader.readAsText(file);
+      return;
+    }
+
+    if (typeof XLSX === 'undefined') { if (status) status.textContent = '❌ Excel library not loaded.'; return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:'binary'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+        if (!rows.length) { if (status) status.textContent = '❌ Empty file'; return; }
+
+        const headers = rows[0].map(h => String(h).trim().toLowerCase());
+        const idIdx   = headers.findIndex(h => h === 'id' || h === 'employee id' || h === 'emp id');
+        const dayStart = headers.findIndex(h => /^day\s*1$|^1$|^d1$/.test(h));
+
+        if (idIdx === -1) { if (status) status.textContent = '❌ No ID column found. Ensure first row has "ID" header.'; return; }
+
+        const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+        const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+        const k = y + '-' + mo;
+        const daysInMonth = new Date(y, mo + 1, 0).getDate();
+        let imported = 0;
+
+        rows.slice(1).forEach(row => {
+          const empId = String(row[idIdx] || '').trim();
+          if (!empId) return;
+          if (!schedData[empId]) schedData[empId] = {};
+          if (!schedData[empId][k]) schedData[empId][k] = {};
+          if (dayStart !== -1) {
+            for (let d = 1; d <= daysInMonth; d++) {
+              const colIdx = dayStart + (d - 1);
+              if (colIdx < row.length) {
+                const val = String(row[colIdx] || '').trim().toUpperCase();
+                if (val) schedData[empId][k][d] = val;
+              }
+            }
+          }
+          imported++;
+        });
+
+        if (typeof saveLocal === 'function') saveLocal();
+        if (typeof renderRoster === 'function') renderRoster();
+        if (status) status.textContent = `✅ Imported ${imported} employee schedules from ${ext.toUpperCase()}!`;
+      } catch(err) { if (status) status.textContent = '❌ Error reading file: ' + err.message; }
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  // ── Inject Export button into roster toolbar ──
+  function injectExportBtn() {
+    const toolbar = document.querySelector('.rtb-v6 .rtb-actions');
+    if (!toolbar || toolbar.querySelector('#v7ExportBtn')) return;
+    const btn = document.createElement('button');
+    btn.id = 'v7ExportBtn';
+    btn.className = 'rpill rpill-exp';
+    btn.innerHTML = '📤 Export / Import';
+    btn.onclick = v7OpenExport;
+    // Insert before Print button
+    const printBtn = Array.from(toolbar.children).find(c => c.textContent.includes('Print'));
+    if (printBtn) toolbar.insertBefore(btn, printBtn);
+    else toolbar.appendChild(btn);
+  }
+  setTimeout(injectExportBtn, 1200);
+  setInterval(injectExportBtn, 3000);
+})();
+
+
+// ════════════════════════════════════════════════════════════════
+// YPH v7 ③ — CALENDAR VIEW
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  let _calView = false;
+
+  function ensureCalendarContainer() {
+    const rosterPage = document.getElementById('page-roster');
+    if (!rosterPage || rosterPage.querySelector('#v7CalendarView')) return;
+    const calDiv = document.createElement('div');
+    calDiv.id = 'v7CalendarView';
+    const mainCard = rosterPage.querySelector('.card');
+    if (mainCard) rosterPage.insertBefore(calDiv, mainCard);
+    else rosterPage.appendChild(calDiv);
+  }
+
+  window.v7ToggleCalendar = function() {
+    _calView = !_calView;
+    const calDiv = document.getElementById('v7CalendarView');
+    const mainCard = document.querySelector('#page-roster .card');
+    const calBtn = document.getElementById('rtbBtnCal');
+    if (calDiv) calDiv.classList.toggle('show', _calView);
+    if (mainCard) mainCard.style.display = _calView ? 'none' : '';
+    if (calBtn) calBtn.classList.toggle('active', _calView);
+    if (_calView) renderV7Calendar();
+  };
+
+  window.renderV7Calendar = function() {
+    ensureCalendarContainer();
+    const calDiv = document.getElementById('v7CalendarView');
+    if (!calDiv) return;
+
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const firstDOW = new Date(y, mo, 1).getDay(); // 0=Sun
+    const today = new Date();
+    const k = y + '-' + mo;
+
+    // Build shift-per-day summary
+    const dayMap = {};
+    for (let d = 1; d <= daysInMonth; d++) dayMap[d] = {};
+    Object.values(staffData || {}).forEach(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const code = String(sch[d] || '').toUpperCase().trim();
+        if (code) { dayMap[d][code] = (dayMap[d][code] || 0) + 1; }
+      }
+    });
+
+    const DOW_HEADERS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let html = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;color:var(--navy)">${MONTHS_FULL[mo]} ${y} — Calendar View</div>
+        <div style="font-size:11px;color:var(--slate2)">Click any day to see full roster</div>
+      </div>
+      <div class="v7cal-grid">
+        ${DOW_HEADERS.map(d => `<div class="v7cal-hdr">${d}</div>`).join('')}`;
+
+    // Empty cells before month start
+    for (let i = 0; i < firstDOW; i++) html += `<div class="v7cal-day v7cal-other"></div>`;
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dow = new Date(y, mo, d).getDay();
+      const isToday = (d === today.getDate() && y === today.getFullYear() && mo === today.getMonth());
+      const isWeekend = (dow === 5 || dow === 6); // Fri or Sat
+      const shifts = dayMap[d];
+      const shiftEntries = Object.entries(shifts).sort((a,b) => b[1]-a[1]);
+      const topShifts = shiftEntries.slice(0, 3);
+      const remaining = shiftEntries.length - topShifts.length;
+      const totalStaff = shiftEntries.reduce((s, [,c]) => s+c, 0);
+
+      html += `<div class="v7cal-day${isToday?' v7cal-today':''}${isWeekend?' v7cal-weekend':''}" onclick="v7CalDayClick(${d})">
+        <div class="v7cal-dn">${d}</div>
+        ${totalStaff > 0 ? `<div class="v7cal-count-badge">${totalStaff}</div>` : ''}
+        <div class="v7cal-shifts">
+          ${topShifts.map(([code, count]) => {
+            const def = (typeof SHIFTS !== 'undefined' && SHIFTS[code]) ? SHIFTS[code] : {};
+            return `<div class="v7cal-sp" style="background:${def.bg||'#eee'};color:${def.color||'#333'}" onclick="event.stopPropagation();v7OpenWho('${code}')" title="${def.label||code}: ${count} staff">${code} <span style="opacity:.7;font-size:8px">×${count}</span></div>`;
+          }).join('')}
+          ${remaining > 0 ? `<div class="v7cal-more">+${remaining} more</div>` : ''}
+        </div>
+      </div>`;
+    }
+    html += '</div>';
+    calDiv.innerHTML = html;
+  };
+
+  window.v7CalDayClick = function(day) {
+    // Show a quick popup of all shifts for that day
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = y + '-' + mo;
+    const shifts = {};
+    Object.values(staffData || {}).forEach(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      const code = String(sch[day] || '').toUpperCase().trim();
+      if (code && (!SHIFTS[code]?.off)) shifts[code] = (shifts[code] || 0) + 1;
+    });
+    const topCode = Object.entries(shifts).sort((a,b)=>b[1]-a[1])[0];
+    if (topCode) v7OpenWho(topCode[0]);
+  };
+
+  // Add Calendar button to toggle
+  function addCalButton() {
+    const toggleWrap = document.querySelector('.rpill-toggle-wrap');
+    if (!toggleWrap || toggleWrap.querySelector('#rtbBtnCal')) return;
+    const btn = document.createElement('button');
+    btn.id = 'rtbBtnCal';
+    btn.className = 'rtb-toggle-extra';
+    btn.textContent = '📆 Calendar';
+    btn.onclick = v7ToggleCalendar;
+    toggleWrap.appendChild(btn);
+  }
+
+  setTimeout(() => { ensureCalendarContainer(); addCalButton(); }, 1000);
+  setInterval(addCalButton, 3000);
+
+  // Re-render calendar when month changes
+  let _lastRenderKey = '';
+  setInterval(() => {
+    if (!_calView) return;
+    const y = (typeof YEAR !== 'undefined') ? YEAR : 0;
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : 0;
+    const nk = y + '-' + mo;
+    if (nk !== _lastRenderKey) { _lastRenderKey = nk; renderV7Calendar(); }
+  }, 1500);
+})();
+
+
+// ════════════════════════════════════════════════════════════════
+// YPH v7 ④ — ENHANCED AUTO SCHEDULE & SMART AUTO FILL
+// Injects extra options into existing autoScheduleModal
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  function injectAutoScheduleEnhancements() {
+    const modal = document.getElementById('autoScheduleModal');
+    if (!modal || modal.dataset.v7enhanced) return;
+    modal.dataset.v7enhanced = '1';
+
+    // Find the modal content area
+    const body = modal.querySelector('.modal-body') || modal.querySelector('[style*="overflow-y"]') || modal.firstElementChild?.firstElementChild;
+    if (!body) return;
+
+    const addon = document.createElement('div');
+    addon.className = 'v7as-addon';
+    addon.innerHTML = `
+      <div class="v7as-addon-title">
+        <span style="background:linear-gradient(135deg,#5B21B6,#7C3AED);border-radius:7px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;font-size:13px">🧠</span>
+        Enhanced Auto Schedule Options
+        <span style="font-size:9px;background:rgba(192,132,252,.2);color:#C084FC;border:1px solid rgba(192,132,252,.3);border-radius:6px;padding:2px 8px;font-weight:700">v7 NEW</span>
+      </div>
+      <!-- Smart distribution -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Schedule Pattern</label>
+          <select id="v7AsPattern" class="v7as-inp">
+            <option value="rotate">🔄 Rotating (default)</option>
+            <option value="fixed">📌 Fixed Shifts</option>
+            <option value="fair">⚖️ Fair Distribution</option>
+            <option value="coverage">🏆 Max Coverage</option>
+            <option value="balanced">🎯 Balanced Hours</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px">Priority</label>
+          <select id="v7AsPriority" class="v7as-inp">
+            <option value="staff">👤 Staff Wellbeing First</option>
+            <option value="coverage">📊 Coverage First</option>
+            <option value="seniority">⭐ Seniority Based</option>
+            <option value="equal">🔀 Equal Distribution</option>
+          </select>
+        </div>
+      </div>
+      <!-- Smart rules -->
+      <div class="v7as-chk-row" style="margin-bottom:10px">
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsNoBackToBack" checked> No back-to-back night→morning</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsMinRest" checked> Min 11h rest between shifts</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsBalanceWeekend"> Balance weekend offs</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsRespectPref"> Respect shift preferences</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsAutoLeave"> Skip confirmed leave</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7AsEvenHours"> Even monthly hours</label>
+      </div>
+      <!-- Coverage targets -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px">
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Min Morning Staff</label>
+          <input type="number" id="v7AsMinMor" class="v7as-inp" value="2" min="1" max="20">
+        </div>
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Min Afternoon Staff</label>
+          <input type="number" id="v7AsMinAft" class="v7as-inp" value="2" min="1" max="20">
+        </div>
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Min Night Staff</label>
+          <input type="number" id="v7AsMinEve" class="v7as-inp" value="1" min="0" max="10">
+        </div>
+      </div>
+      <!-- Smart analysis button -->
+      <button onclick="v7AnalyzeBeforeSchedule()" style="width:100%;background:linear-gradient(135deg,rgba(91,33,182,.4),rgba(124,58,237,.25));border:1px solid rgba(124,58,237,.4);color:#C084FC;border-radius:9px;padding:9px;font-size:11px;font-weight:700;cursor:pointer;transition:.2s" onmouseover="this.style.background='linear-gradient(135deg,rgba(91,33,182,.55),rgba(124,58,237,.35))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(91,33,182,.4),rgba(124,58,237,.25))'">
+        🔍 Analyze Coverage Gaps Before Scheduling
+      </button>
+      <div id="v7AsAnalysis" style="margin-top:10px;display:none"></div>
+    `;
+
+    // Insert at the beginning of modal body
+    body.insertBefore(addon, body.firstChild);
+  }
+
+  window.v7AnalyzeBeforeSchedule = function() {
+    const y = (typeof YEAR !== 'undefined') ? YEAR : new Date().getFullYear();
+    const mo = (typeof MONTH !== 'undefined') ? MONTH : new Date().getMonth();
+    const k = y + '-' + mo;
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const staff = Object.values(staffData || {});
+
+    // Calculate coverage per day
+    const coverageByDay = {};
+    for (let d = 1; d <= daysInMonth; d++) {
+      coverageByDay[d] = {MOR: 0, AFT: 0, EVE: 0, total: 0, unassigned: 0};
+    }
+    staff.forEach(emp => {
+      const sch = (schedData[emp.id] && schedData[emp.id][k]) ? schedData[emp.id][k] : {};
+      for (let d = 1; d <= daysInMonth; d++) {
+        const code = String(sch[d] || '').toUpperCase();
+        if (['MOR','M11','M12'].includes(code)) coverageByDay[d].MOR++;
+        else if (code === 'AFT') coverageByDay[d].AFT++;
+        else if (['EVE','EVN','NIGHT'].includes(code)) coverageByDay[d].EVE++;
+        if (code && !['OFF','EX','AL','UNP','SICK','ABS','PH'].includes(code)) coverageByDay[d].total++;
+        if (!code) coverageByDay[d].unassigned++;
+      }
+    });
+
+    const gaps = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const c = coverageByDay[d];
+      if (c.MOR < 2) gaps.push({d, type:'⚠️', msg:`Day ${d}: Only ${c.MOR} morning staff (min 2 needed)`});
+      if (c.EVE === 0 && d > 0) gaps.push({d, type:'🔴', msg:`Day ${d}: No night coverage!`});
+      if (c.unassigned > staff.length * 0.3) gaps.push({d, type:'📋', msg:`Day ${d}: ${c.unassigned} staff unassigned`});
+    }
+
+    const el = document.getElementById('v7AsAnalysis');
+    if (!el) return;
+    el.style.display = 'block';
+    if (!gaps.length) {
+      el.innerHTML = '<div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:10px;font-size:11px;color:#4ADE80;font-weight:600">✅ Coverage looks good! No critical gaps found for ' + daysInMonth + ' days.</div>';
+    } else {
+      el.innerHTML = `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px">
+        <div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:8px">⚠️ ${gaps.length} Coverage Gaps Found</div>
+        ${gaps.slice(0,8).map(g=>`<div style="font-size:10.5px;color:rgba(255,255,255,.7);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">${g.type} ${g.msg}</div>`).join('')}
+        ${gaps.length > 8 ? `<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">...and ${gaps.length-8} more gaps</div>` : ''}
+      </div>`;
+    }
+  };
+
+  // Enhanced Smart Auto Fill modal
+  function injectSmartFillEnhancements() {
+    const modal = document.getElementById('bulkModal');
+    if (!modal || modal.dataset.v7fill) return;
+    modal.dataset.v7fill = '1';
+
+    const form = modal.querySelector('.fg') || modal.querySelector('[style*="grid"]') || modal.querySelector('.modal-body');
+    if (!form) return;
+
+    const extra = document.createElement('div');
+    extra.className = 'v7as-addon';
+    extra.style.marginTop = '12px';
+    extra.innerHTML = `
+      <div class="v7as-addon-title">🧠 Smart Fill Options</div>
+      <div class="v7as-chk-row" style="margin-bottom:8px">
+        <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectLeave" checked> Respect annual leave</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectOff" checked> Respect off days</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7FillNoConsecNight"> Max 3 consecutive nights</label>
+        <label class="v7as-chk-item"><input type="checkbox" id="v7FillBalance"> Balance across hotels</label>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">Fill Mode</label>
+          <select id="v7FillMode" class="v7as-inp">
+            <option value="all">Fill All Empty Cells</option>
+            <option value="gap">Fill Coverage Gaps Only</option>
+            <option value="pattern">Apply Pattern</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:10px;color:rgba(255,255,255,.5);display:block;margin-bottom:4px">If Cell Has Value</label>
+          <select id="v7FillOverwrite" class="v7as-inp">
+            <option value="skip">Skip Existing</option>
+            <option value="overwrite">Overwrite All</option>
+            <option value="overwrite_off">Overwrite OFF Only</option>
+          </select>
+        </div>
+      </div>
+    `;
+    form.appendChild(extra);
+  }
+
+  setTimeout(injectAutoScheduleEnhancements, 1500);
+  setInterval(() => {
+    injectAutoScheduleEnhancements();
+    injectSmartFillEnhancements();
+  }, 2000);
+})();
+
+console.log('[YPH v7] Loaded: Shift filter fix · Excel/CSV/PDF/JSON export · Import · Calendar view · Enhanced Auto Schedule');
+</script>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- YPH v8 — COMPREHENSIVE FIXES + CALENDAR + EXPORT IMPROVEMENTS  -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<style>
+/* ── WEEK/DAY CALENDAR VIEWS ────────────────────────────────────── */
+.v8cal-view-tabs {
+  display:flex; gap:4px; padding:10px 0 14px;
+  border-bottom:1px solid #E8EEF8; margin-bottom:10px;
+}
+.v8cal-view-tab {
+  padding:5px 14px; border-radius:8px; font-size:11px; font-weight:700;
+  border:1.5px solid #E2EAFC; background:#fff; color:var(--slate); cursor:pointer; transition:.15s;
+}
+.v8cal-view-tab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+
+/* Week view */
+.v8cal-week-grid {
+  display:grid; grid-template-columns:80px repeat(7,1fr); gap:0;
+  border:1.5px solid #E2EAFC; border-radius:10px; overflow:hidden;
+}
+.v8cal-week-hdr {
+  text-align:center; background:var(--navy); color:#fff; padding:8px 4px;
+  font-size:10px; font-weight:700; border-right:1px solid rgba(255,255,255,.1);
+}
+.v8cal-week-hdr.today-col { background:var(--gold); color:#fff; }
+.v8cal-week-time {
+  font-size:9px; color:var(--slate2); text-align:right; padding:4px 6px 4px 4px;
+  border-right:1px solid #E8EEF8; border-bottom:1px solid #E8EEF8;
+  background:#F8FAFC; font-weight:700;
+}
+.v8cal-week-cell {
+  border-right:1px solid #E8EEF8; border-bottom:1px solid #E8EEF8;
+  min-height:48px; padding:3px; position:relative; background:#fff;
+}
+.v8cal-week-cell.today-col { background:#FFFDF5; }
+.v8cal-week-shift {
+  border-radius:5px; padding:2px 5px; font-size:9px; font-weight:800;
+  margin-bottom:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  cursor:pointer;
+}
+
+/* Day view */
+.v8cal-day-view { background:#fff; border:1.5px solid #E2EAFC; border-radius:10px; overflow:hidden; }
+.v8cal-day-header {
+  background:var(--navy); color:#fff; padding:12px 16px;
+  display:flex; align-items:center; justify-content:space-between;
+}
+.v8cal-day-section {
+  padding:10px 14px; border-bottom:1px solid #E8EEF8;
+}
+.v8cal-day-shift-row {
+  display:flex; align-items:center; gap:10px; padding:7px 10px;
+  background:var(--ice2); border-radius:8px; margin-bottom:5px;
+}
+.v8cal-day-nav {
+  display:flex; align-items:center; gap:10px; margin-bottom:10px;
+}
+.v8cal-day-nav-btn {
+  padding:5px 13px; border-radius:8px; border:1.5px solid var(--ice);
+  background:#fff; font-size:11px; font-weight:700; color:var(--slate);
+  cursor:pointer; transition:.15s;
+}
+.v8cal-day-nav-btn:hover { border-color:var(--gold); color:var(--gold); }
+
+/* ── IMPROVED EXPORT BUTTON in toolbar ──────────────────────────── */
+.rpill-exp {
+  background:linear-gradient(135deg,#0F766E,#0D9488); color:#fff;
+  border:none; box-shadow:0 3px 10px rgba(15,118,110,.3);
+  display:inline-flex; align-items:center; gap:5px;
+}
+.rpill-exp:hover { filter:brightness(1.1); }
+
+/* ── AUTO SCHEDULE ADVANCED PANEL ──────────────────────────────── */
+.v8as-section {
+  background:rgba(91,33,182,.06); border:1px solid rgba(91,33,182,.2);
+  border-radius:10px; padding:12px; margin-bottom:10px;
+}
+.v8as-section-title {
+  font-size:11px; font-weight:800; color:#C084FC; margin-bottom:10px;
+  display:flex; align-items:center; gap:6px; text-transform:uppercase; letter-spacing:.4px;
+}
+.v8as-grid2 { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.v8as-grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.v8as-lbl { font-size:10px; color:rgba(255,255,255,.5); display:block; margin-bottom:4px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; }
+.v8as-inp {
+  width:100%; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  border-radius:7px; padding:6px 9px; font-size:11px; color:#fff;
+  font-family:'DM Sans',sans-serif; outline:none; transition:.2s;
+}
+.v8as-inp:focus { border-color:rgba(124,58,237,.5); }
+.v8as-chk { display:flex; gap:8px; flex-wrap:wrap; }
+.v8as-chk label {
+  display:flex; align-items:center; gap:5px; font-size:11px;
+  color:rgba(255,255,255,.7); cursor:pointer; padding:4px 8px;
+  background:rgba(255,255,255,.04); border-radius:6px; border:1px solid rgba(255,255,255,.08);
+}
+.v8as-chk input[type="checkbox"] { accent-color:#7C3AED; }
+.v8as-analyze-btn {
+  width:100%; background:linear-gradient(135deg,rgba(91,33,182,.35),rgba(124,58,237,.2));
+  border:1px solid rgba(124,58,237,.4); color:#C084FC; border-radius:9px;
+  padding:9px; font-size:11px; font-weight:700; cursor:pointer; transition:.2s;
+  margin-top:6px;
+}
+.v8as-analyze-btn:hover { background:linear-gradient(135deg,rgba(91,33,182,.5),rgba(124,58,237,.35)); }
+</style>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// YPH v8 ① — DEFINITIVE SHIFT FILTER FIX
+// Patches ALL "Who's on same roster?" functions to use correct data
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  // Core data helper — always reads live schedData correctly
+  function getShiftForDay(empId, day, year, month) {
+    const k = (year !== undefined ? year : (typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear()))
+            + '-'
+            + (month !== undefined ? month : (typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth()));
+    const sd = window.schedData || {};
+    return String((sd[empId] && sd[empId][k] && sd[empId][k][day]) || '').toUpperCase().trim();
+  }
+
+  function getAllStaff() {
+    if (typeof staffList === 'function') return staffList();
+    return Object.values(window.staffData || {});
+  }
+
+  // ── PATCH v7LoadDay (the main "who's on shift" modal function) ──
+  const _orig_v7LoadDay_interval = setInterval(() => {
+    if (typeof window.v7OpenWho !== 'function') return;
+    clearInterval(_orig_v7LoadDay_interval);
+
+    // Re-wire v7OpenWho to use corrected data lookup
+    const origOpen = window.v7OpenWho;
+    window.v7OpenWho = function(code) {
+      // Call original to build the UI
+      origOpen.call(this, code);
+      // Then immediately patch the day-load function
+      const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+      const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+      const today = new Date();
+      const initDay = (y === today.getFullYear() && mo === today.getMonth()) ? today.getDate() : 1;
+      // Re-render with corrected loader
+      setTimeout(() => v8LoadWhoDay(code, initDay), 50);
+    };
+
+    // Wire day pill clicks in v7WhoModal
+    document.addEventListener('click', function(e) {
+      const btn = e.target.closest('.v7wm-dp');
+      if (!btn || !btn.dataset.day) return;
+      const modal = document.getElementById('v7WhoModal');
+      if (!modal || !modal.classList.contains('show')) return;
+      const badge = document.getElementById('v7wmBadge');
+      if (!badge) return;
+      const code = badge.textContent.trim();
+      const day = parseInt(btn.dataset.day);
+      document.querySelectorAll('.v7wm-dp').forEach(b => b.classList.remove('v7wm-sel'));
+      btn.classList.add('v7wm-sel');
+      v8LoadWhoDay(code, day);
+    }, true);
+  }, 500);
+
+  // Corrected day loader
+  window.v8LoadWhoDay = function(code, day) {
+    const list = document.getElementById('v7wmList');
+    const sub = document.getElementById('v7wmSub');
+    if (!list) return;
+
+    const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+    const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+
+    const allStaff = getAllStaff();
+    if (!allStaff.length) {
+      list.innerHTML = '<div class="v7wm-empty">No staff data loaded yet.</div>';
+      return;
+    }
+
+    const matched = allStaff.filter(emp => getShiftForDay(emp.id, day, y, mo) === code.toUpperCase());
+
+    if (sub) sub.textContent = matched.length + ' staff · Day ' + day + ' / ' + daysInMonth;
+
+    if (!matched.length) {
+      list.innerHTML = '<div class="v7wm-empty">No staff assigned to <strong>' + code + '</strong> on day ' + day + '</div>';
+      return;
+    }
+
+    const shifts = typeof SHIFTS !== 'undefined' ? SHIFTS : {};
+    const def = shifts[code] || {};
+    list.innerHTML = matched.map(emp => {
+      const words = (emp.name || '?').split(' ').filter(Boolean);
+      const init = words.length >= 2 ? (words[0][0] + words[words.length-1][0]).toUpperCase() : (words[0]?.[0] || '?').toUpperCase();
+      const hotels = typeof HOTELS !== 'undefined' ? HOTELS : [];
+      const hotel = (hotels.find(h => h.id === emp.hotel) || {}).name || emp.hotel || '';
+      return `<div class="v7wm-row">
+        <div class="v7wm-av">${init}</div>
+        <div style="flex:1;min-width:0">
+          <div class="v7wm-name">${emp.name || '—'}</div>
+          <div class="v7wm-meta">${emp.department || ''} ${emp.position ? '· ' + emp.position : ''} ${emp.id ? '· ' + emp.id : ''}</div>
+        </div>
+        <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,.4);flex-shrink:0">${hotel}</div>
+      </div>`;
+    }).join('');
+  };
+
+  // ── PATCH sfbRender (staff page shift filter) ──
+  const _sfb_interval = setInterval(() => {
+    if (typeof window.sfbRender !== 'function') return;
+    clearInterval(_sfb_interval);
+    window.sfbRender = function() {
+      const results = document.getElementById('sfbResults');
+      if (!results) return;
+      const activeBadge = document.querySelector('.sfb-badge.sfb-active');
+      if (!activeBadge) { results.style.display = 'none'; return; }
+      const code = activeBadge.dataset.code;
+      const daySel = document.getElementById('sfbDaySelect');
+      const day = daySel ? (parseInt(daySel.value) || new Date().getDate()) : new Date().getDate();
+      const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+      const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+
+      const allStaff = getAllStaff();
+      const matched = allStaff.filter(emp => getShiftForDay(emp.id, day, y, mo) === code.toUpperCase());
+      const def = (typeof SHIFTS !== 'undefined' ? SHIFTS : {})[code] || {};
+
+      results.style.display = 'block';
+      results.innerHTML = `
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+          <span style="background:${def.bg||'#334'};color:${def.color||'#fff'};border:1.5px solid ${def.border||'rgba(255,255,255,.2)'};border-radius:7px;padding:4px 12px;font-size:13px;font-weight:800">${code}</span>
+          <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff">${matched.length} staff on ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][mo]} ${day}</span>
+          ${def.label ? `<span style="font-size:11px;color:rgba(255,255,255,.4)">· ${def.label}</span>` : ''}
+        </div>
+        ${matched.length === 0
+          ? '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.35);font-size:12px">No staff on this shift for this day.</div>'
+          : `<table class="sfb-roster-table"><thead><tr><th>Name</th><th>ID</th><th>Department</th><th>Position</th><th>Hotel</th></tr></thead><tbody>
+            ${matched.map(emp => {
+              const hotels = typeof HOTELS !== 'undefined' ? HOTELS : [];
+              const hotelName = (hotels.find(h => h.id === emp.hotel)||{}).name || emp.hotel || '—';
+              return `<tr>
+                <td><span style="font-weight:700;color:#fff">${emp.name||'—'}</span></td>
+                <td><span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold2)">${emp.id||'—'}</span></td>
+                <td><span style="font-size:11px;color:rgba(255,255,255,.7)">${emp.department||'—'}</span></td>
+                <td><span style="font-size:11px;color:rgba(255,255,255,.6)">${emp.position||'—'}</span></td>
+                <td><span style="font-size:10px;color:rgba(255,255,255,.45)">${hotelName}</span></td>
+              </tr>`;
+            }).join('')}
+          </tbody></table>`
+        }`;
+    };
+  }, 500);
+
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v8 ② — WEEK VIEW + DAY VIEW for Calendar
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+  let _v8CalViewMode = 'month'; // 'month' | 'week' | 'day'
+  let _v8CalDaySelected = new Date().getDate();
+
+  function getShiftForDay(empId, day, y, mo) {
+    const k = y + '-' + mo;
+    const sd = window.schedData || {};
+    return String((sd[empId] && sd[empId][k] && sd[empId][k][day]) || '').toUpperCase().trim();
+  }
+
+  function getAllStaff() {
+    if (typeof staffList === 'function') return staffList();
+    return Object.values(window.staffData || {});
+  }
+
+  // Inject view-mode tabs into the calendar container
+  function injectCalViewTabs() {
+    const calDiv = document.getElementById('v7CalendarView');
+    if (!calDiv || calDiv.querySelector('.v8cal-view-tabs')) return;
+    const tabs = document.createElement('div');
+    tabs.className = 'v8cal-view-tabs';
+    tabs.innerHTML = `
+      <button class="v8cal-view-tab active" data-view="month" onclick="v8SetCalView('month',this)">📅 Month</button>
+      <button class="v8cal-view-tab" data-view="week" onclick="v8SetCalView('week',this)">📆 Week</button>
+      <button class="v8cal-view-tab" data-view="day" onclick="v8SetCalView('day',this)">🗓 Day</button>
+    `;
+    calDiv.insertBefore(tabs, calDiv.firstChild);
+  }
+
+  window.v8SetCalView = function(mode, btn) {
+    _v8CalViewMode = mode;
+    document.querySelectorAll('.v8cal-view-tab').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    v8RenderCurrentView();
+  };
+
+  window.v8RenderCurrentView = function() {
+    if (_v8CalViewMode === 'month') {
+      if (typeof renderV7Calendar === 'function') renderV7Calendar();
+    } else if (_v8CalViewMode === 'week') {
+      renderWeekView();
+    } else if (_v8CalViewMode === 'day') {
+      renderDayView(_v8CalDaySelected);
+    }
+  };
+
+  function renderWeekView() {
+    const calDiv = document.getElementById('v7CalendarView');
+    if (!calDiv) return;
+    const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+    const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+    const today = new Date();
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+    // Find week containing today (or day 1 if different month)
+    let baseDay = (y === today.getFullYear() && mo === today.getMonth()) ? today.getDate() : 1;
+    let dow = new Date(y, mo, baseDay).getDay();
+    let weekStart = Math.max(1, baseDay - dow);
+    let weekEnd = Math.min(daysInMonth, weekStart + 6);
+
+    const allStaff = getAllStaff();
+
+    // Collect all shifts for this week
+    const shiftsByDay = {};
+    for (let d = weekStart; d <= weekEnd; d++) {
+      shiftsByDay[d] = {};
+      allStaff.forEach(emp => {
+        const code = getShiftForDay(emp.id, d, y, mo);
+        if (code) {
+          if (!shiftsByDay[d][code]) shiftsByDay[d][code] = [];
+          shiftsByDay[d][code].push(emp);
+        }
+      });
+    }
+
+    const shifts = typeof SHIFTS !== 'undefined' ? SHIFTS : {};
+    const usedShiftCodes = [...new Set(Object.values(shiftsByDay).flatMap(d => Object.keys(d)))].filter(c => {
+      const def = shifts[c];
+      return def && !def.off && !def.leave;
+    });
+
+    const dayHeaders = [];
+    for (let d = weekStart; d <= weekEnd; d++) {
+      const isToday = d === today.getDate() && y === today.getFullYear() && mo === today.getMonth();
+      const dowIdx = new Date(y, mo, d).getDay();
+      dayHeaders.push(`<div class="v8cal-week-hdr${isToday?' today-col':''}" onclick="v8SetCalView('day',null);_v8CalDaySelected=${d};v8RenderCurrentView()" style="cursor:pointer">${DOW[dowIdx]}<br><span style="font-size:14px;font-weight:900">${d}</span></div>`);
+    }
+    // Pad empty cols
+    for (let d = weekEnd + 1; d <= weekStart + 6; d++) {
+      dayHeaders.push('<div class="v8cal-week-hdr" style="opacity:.2">—</div>');
+    }
+
+    const shiftRows = usedShiftCodes.map(code => {
+      const def = shifts[code] || {};
+      const cells = [];
+      for (let d = weekStart; d <= weekEnd; d++) {
+        const staff = shiftsByDay[d][code] || [];
+        const isToday = d === today.getDate() && y === today.getFullYear() && mo === today.getMonth();
+        if (staff.length) {
+          cells.push(`<div class="v8cal-week-cell${isToday?' today-col':''}">
+            ${staff.slice(0,3).map(emp => `<div class="v8cal-week-shift" style="background:${def.bg||'#eee'};color:${def.color||'#333'}" title="${emp.name}">${emp.name.split(' ')[0]}</div>`).join('')}
+            ${staff.length > 3 ? `<div style="font-size:8px;color:var(--slate2)">+${staff.length-3} more</div>` : ''}
+          </div>`);
+        } else {
+          cells.push(`<div class="v8cal-week-cell${isToday?' today-col':''}" style="opacity:.3"></div>`);
+        }
+      }
+      // Pad
+      for (let d = weekEnd + 1; d <= weekStart + 6; d++) cells.push('<div class="v8cal-week-cell" style="opacity:.1"></div>');
+
+      return `
+        <div class="v8cal-week-time" style="display:flex;align-items:center;justify-content:flex-end;padding:4px 8px">
+          <span style="background:${def.bg||'#eee'};color:${def.color||'#333'};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:800">${code}</span>
+        </div>
+        ${cells.join('')}`;
+    });
+
+    // Get current tabs HTML to preserve
+    const tabsHtml = calDiv.querySelector('.v8cal-view-tabs') ? calDiv.querySelector('.v8cal-view-tabs').outerHTML : '';
+
+    calDiv.innerHTML = tabsHtml + `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--navy)">Week of ${MONTHS_FULL[mo]} ${weekStart}–${weekEnd}, ${y}</div>
+        <div style="display:flex;gap:6px">
+          <button class="v8cal-day-nav-btn" onclick="v8WeekNav(-1)">← Prev Week</button>
+          <button class="v8cal-day-nav-btn" onclick="v8WeekNav(1)">Next Week →</button>
+        </div>
+      </div>
+      <div class="v8cal-week-grid" style="grid-template-columns:90px repeat(${weekEnd-weekStart+1},1fr)">
+        <div class="v8cal-week-hdr" style="background:var(--slate)">Shift</div>
+        ${dayHeaders.join('')}
+        ${shiftRows.length ? shiftRows.join('') : `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--slate2);font-size:12px">No scheduled shifts for this week</div>`}
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--slate2)">💡 Click on any day header to switch to Day view · Click shift names to see who's on it</div>
+    `;
+    // Re-wire tabs
+    calDiv.querySelectorAll('.v8cal-view-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === 'week');
+    });
+    // Store week start globally for nav
+    window._v8WeekStart = weekStart;
+    window._v8WeekYear = y;
+    window._v8WeekMonth = mo;
+  }
+
+  window.v8WeekNav = function(dir) {
+    const calDiv = document.getElementById('v7CalendarView');
+    if (!calDiv) return;
+    // Move by 7 days
+    const y = window._v8WeekYear || (typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear());
+    const mo = window._v8WeekMonth !== undefined ? window._v8WeekMonth : (typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth());
+    const ws = (window._v8WeekStart || 1) + dir * 7;
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    window._v8WeekStart = Math.max(1, Math.min(daysInMonth - 6, ws));
+    renderWeekView();
+  };
+
+  function renderDayView(day) {
+    const calDiv = document.getElementById('v7CalendarView');
+    if (!calDiv) return;
+    const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+    const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const today = new Date();
+    const isToday = day === today.getDate() && y === today.getFullYear() && mo === today.getMonth();
+    const DOW_FULL = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const dowIdx = new Date(y, mo, day).getDay();
+
+    const allStaff = getAllStaff();
+    const shifts = typeof SHIFTS !== 'undefined' ? SHIFTS : {};
+
+    // Group staff by shift
+    const byShift = {};
+    const offStaff = [];
+    allStaff.forEach(emp => {
+      const code = getShiftForDay(emp.id, day, y, mo);
+      if (!code) return;
+      const def = shifts[code] || {};
+      if (def.off || def.leave || ['OFF','AL','EX','UNP','SICK','ABS','PH'].includes(code)) {
+        offStaff.push({emp, code});
+      } else {
+        if (!byShift[code]) byShift[code] = [];
+        byShift[code].push(emp);
+      }
+    });
+
+    const totalOnDuty = Object.values(byShift).reduce((s, a) => s + a.length, 0);
+
+    // Get current tabs HTML
+    const tabsHtml = calDiv.querySelector('.v8cal-view-tabs') ? calDiv.querySelector('.v8cal-view-tabs').outerHTML : '';
+
+    calDiv.innerHTML = tabsHtml + `
+      <div class="v8cal-day-nav">
+        <button class="v8cal-day-nav-btn" onclick="_v8CalDaySelected=Math.max(1,_v8CalDaySelected-1);renderDayView(_v8CalDaySelected)" ${day<=1?'disabled':''}>← Prev</button>
+        <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--navy);flex:1;text-align:center">
+          ${DOW_FULL[dowIdx]}, ${MONTHS_FULL[mo]} ${day}, ${y}
+          ${isToday ? '<span style="background:var(--gold);color:#fff;font-size:10px;padding:2px 8px;border-radius:100px;margin-left:8px;font-family:\'DM Sans\',sans-serif;font-weight:700">TODAY</span>' : ''}
+        </div>
+        <button class="v8cal-day-nav-btn" onclick="_v8CalDaySelected=Math.min(${daysInMonth},_v8CalDaySelected+1);renderDayView(_v8CalDaySelected)" ${day>=daysInMonth?'disabled':''}>Next →</button>
+      </div>
+
+      <div class="v8cal-day-view">
+        <div class="v8cal-day-header">
+          <div>
+            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800">${day} ${MONTHS_FULL[mo]}</div>
+            <div style="font-size:11px;opacity:.7;margin-top:2px">${totalOnDuty} staff on duty · ${offStaff.length} off/leave</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="text-align:center;background:rgba(74,222,128,.15);border-radius:8px;padding:8px 14px">
+              <div style="font-size:20px;font-weight:800;color:#4ADE80">${totalOnDuty}</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.6);font-weight:700">ON DUTY</div>
+            </div>
+            <div style="text-align:center;background:rgba(248,113,113,.12);border-radius:8px;padding:8px 14px">
+              <div style="font-size:20px;font-weight:800;color:#F87171">${offStaff.length}</div>
+              <div style="font-size:9px;color:rgba(255,255,255,.6);font-weight:700">OFF/LEAVE</div>
+            </div>
+          </div>
+        </div>
+
+        ${Object.entries(byShift).map(([code, staff]) => {
+          const def = shifts[code] || {};
+          return `<div class="v8cal-day-section">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <span style="background:${def.bg||'#eee'};color:${def.color||'#333'};border:1.5px solid ${def.border||'#ccc'};border-radius:7px;padding:4px 12px;font-size:12px;font-weight:800">${code}</span>
+              <span style="font-size:12px;font-weight:700;color:var(--navy)">${def.label||code}</span>
+              ${def.time ? `<span style="font-size:10px;color:var(--slate2)">🕐 ${def.time}</span>` : ''}
+              <span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--slate)">${staff.length} staff</span>
+            </div>
+            ${staff.map(emp => `<div class="v8cal-day-shift-row">
+              <div style="width:32px;height:32px;border-radius:8px;background:${def.bg||'#eee'};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:${def.color||'#333'};flex-shrink:0">
+                ${(emp.name||'?').split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join('').toUpperCase()}
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">${emp.name||'—'}</div>
+                <div style="font-size:10px;color:var(--slate)">${emp.department||''} ${emp.position?'· '+emp.position:''}</div>
+              </div>
+              <div style="font-size:10px;color:var(--slate2)">${emp.hotel||''}</div>
+            </div>`).join('')}
+          </div>`;
+        }).join('')}
+
+        ${offStaff.length > 0 ? `<div class="v8cal-day-section">
+          <div style="font-size:11px;font-weight:700;color:var(--slate);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px">📤 Off / Leave</div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px">
+            ${offStaff.map(({emp, code}) => {
+              const def = shifts[code] || {bg:'#f3f4f6',color:'#6b7280',border:'#d1d5db'};
+              return `<span style="background:${def.bg};color:${def.color};border:1px solid ${def.border||'#ccc'};border-radius:6px;padding:3px 9px;font-size:10px;font-weight:700" title="${emp.department||''}">${emp.name} <span style="opacity:.7">${code}</span></span>`;
+            }).join('')}
+          </div>
+        </div>` : ''}
+
+        ${totalOnDuty === 0 && offStaff.length === 0 ? '<div style="text-align:center;padding:28px;color:var(--slate2);font-size:12px">No schedule data for this day.</div>' : ''}
+      </div>
+      <div style="margin-top:8px;font-size:10px;color:var(--slate2)">💡 Use the ← → buttons to navigate days</div>
+    `;
+    // Re-wire tabs
+    calDiv.querySelectorAll('.v8cal-view-tab').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === 'day');
+    });
+    _v8CalDaySelected = day;
+    window._v8CalDaySelected = day;
+  }
+
+  // Make renderDayView accessible
+  window.renderDayView = renderDayView;
+
+  // Patch v7ToggleCalendar to inject tabs when it opens
+  const _cal_interval = setInterval(() => {
+    if (typeof window.v7ToggleCalendar !== 'function') return;
+    clearInterval(_cal_interval);
+    const origToggle = window.v7ToggleCalendar;
+    window.v7ToggleCalendar = function() {
+      origToggle.call(this);
+      setTimeout(() => {
+        injectCalViewTabs();
+        // Sync tab active state
+        const calDiv = document.getElementById('v7CalendarView');
+        if (calDiv && calDiv.classList.contains('show')) {
+          calDiv.querySelectorAll('.v8cal-view-tab').forEach(b => {
+            b.classList.toggle('active', b.dataset.view === _v8CalViewMode);
+          });
+        }
+      }, 100);
+    };
+  }, 800);
+
+  // Inject tabs whenever calendar becomes visible
+  setInterval(() => {
+    const calDiv = document.getElementById('v7CalendarView');
+    if (calDiv && calDiv.classList.contains('show') && !calDiv.querySelector('.v8cal-view-tabs')) {
+      injectCalViewTabs();
+    }
+  }, 1000);
+
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v8 ③ — IMPROVED EXPORT: Ensure button always visible + JSON import
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  // More aggressive export button injection
+  function ensureExportButton() {
+    // Try multiple toolbar selectors
+    const selectors = ['.rtb-v6 .rtb-actions', '.rtb-actions', '#page-roster .fb'];
+    for (const sel of selectors) {
+      const toolbar = document.querySelector(sel);
+      if (toolbar && !toolbar.querySelector('#v8ExportBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'v8ExportBtn';
+        btn.className = 'rpill rpill-exp';
+        btn.style.cssText = 'background:linear-gradient(135deg,#0F766E,#0D9488);color:#fff;border:none;padding:6px 14px;border-radius:100px;font-size:11.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;box-shadow:0 3px 10px rgba(15,118,110,.3)';
+        btn.innerHTML = '📤 Export / Import';
+        btn.onclick = () => {
+          if (typeof v7OpenExport === 'function') v7OpenExport();
+          else if (typeof window.v7OpenExport === 'function') window.v7OpenExport();
+        };
+        // Insert before Print
+        const printBtn = Array.from(toolbar.children).find(c => c.textContent && c.textContent.includes('Print'));
+        if (printBtn) toolbar.insertBefore(btn, printBtn);
+        else toolbar.appendChild(btn);
+        break;
+      }
+    }
+  }
+
+  setInterval(ensureExportButton, 2000);
+  setTimeout(ensureExportButton, 800);
+})();
+
+// ════════════════════════════════════════════════════════════════
+// YPH v8 ④ — ENHANCED AUTO SCHEDULE (extended options)
+// ════════════════════════════════════════════════════════════════
+(function(){
+  'use strict';
+
+  function injectV8AutoSchedulePanel() {
+    const modal = document.getElementById('autoScheduleModal');
+    if (!modal || modal.dataset.v8enhanced) return;
+    modal.dataset.v8enhanced = '1';
+
+    const body = modal.querySelector('.modal') || modal.firstElementChild;
+    if (!body) return;
+
+    const panel = document.createElement('div');
+    panel.id = 'v8AsPanel';
+    panel.innerHTML = `
+      <div class="v8as-section" style="margin-top:14px">
+        <div class="v8as-section-title">🧠 Smart Auto Schedule — Advanced Options</div>
+
+        <div class="v8as-grid2" style="margin-bottom:10px">
+          <div>
+            <label class="v8as-lbl">Schedule Strategy</label>
+            <select class="v8as-inp" id="v8AsStrategy">
+              <option value="rotate">🔄 Rotating (MOR→AFT→EVE→OFF)</option>
+              <option value="fixed">📌 Fixed Shifts (use default shift)</option>
+              <option value="fair">⚖️ Fair Distribution (equal hours)</option>
+              <option value="coverage">🏆 Max Coverage (fill gaps first)</option>
+              <option value="seniority">⭐ Seniority-Based Priority</option>
+              <option value="preference">💬 Respect Staff Preferences</option>
+            </select>
+          </div>
+          <div>
+            <label class="v8as-lbl">Overtime Policy</label>
+            <select class="v8as-inp" id="v8AsOvertime">
+              <option value="none">❌ No Overtime Allowed</option>
+              <option value="max1">📊 Max 1 Extra Shift</option>
+              <option value="flex">🔀 Flexible (as needed)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="v8as-grid3" style="margin-bottom:10px">
+          <div>
+            <label class="v8as-lbl">Min Morning Staff</label>
+            <input type="number" class="v8as-inp" id="v8AsMinMor" value="2" min="0" max="30">
+          </div>
+          <div>
+            <label class="v8as-lbl">Min Afternoon Staff</label>
+            <input type="number" class="v8as-inp" id="v8AsMinAft" value="2" min="0" max="30">
+          </div>
+          <div>
+            <label class="v8as-lbl">Min Night Staff</label>
+            <input type="number" class="v8as-inp" id="v8AsMinNight" value="1" min="0" max="20">
+          </div>
+        </div>
+
+        <div class="v8as-grid2" style="margin-bottom:10px">
+          <div>
+            <label class="v8as-lbl">Max Consecutive Working Days</label>
+            <input type="number" class="v8as-inp" id="v8AsMaxConsec" value="6" min="1" max="14">
+          </div>
+          <div>
+            <label class="v8as-lbl">Min Rest Hours Between Shifts</label>
+            <input type="number" class="v8as-inp" id="v8AsMinRest" value="11" min="8" max="24">
+          </div>
+        </div>
+
+        <div class="v8as-chk" style="margin-bottom:10px">
+          <label><input type="checkbox" id="v8AsNoNight2Mor" checked> No Night→Morning back-to-back</label>
+          <label><input type="checkbox" id="v8AsBalWeekend" checked> Balance weekend off days</label>
+          <label><input type="checkbox" id="v8AsRespectLeave" checked> Skip confirmed leave/off</label>
+          <label><input type="checkbox" id="v8AsEvenHours" checked> Even monthly hours</label>
+          <label><input type="checkbox" id="v8AsMaxNights"> Max 3 consecutive nights</label>
+          <label><input type="checkbox" id="v8AsFridayOff"> Prefer Friday off</label>
+          <label><input type="checkbox" id="v8AsHotelBalance"> Balance across hotels</label>
+          <label><input type="checkbox" id="v8AsAvoidOverstaffed"> Avoid overstaffing shifts</label>
+        </div>
+
+        <button class="v8as-analyze-btn" onclick="v8AnalyzeCoverage()">
+          🔍 Analyze Coverage Gaps Before Scheduling
+        </button>
+        <div id="v8AsAnalysis" style="display:none;margin-top:8px"></div>
+      </div>
+    `;
+
+    // Insert before the action buttons (bottom of modal)
+    const modalEl = body.querySelector ? body : modal.querySelector('.modal') || modal;
+    const actionRow = modalEl.querySelector('[style*="margin-top"][style*="gap"]') || modalEl.lastElementChild;
+    if (actionRow) modalEl.insertBefore(panel, actionRow);
+    else modalEl.appendChild(panel);
+  }
+
+  window.v8AnalyzeCoverage = function() {
+    const el = document.getElementById('v8AsAnalysis');
+    if (!el) return;
+    const y = typeof YEAR !== 'undefined' ? YEAR : new Date().getFullYear();
+    const mo = typeof MONTH !== 'undefined' ? MONTH : new Date().getMonth();
+    const k = y + '-' + mo;
+    const daysInMonth = new Date(y, mo + 1, 0).getDate();
+    const allStaff = Object.values(window.staffData || {});
+    const minMor = parseInt(document.getElementById('v8AsMinMor')?.value || 2);
+    const minAft = parseInt(document.getElementById('v8AsMinAft')?.value || 2);
+    const minNight = parseInt(document.getElementById('v8AsMinNight')?.value || 1);
+
+    const gaps = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      let mor = 0, aft = 0, eve = 0, unassigned = 0;
+      allStaff.forEach(emp => {
+        const sd = window.schedData || {};
+        const code = String((sd[emp.id] && sd[emp.id][k] && sd[emp.id][k][d]) || '').toUpperCase();
+        if (['MOR','M11','M12'].includes(code)) mor++;
+        else if (code === 'AFT') aft++;
+        else if (['EVE','EVN','NIGHT','N'].includes(code)) eve++;
+        if (!code) unassigned++;
+      });
+      if (mor < minMor) gaps.push({d, type:'⚠️', msg:`Day ${d}: Only ${mor} morning staff (need ${minMor})`});
+      if (aft < minAft) gaps.push({d, type:'📊', msg:`Day ${d}: Only ${aft} afternoon staff (need ${minAft})`});
+      if (eve < minNight) gaps.push({d, type:'🔴', msg:`Day ${d}: Only ${eve} night staff (need ${minNight})`});
+      if (unassigned > allStaff.length * 0.25) gaps.push({d, type:'📋', msg:`Day ${d}: ${unassigned} staff unassigned`});
+    }
+
+    el.style.display = 'block';
+    if (!gaps.length) {
+      el.innerHTML = '<div style="background:rgba(74,222,128,.1);border:1px solid rgba(74,222,128,.25);border-radius:8px;padding:10px;font-size:11px;color:#4ADE80;font-weight:600">✅ Coverage looks good! No critical gaps found.</div>';
+    } else {
+      el.innerHTML = `<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;max-height:180px;overflow-y:auto">
+        <div style="font-size:11px;font-weight:700;color:#F87171;margin-bottom:7px">⚠️ ${gaps.length} Coverage Issues Found</div>
+        ${gaps.slice(0,12).map(g=>`<div style="font-size:10.5px;color:rgba(255,255,255,.7);padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)">${g.type} ${g.msg}</div>`).join('')}
+        ${gaps.length > 12 ? `<div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">...and ${gaps.length-12} more</div>` : ''}
+      </div>`;
+    }
+  };
+
+  setInterval(() => { injectV8AutoSchedulePanel(); }, 2500);
+  setTimeout(injectV8AutoSchedulePanel, 1500);
+})();
+
+console.log('[YPH v8] Loaded: Definitive shift filter fix · Week/Day calendar views · Reliable export button · Enhanced auto schedule');
+</script>
 </body>
 </html>
 
