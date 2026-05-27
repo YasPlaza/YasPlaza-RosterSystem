@@ -2783,7 +2783,7 @@ const selectedIds = new Set();
 // FIREBASE — SDK loaded dynamically, never blocks app
 // ═══════════════════════════════════════════════════
 function loadFirebaseSDK(callback) {
-  if (window.firebase && window.firebase.database) { callback(); return; }
+  if (window.firebase && window.firebase.database && window.firebase.auth) { callback(); return; }
   updateStatus("syncing","Connecting…");
   var s1 = document.createElement("script");
   s1.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js";
@@ -2792,7 +2792,13 @@ function loadFirebaseSDK(callback) {
     var s2 = document.createElement("script");
     s2.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js";
     s2.onerror = function(){ updateStatus("offline","Offline Mode"); };
-    s2.onload  = function(){ callback(); };
+    s2.onload  = function(){
+      var s3 = document.createElement("script");
+      s3.src = "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js";
+      s3.onerror = function(){ callback(); }; // auth optional — continue without it
+      s3.onload  = function(){ callback(); };
+      document.head.appendChild(s3);
+    };
     document.head.appendChild(s2);
   };
   document.head.appendChild(s1);
@@ -2801,10 +2807,36 @@ function loadFirebaseSDK(callback) {
 function initFirebase(config) {
   loadFirebaseSDK(function(){
     try {
-      try { if (firebase.apps && firebase.apps.length) firebase.apps.forEach(function(a){ try{a.delete();}catch(e){} }); } catch(e){}
-      firebase.initializeApp(config);
-      db = firebase.database();
+      // Reuse existing app if already initialised — never delete a live app
+      var app;
+      if (window.firebase.apps && window.firebase.apps.length) {
+        app = window.firebase.apps[0];
+      } else {
+        app = window.firebase.initializeApp(config);
+      }
+      db = app.database();
       localStorage.setItem("yph_fb_config", JSON.stringify(config));
+
+      // ── Confirm real connection via .info/connected ──
+      db.ref(".info/connected").on("value", function(snap) {
+        if (snap.val() === true) {
+          updateStatus("online", "🟢 Connected — Live Sync Active");
+        } else {
+          updateStatus("syncing", "Connecting…");
+        }
+      });
+
+      // ── Sign in anonymously so DB rules allow reads/writes ──
+      if (window.firebase.auth) {
+        window.firebase.auth(app).signInAnonymously()
+          .then(function(uc) {
+            console.log("[YPH] Firebase anon auth OK:", uc.user.uid);
+          })
+          .catch(function(e) {
+            console.warn("[YPH] Anon auth failed (DB rules may block):", e.code);
+          });
+      }
+
       setupRealtimeListeners();
     } catch(e) {
       console.warn("Firebase connect failed:", e.message);
@@ -3697,9 +3729,12 @@ function reloadLocal() {
 
 
 // Update Firebase listeners
+let _listenersSetUp = false;
 function setupRealtimeListeners() {
   if (!db) return;
-  updateStatus("syncing", "Connecting…");
+  if (_listenersSetUp) return; // never register twice
+  _listenersSetUp = true;
+  // Status is now driven by .info/connected — don't overwrite it here
 
   // Hotel assignments listener
   db.ref("hotels").on("value", snap => {
@@ -3743,7 +3778,7 @@ function setupRealtimeListeners() {
     if (active === "roster")   renderRoster();
     if (active === "dash")     renderDash();
     if (active === "coverage") renderCoverage();
-    updateStatus("online", "Live Sync ✓");
+    updateStatus("online", "🟢 Connected — Live Sync Active");
     // Push to employee portal if open
     if (currentEmpId && document.getElementById("empDash").classList.contains("show")) {
       refreshEmpDash(currentEmpId);
@@ -8240,18 +8275,22 @@ function initControlPanel(){
 
 
 window.addEventListener("load", function() {
-  try {
-    reloadLocal();      // Load saved data immediately (works offline)
-    seedStaffIfEmpty();    // Pre-load 100 employees if first time
-    archiveMonthSnapshot(YEAR, MONTH, "boot snapshot");
-    tryAutoConnect();      // Try Firebase in background if config exists
-    try { setRosterView(rosterViewMode); } catch(e) {}
-    // Show cached broadcast message if any
-    try { const b = localStorage.getItem('yph_broadcast'); if (b) showBroadcastBanner(b); } catch(e) {}
-  } catch(e) {
-    console.warn("Boot error:", e);
-    updateStatus("offline","Offline Mode");
-  }
+  // Step 1: local data — always works offline
+  try { reloadLocal(); } catch(e) { console.warn("reloadLocal:", e); }
+  try { seedStaffIfEmpty(); } catch(e) {}
+  try { archiveMonthSnapshot(YEAR, MONTH, "boot snapshot"); } catch(e) {}
+  try { setRosterView(rosterViewMode); } catch(e) {}
+  try { const b = localStorage.getItem('yph_broadcast'); if (b) showBroadcastBanner(b); } catch(e) {}
+
+  // Step 2: Firebase — isolated so a failure doesn't mark app offline
+  setTimeout(function() {
+    try {
+      tryAutoConnect();
+    } catch(e) {
+      console.warn("Firebase auto-connect error:", e);
+      // Don't call updateStatus offline here — let the user see the app works
+    }
+  }, 200);
 });
 
 // ════════════════════════════════════════════════
