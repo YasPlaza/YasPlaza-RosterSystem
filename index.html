@@ -17026,3 +17026,239 @@ setTimeout(()=>{
 })();
 </script>
 
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     YPH PATCH v10 — Visibility fixes + Forecast-aware Smart Auto Fill
+     Adds AL/forecast linkage, fixes white-on-white labels in v7 panels,
+     repairs coverage-gaps list contrast, and surfaces pressure days.
+═══════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ── Fix v7 addon labels (were rgba(255,255,255,.5) on light bg) ── */
+.v7as-addon .v7as-lbl,
+.v7as-addon label,
+.v7as-addon [style*="rgba(255,255,255"],
+.v7as-addon [style*="rgba(255, 255, 255"]{
+  color:#6D28D9 !important;
+}
+.v7as-addon select.v7as-inp,
+.v7as-addon input.v7as-inp{
+  color:#1E1B4B !important;
+  background:#F8F5FF !important;
+}
+.v7as-addon .v7as-chk-item{ color:#374151 !important; }
+
+/* ── Coverage Issues list (was invisible due to inherited white) ── */
+#v8AsAnalysis, #v7AsAnalysis,
+#v8AsAnalysis *, #v7AsAnalysis *{
+  color:#7F1D1D !important;
+}
+#v8AsAnalysis > div[style*="color:#4ADE80"],
+#v7AsAnalysis > div[style*="color:#4ADE80"]{ color:#15803D !important; }
+#v8AsAnalysis > div > div:first-child,
+#v7AsAnalysis > div > div:first-child{ color:#B91C1C !important; }
+
+/* ── Forecast page badges/chips legibility ── */
+#page-forecast .fcChip, #page-forecast .fcBadge,
+#page-forecast [class*="badge"], #page-forecast [class*="chip"]{
+  color:var(--navy) !important;
+}
+#page-forecast .fc-strip-cell, #page-forecast [data-fc-cell]{
+  color:var(--navy) !important;
+}
+
+/* ── Dev Panel legibility (Settings page) ── */
+#page-settings label, #page-settings .cp-label, #page-settings small,
+#page-settings .cp-help{ color:var(--navy2,#1B2D4A) !important; }
+#page-settings .cp-card, #page-settings .cp-section{
+  background:#fff !important; color:var(--navy) !important;
+}
+
+/* ── Pressure-day badge used by patch script ── */
+.yph-pd-chip{
+  display:inline-block;background:#FED7AA;color:#7C2D12;
+  padding:1px 7px;margin:2px;border-radius:6px;font-weight:700;font-size:11px;
+}
+.yph-fc-notice{
+  position:fixed;bottom:80px;right:18px;z-index:9999;
+  background:#FFF3E0;border:1.5px solid #E65C00;border-radius:10px;
+  padding:10px 14px;font-size:12px;color:#7A3700;font-weight:600;
+  max-width:320px;box-shadow:0 8px 24px rgba(0,0,0,.2);
+  animation:fadeUp .25s ease both;
+}
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  // ── Pull pressure-by-day from existing forecast helpers ──────────
+  function pressureByDay(){
+    const map = {};
+    try{
+      if (typeof loadFC !== 'function' || typeof hotelDefs !== 'function' ||
+          typeof getNext10 !== 'function') return map;
+      const data = loadFC();
+      const y = (typeof YEAR!=='undefined')  ? YEAR  : new Date().getFullYear();
+      const m = (typeof MONTH!=='undefined') ? MONTH : new Date().getMonth();
+      hotelDefs().forEach(h => {
+        getNext10(h.id, data).forEach(r => {
+          const dt = r._date ? new Date(r._date) : null;
+          if (!dt || dt.getFullYear()!==y || dt.getMonth()!==m) return;
+          const d = dt.getDate();
+          const cur = map[d] || {occ:0, arr:0, dep:0};
+          cur.occ = Math.max(cur.occ, +r.occ||0);
+          cur.arr = Math.max(cur.arr, +r.arr||0);
+          cur.dep = Math.max(cur.dep, +r.dep||0);
+          map[d] = cur;
+        });
+      });
+    }catch(e){}
+    return map;
+  }
+  function isPressureDay(p){ return p && (p.occ>=85 || p.arr>=50 || p.dep>=50); }
+  window.yphPressureByDay = pressureByDay;
+  window.yphIsPressureDay = isPressureDay;
+
+  // ── 1) Wrap applyBulk: AL-on-peak guard + skip AL/SL + post-notice ─
+  function wrapApplyBulk(){
+    if (typeof window.applyBulk !== 'function' || window.applyBulk.__yphWrapped) return;
+    const orig = window.applyBulk;
+    const wrapped = async function(){
+      const pres = pressureByDay();
+      const peakDays = Object.keys(pres).filter(d => isPressureDay(pres[d])).map(Number);
+      const code = (document.getElementById('bShift')||{}).value || '';
+      const from = +(document.getElementById('bFrom')||{}).value;
+      const to   = +(document.getElementById('bTo')||{}).value;
+      const blockAL = (document.getElementById('yphFcBlockALPeak')||{}).checked;
+      const skipAL  = (document.getElementById('yphFcSkipAL')||{}).checked;
+
+      // Guard: AL on pressure days
+      if (blockAL && code === 'AL' && peakDays.length){
+        const conflict = peakDays.filter(d => d>=from && d<=to);
+        if (conflict.length){
+          const ok = confirm(
+            `🚫 Forecast pressure days in range: ${conflict.join(', ')}\n`+
+            `High occupancy / heavy arrivals or departures detected.\n`+
+            `Granting Annual Leave on these days is NOT recommended.\n\nProceed anyway?`);
+          if (!ok) return;
+        }
+      }
+
+      // If "Skip AL staff" requested, temporarily hide them from staffList
+      let restore = null;
+      if (skipAL && typeof staffList === 'function'){
+        try{
+          const origList = window.staffList;
+          window.staffList = function(){
+            const arr = origList.apply(this, arguments) || [];
+            const k = (typeof schKey==='function') ? schKey() : null;
+            return arr.filter(e => {
+              if (!k || !window.schedData || !schedData[e.id] || !schedData[e.id][k]) return true;
+              const sch = schedData[e.id][k];
+              for (let d=from; d<=to; d++){
+                const c = String(sch[d]||'').toUpperCase();
+                if (c==='AL' || c==='SL') return false;
+              }
+              return true;
+            });
+          };
+          restore = ()=>{ window.staffList = origList; };
+        }catch(e){}
+      }
+
+      try { await orig.apply(this, arguments); }
+      finally { if (restore) restore(); }
+
+      // Post-notice
+      if (peakDays.length){
+        const t = document.createElement('div');
+        t.className = 'yph-fc-notice';
+        t.innerHTML = `🏨 Forecast notice: ${peakDays.length} pressure day(s) `+
+          `(${peakDays.slice(0,6).join(', ')}${peakDays.length>6?'…':''}). `+
+          `Consider boosting min staff on these days.`;
+        document.body.appendChild(t);
+        setTimeout(()=>t.remove(), 7000);
+      }
+    };
+    wrapped.__yphWrapped = true;
+    window.applyBulk = wrapped;
+  }
+  // Re-wrap aggressively (other v7/v8 patches may replace it)
+  setInterval(wrapApplyBulk, 1500);
+  setTimeout(wrapApplyBulk, 800);
+
+  // ── 2) Forecast-aware staffing boost button ──────────────────────
+  window.yphForecastBoost = function(){
+    const pres = pressureByDay();
+    let peakOcc = 0;
+    Object.values(pres).forEach(p => { if (p.occ > peakOcc) peakOcc = p.occ; });
+    const factor = peakOcc >= 92 ? 1.5 : peakOcc >= 85 ? 1.25 : 1.0;
+    const fields = [['v8AsMinMor',2],['v8AsMinAft',2],['v8AsMinNight',1],
+                    ['v7AsMinMor',2],['v7AsMinAft',2],['v7AsMinEve',1]];
+    let bumped = 0;
+    fields.forEach(([id, base])=>{
+      const el = document.getElementById(id);
+      if (!el) return;
+      const next = Math.max(+el.value||base, Math.ceil(base * factor));
+      if (next !== +el.value){ el.value = next; bumped++; }
+    });
+    alert(`🏨 Forecast-Based Boost\n\nPeak occupancy: ${peakOcc}%\nBoost factor: ${factor}×\nFields updated: ${bumped}`);
+  };
+
+  // ── 3) Inject forecast controls into Auto Schedule + Smart Fill ──
+  function injectForecastBits(){
+    // Auto Schedule modal — add boost button
+    const asModal = document.getElementById('autoScheduleModal');
+    if (asModal && !asModal.querySelector('#yphFcBoostBtn')){
+      const host = (asModal.querySelector('#v8AsAnalysis')||{}).parentElement
+                || asModal.querySelector('.v8as-section')
+                || asModal.querySelector('.modal');
+      if (host){
+        const btn = document.createElement('button');
+        btn.id = 'yphFcBoostBtn'; btn.type = 'button';
+        btn.style.cssText = 'margin-top:8px;width:100%;background:linear-gradient(135deg,#0F766E,#0D9488);border:none;color:#fff;border-radius:9px;padding:9px;font-size:11px;font-weight:700;cursor:pointer';
+        btn.innerHTML = '🏨 Apply Forecast-Based Staffing Boost';
+        btn.onclick = window.yphForecastBoost;
+        host.appendChild(btn);
+      }
+    }
+
+    // Smart Fill (bulkModal) — add forecast options panel
+    const bm = document.getElementById('bulkModal');
+    if (bm && !bm.querySelector('#yphFcSugBox')){
+      const host = bm.querySelector('.modal-body')
+                || bm.querySelector('.v7as-addon')
+                || bm.querySelector('.fg')
+                || bm.firstElementChild;
+      if (host){
+        const wrap = document.createElement('div');
+        wrap.id = 'yphFcSugBox';
+        wrap.style.cssText = 'margin-top:10px;background:#ECFEFF;border:1.5px solid #67E8F9;border-radius:10px;padding:10px';
+        wrap.innerHTML =
+          '<div style="font-size:11px;font-weight:800;color:#0E7490;margin-bottom:6px">🏨 Forecast-Aware Smart Fill</div>'+
+          '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#075985;cursor:pointer;margin-bottom:4px">'+
+            '<input type="checkbox" id="yphFcSkipAL" checked> Skip staff currently on AL/SL in range</label>'+
+          '<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:#075985;cursor:pointer;margin-bottom:4px">'+
+            '<input type="checkbox" id="yphFcBlockALPeak" checked> Block AL fills on forecast pressure days</label>'+
+          '<button type="button" id="yphFcPreviewBtn" style="margin-top:6px;width:100%;background:#0E7490;border:none;color:#fff;border-radius:7px;padding:7px;font-size:11px;font-weight:700;cursor:pointer">👁️ Preview Forecast Pressure Days</button>'+
+          '<div id="yphFcPreviewOut" style="margin-top:6px;font-size:11px;color:#0E7490"></div>';
+        host.appendChild(wrap);
+        wrap.querySelector('#yphFcPreviewBtn').onclick = function(){
+          const pres = pressureByDay();
+          const out = wrap.querySelector('#yphFcPreviewOut');
+          const days = Object.keys(pres).filter(d => isPressureDay(pres[d])).sort((a,b)=>+a-+b);
+          if (!days.length){ out.innerHTML = '✅ No forecast pressure days this month.'; return; }
+          out.innerHTML = '<b>Pressure days:</b> ' +
+            days.map(d => '<span class="yph-pd-chip">'+d+' ('+pres[d].occ+'%)</span>').join('');
+        };
+      }
+    }
+  }
+  setInterval(injectForecastBits, 2000);
+  setTimeout(injectForecastBits, 1200);
+
+  console.log('[YPH v10 patch] Visibility fixes + forecast-aware Smart Fill loaded.');
+})();
+</script>
+
+</body></html>
