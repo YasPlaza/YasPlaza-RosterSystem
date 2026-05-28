@@ -17458,10 +17458,26 @@ select { color-scheme: dark; }
   const fixCss = document.createElement('style');
   fixCss.textContent = `
     .cp-wrap.cp-acc-mode { display:flex !important; }
-    .cp-wrap.cp-acc-mode .cp-content { display:block !important; }
+    .cp-wrap.cp-acc-mode .cp-content { display:flex !important; }
     .cp-wrap .cp-acc { display:none !important; } /* hide orphan accordion container */
     #page-forecast.active { display:block !important; min-height:200px; }
-    #page-settings.active { display:flex !important; flex-direction:column; }
+    #page-settings.active {
+      position:fixed !important;
+      top:56px !important;
+      left:0 !important;
+      right:0 !important;
+      bottom:0 !important;
+      z-index:50 !important;
+      display:flex !important;
+      flex-direction:column !important;
+      height:auto !important;
+      min-height:0 !important;
+      overflow:hidden !important;
+      background:#08121E !important;
+    }
+    #page-settings.active #cp-outer { flex:1 !important; height:100% !important; min-height:0 !important; overflow:auto !important; }
+    #page-settings.active .cp-wrap { flex:1 !important; min-height:0 !important; }
+    #page-settings.active .cp-content { flex:1 !important; min-height:0 !important; overflow:auto !important; }
   `;
   document.head.appendChild(fixCss);
 
@@ -17470,19 +17486,20 @@ select { color-scheme: dark; }
     const content = document.querySelector('.cp-content');
     const acc     = document.querySelector('.cp-wrap .cp-acc');
     if (!content || !acc) return;
-    acc.querySelectorAll('.cp-panel').forEach(p => {
+    const qs = acc.querySelector('.cp-acc-stats > .cp-panel');
+    if (qs) {
+      const sidebar = document.querySelector('.cp-sidebar');
+      if (sidebar) sidebar.insertBefore(qs, sidebar.firstChild);
+    }
+    acc.querySelectorAll('.cp-acc-item .cp-panel').forEach(p => {
       p.style.display = '';
       p.style.background = '';
       p.style.border = '';
       p.style.borderRadius = '';
       content.appendChild(p);
     });
-    // Also restore the Quick Stats panel
-    const qs = acc.querySelector('.cp-acc-stats > .cp-panel');
-    if (qs) {
-      const sidebar = document.querySelector('.cp-sidebar');
-      if (sidebar) sidebar.insertBefore(qs, sidebar.firstChild);
-    }
+    acc.remove();
+    document.querySelectorAll('.cp-nav-item[data-acc-moved]').forEach(n => delete n.dataset.accMoved);
   }
 
   // 3) Force renderForecast whenever Forecast page becomes active.
@@ -17504,6 +17521,9 @@ select { color-scheme: dark; }
     }
     if (typeof window.cpRenderModules === 'function') {
       try { window.cpRenderModules(); } catch(e){}
+    }
+    if (typeof window.cpTab === 'function') {
+      try { window.cpTab('modules'); } catch(e){}
     }
     // Open first tab if none active
     const firstNav = document.querySelector('.cp-nav-item');
