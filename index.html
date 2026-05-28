@@ -1689,7 +1689,7 @@ html, body {
         <button class="btn btn-ghost btn-sm" onclick="fcDownloadTemplate()">⬇ Template</button>
         <button class="btn btn-ghost btn-sm" onclick="fcManualEdit()">✏️ Manual Edit</button>
         <button class="btn btn-ghost btn-sm" onclick="fcClearData()" style="color:var(--red)">🗑️ Clear</button>
-        <button class="btn btn-ghost btn-sm" onclick="(function(){try{window.renderForecast();document.getElementById('fcRenderErr').style.display='none';}catch(e){var el=document.getElementById('fcRenderErr');el.textContent='Error: '+e.message;el.style.display='block';}})()">🔄 Refresh</button>
+        <button class="btn btn-ghost btn-sm" onclick="(function(){try{window.renderForecast();document.getElementById('fcRenderErr').style.display='none';}catch(e){var el=document.getElementById('fcRenderErr');el.textContent='renderForecast ERROR: '+e.message+'\n'+e.stack;el.style.display='block';console.error('renderForecast',e);}})()">🔄 Refresh</button>
       </div>
     </div>
 
@@ -9117,7 +9117,7 @@ if (_origCpRenderLive) {
           <input id="cpLiveAuthIdInp" class="cp-inp2" placeholder="Employee ID (e.g. E001)" style="flex:1;text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
           <button class="bgold" onclick="cpAddLiveAuthId()">+ Add ID</button>
         </div>`;
-      liveTab.insertBefore(sec, liveTab.querySelector('.cp-stitle'));
+      liveTab.querySelector('.cp-body').appendChild(sec);
       cpRenderLiveAuthIds();
     } else if (document.getElementById('cpLiveAuthIds')) {
       cpRenderLiveAuthIds();
@@ -13850,7 +13850,7 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
 
 /* Nav pills */
 .cpv6-nav {
-  display: flex; gap: 4px; padding: 14px 24px 0; flex-wrap: wrap;
+  display: flex; gap: 4px; padding: 14px 24px 0; flex-wrap: wrap; overflow-x: auto; overflow-y: visible;
 }
 .cpv6-nitem {
   display: flex; align-items: center; gap: 7px;
@@ -14172,6 +14172,9 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
           <div class="cpv6-nitem" data-tab="notifications" onclick="cpTab('notifications');cpv6SetNav(this)"><span class="cni">🔔</span>Notifications</div>
           <div class="cpv6-nitem" data-tab="firebase"    onclick="cpTab('firebase');cpv6SetNav(this)"><span class="cni">🔥</span>Firebase</div>
           <div class="cpv6-nitem" data-tab="logs"        onclick="cpTab('logs');cpv6SetNav(this)"><span class="cni">📋</span>Logs</div>
+          <div class="cpv6-nitem" data-tab="liveaccess"   onclick="cpTab('liveaccess');cpv6SetNav(this)"><span class="cni">🟢</span>Live Access</div>
+          <div class="cpv6-nitem" data-tab="themes"       onclick="cpTab('themes');cpv6SetNav(this)"><span class="cni">🎨</span>Themes</div>
+          <div class="cpv6-nitem" data-tab="exportimport" onclick="cpTab('exportimport');cpv6SetNav(this)"><span class="cni">💾</span>Export/Import</div>
           <div class="cpv6-nitem danger" data-tab="danger" onclick="cpTab('danger');cpv6SetNav(this)"><span class="cni">⚠️</span>Danger Zone</div>
         </div>
         <!-- AI Support Panel (hidden by default) -->
@@ -14208,7 +14211,7 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
       // Style content to fill full width
       const content = cpWrap.querySelector('.cp-content');
       if (content) {
-        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 24px;min-width:0;width:100%';
+        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 24px;min-width:0;width:100%;overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 220px)';
       }
     }
   }
@@ -17362,4 +17365,63 @@ select { color-scheme: dark; }
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryRender, 300); });
 })();
 </script>
-</body></html>
+</body></html><script>
+/* YPH FIX: Forecast render + Dev Panel Live Access tab mounting */
+(function(){
+  // 1. Force renderForecast to run every time Forecast tab is clicked
+  //    Shows errors in the red fcRenderErr box instead of swallowing them
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-p="forecast"]');
+    if (!btn) return;
+    function tryRender() {
+      var fp = document.getElementById('page-forecast');
+      if (!fp || !fp.classList.contains('active')) return;
+      var errEl = document.getElementById('fcRenderErr');
+      try {
+        window.renderForecast();
+        if (errEl) errEl.style.display = 'none';
+      } catch(err) {
+        if (errEl) { errEl.textContent = '❌ ' + err.message; errEl.style.display = 'block'; }
+        console.error('renderForecast error:', err);
+      }
+    }
+    setTimeout(tryRender, 120);
+    setTimeout(tryRender, 400);
+    setTimeout(tryRender, 800);
+  }, true);
+
+  // 2. When Dev Panel opens, ensure mountAll() runs to add Live Access/Themes/Export tabs
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('[data-p="settings"]');
+    if (!btn) return;
+    setTimeout(function(){
+      // Run mountAll if it exists (adds liveaccess, themes, exportimport panels)
+      if (typeof window.mountAll === 'function') try { window.mountAll(); } catch(ex){}
+      // Make sure cpv6NavRow has the dynamic tabs highlighted correctly
+      var nav = document.getElementById('cpv6NavRow');
+      if (nav) {
+        ['liveaccess','themes','exportimport'].forEach(function(id){
+          if (!nav.querySelector('[data-tab="'+id+'"]')) return;
+          // Tab button already added in rebuildDevPanel - panel mounting handled by mountAll
+        });
+      }
+    }, 300);
+  }, true);
+
+  // 3. Patch cpTab so clicking Live Access/Themes/Export in cpv6NavRow works
+  var _origCpTab = window.cpTab;
+  window.cpTab = function(id) {
+    // First run mountAll to ensure panels exist
+    if (['liveaccess','themes','exportimport'].indexOf(id) >= 0) {
+      if (typeof window.mountAll === 'function') try { window.mountAll(); } catch(ex){}
+    }
+    if (_origCpTab) _origCpTab(id);
+    // Sync cpv6NavRow highlight
+    document.querySelectorAll('#cpv6NavRow .cpv6-nitem').forEach(function(n){
+      n.classList.toggle('cpv6-active', n.dataset.tab === id);
+    });
+  };
+  // Mark so we don't double-wrap
+  window.cpTab.__yphFixed = true;
+})();
+</script>
