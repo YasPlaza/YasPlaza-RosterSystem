@@ -9279,16 +9279,23 @@ function cpAutoLoadUAEHolidays() {
 // Inject UAE Holidays tab into control panel
 (function injectHolidaysTab(){
   const tryInject = () => {
-    const cpNav = document.querySelector('.cp-nav');
-    const cpBody = document.querySelector('.cp-body');
-    if (!cpNav || !cpBody || document.getElementById('cpHolidayTab')) return;
-    // Holiday nav removed — holidays auto-update, no panel needed
-    // navItem suppressed by design
-    // Add tab content
+    const cpNav = document.querySelector('.cp-sidebar .cp-nav') || document.querySelector('.cp-nav');
+    const cpContent = document.querySelector('.cp-content');
+    if (!cpNav || !cpContent || document.getElementById('cpt-holidays')) return;
+    // Add nav item
+    const navItem = document.createElement('div');
+    navItem.className = 'cp-nav-item';
+    navItem.innerHTML = '<span class="cp-ni-icon">🇦🇪</span>UAE Holidays';
+    navItem.setAttribute('onclick', "cpTab('holidays')");
+    cpNav.appendChild(navItem);
+    // Add tab content into cp-content (correct container)
     const tab = document.createElement('div');
     tab.id = 'cpt-holidays';
+    tab.className = 'cp-panel';
     tab.style.display = 'none';
     tab.innerHTML = `
+      <div class="cp-ph"><div class="cp-pt">🇦🇪 UAE Public Holidays <span class="cp-badge">Auto-Managed</span></div></div>
+      <div class="cp-body">
       <div class="cp-stitle">🇦🇪 UAE Public Holidays Management</div>
       <div class="cp-infobox">Manage UAE public holidays. Use "Mark in Roster" to automatically block them in the current month's roster view.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:12px;align-items:end">
@@ -9300,17 +9307,9 @@ function cpAutoLoadUAEHolidays() {
         <button class="bx bxg" onclick="cpAutoLoadUAEHolidays()">🇦🇪 Mark Holidays in Current Month Roster</button>
         <button class="bx bxn" onclick="cpRenderHolidays()">🔄 Refresh</button>
       </div>
-      <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>`;
-    cpBody.appendChild(tab);
-    // Hook into cpTab
-    const _origCpTab = window.cpTab;
-    if (_origCpTab) {
-      window.cpTab = function(id) {
-        _origCpTab(id);
-        document.getElementById('cpt-holidays').style.display = (id === 'holidays') ? 'block' : 'none';
-        if (id === 'holidays') cpRenderHolidays();
-      };
-    }
+      <div id="cpHolidayList" style="max-height:55vh;overflow-y:auto;padding-right:4px"></div>
+      </div>`;
+    cpContent.appendChild(tab);
   };
   setInterval(tryInject, 1500);
 })();
@@ -9558,9 +9557,9 @@ function devExportScheduleJSON() {
 // Inject Export/Import tab into control panel
 (function injectExportTab(){
   const tryInject = () => {
-    const cpNav = document.querySelector('.cp-nav');
-    const cpBody = document.querySelector('.cp-body');
-    if (!cpNav || !cpBody || document.getElementById('cpt-exportimport')) return;
+    const cpNav = document.querySelector('.cp-sidebar .cp-nav') || document.querySelector('.cp-nav');
+    const cpContent = document.querySelector('.cp-content');
+    if (!cpNav || !cpContent || document.getElementById('cpt-exportimport')) return;
     const navItem = document.createElement('div');
     navItem.className = 'cp-nav-item';
     navItem.textContent = '💾 Export/Import';
@@ -9568,8 +9567,11 @@ function devExportScheduleJSON() {
     cpNav.appendChild(navItem);
     const tab = document.createElement('div');
     tab.id = 'cpt-exportimport';
+    tab.className = 'cp-panel';
     tab.style.display = 'none';
     tab.innerHTML = `
+      <div class="cp-ph"><div class="cp-pt">💾 Export / Import <span class="cp-badge">Backup & Restore</span></div></div>
+      <div class="cp-body">
       <div class="cp-stitle">💾 Export / Import System</div>
       <div class="cp-infobox">Back up and restore all system data. Use Full Backup to preserve everything including staff, schedules, holidays, and authorized IDs.</div>
       
@@ -9621,16 +9623,9 @@ function devExportScheduleJSON() {
           • CSV export is useful for Excel reports and payroll<br>
           • Firebase sync also backs up your data in the cloud
         </div>
+      </div>
       </div>`;
-    cpBody.appendChild(tab);
-    const _orig = window.cpTab;
-    if (_orig) {
-      window.cpTab = function(id) {
-        _orig(id);
-        const el = document.getElementById('cpt-exportimport');
-        if (el) el.style.display = (id === 'exportimport') ? 'block' : 'none';
-      };
-    }
+    cpContent.appendChild(tab);
   };
   setInterval(tryInject, 2500);
 })();
@@ -9670,7 +9665,9 @@ function devExportScheduleJSON() {
    ════════════════════════════════════════════════ */
 (function fixPackV1(){
   // ---------- 1. Generic cpTab ----------
-  const KNOWN_RENDERERS = {
+  // Use window.KNOWN_RENDERERS so mountTab() can register new tabs dynamically
+  window.KNOWN_RENDERERS = window.KNOWN_RENDERERS || {};
+  Object.assign(window.KNOWN_RENDERERS, {
     modules: typeof cpRenderModules==='function'?cpRenderModules:null,
     hotels: typeof cpRenderHotels==='function'?cpRenderHotels:null,
     departments: typeof cpRenderDepts==='function'?cpRenderDepts:null,
@@ -9682,14 +9679,17 @@ function devExportScheduleJSON() {
     holidays: typeof cpRenderHolidays==='function'?cpRenderHolidays:null,
     themes: typeof cpRenderThemes==='function'?cpRenderThemes:null,
     liveaccess: typeof laRender==='function'?laRender:null,
-  };
+  });
+  const KNOWN_RENDERERS = window.KNOWN_RENDERERS;
   window.cpTab = function(id){
-    document.querySelectorAll('.cp-content .cp-panel[id^="cpt-"]').forEach(el=>{
+    // Search ALL cp-panel elements with cpt- id, regardless of parent container
+    document.querySelectorAll('[id^="cpt-"]').forEach(el=>{
       el.style.display = (el.id === 'cpt-'+id) ? 'block' : 'none';
     });
-    document.querySelectorAll('.cp-nav .cp-nav-item').forEach(el=>{
+    // Also highlight active nav item in BOTH .cp-nav and .cp-sidebar
+    document.querySelectorAll('.cp-nav .cp-nav-item, .cp-sidebar .cp-nav-item').forEach(el=>{
       const oc = el.getAttribute('onclick')||'';
-      el.classList.toggle('cpa', oc === "cpTab('"+id+"')");
+      el.classList.toggle('cpa', oc === "cpTab('"+id+"')" || el.id === 'cpni-'+id);
     });
     const r = KNOWN_RENDERERS[id];
     if (typeof r === 'function') { try { r(); } catch(e){ console.error(e); } }
@@ -9723,13 +9723,9 @@ function devExportScheduleJSON() {
     panel.innerHTML = innerHTML;
     cpContent.appendChild(panel);
 
+    // Register renderer so cpTab can call it — no cpTab wrapping needed
     if (onShow) {
-      // Run renderer the first time the tab is shown
-      const origCpTab = window.cpTab;
-      window.cpTab = function(id){
-        origCpTab(id);
-        if (id === tabId.replace(/^cpt-/,'')) { try { onShow(); } catch(e){} }
-      };
+      KNOWN_RENDERERS[tabId.replace(/^cpt-/,'')] = onShow;
     }
     return true;
   }
@@ -10869,205 +10865,7 @@ function devExportScheduleJSON() {
   window.addEventListener('load', ()=> setTimeout(render, 400));
 })();
 </script>
-<script>
-// ════════════════════════════════════════════════
-// DEV-PANEL ACCORDION — inline expandable settings
-// Restructures the Developer / Control Panel from
-// sidebar+content into a single-column accordion so
-// each option's settings panel opens directly under
-// the clicked option (no wasted whitespace).
-// ════════════════════════════════════════════════
-(function(){
-  // Inject styles
-  const css = document.createElement('style');
-  css.textContent = `
-    .cp-wrap.cp-acc-mode { display:block !important; padding-bottom:14px; overflow-y:auto; }
-    .cp-wrap.cp-acc-mode .cp-sidebar,
-    .cp-wrap.cp-acc-mode .cp-content { display:none !important; }
-    .cp-acc { display:flex; flex-direction:column; gap:8px; }
-    .cp-acc-item {
-      background:linear-gradient(135deg,#0D1B2E,#162540);
-      border:1px solid rgba(255,255,255,.07);
-      border-radius:12px; overflow:hidden;
-      transition:border-color .2s, box-shadow .2s;
-    }
-    .cp-acc-item.open {
-      border-color:rgba(201,150,58,.45);
-      box-shadow:0 6px 22px rgba(0,0,0,.32);
-    }
-    .cp-acc-head {
-      display:flex; align-items:center; gap:10px;
-      padding:11px 16px; cursor:pointer; user-select:none;
-      color:rgba(255,255,255,.78); font-size:12.5px; font-weight:600;
-      transition:background .15s, color .15s;
-    }
-    .cp-acc-head:hover { background:rgba(201,150,58,.07); color:#fff; }
-    .cp-acc-item.open .cp-acc-head {
-      background:linear-gradient(90deg,rgba(201,150,58,.22),transparent);
-      color:#C9963A;
-      border-bottom:1px solid rgba(201,150,58,.22);
-    }
-    .cp-acc-caret { margin-left:auto; opacity:.5; transition:transform .25s, opacity .15s, color .15s; font-size:11px; }
-    .cp-acc-item.open .cp-acc-caret { transform:rotate(180deg); opacity:1; color:#C9963A; }
-    .cp-acc-body { display:none; padding:0; }
-    .cp-acc-item.open .cp-acc-body {
-      display:block; animation:cpAccFade .2s ease;
-      /* Dedicated container per option — content lives only inside this panel */
-      padding:14px 18px 18px;
-      background:rgba(0,0,0,.18);
-    }
-    @keyframes cpAccFade { from{opacity:0;transform:translateY(-4px)} to{opacity:1;transform:none} }
-    /* Strip duplicated chrome from moved panels so they sit cleanly in their container */
-    .cp-acc-body .cp-panel { background:transparent !important; border:0 !important; border-radius:0 !important; margin:0 !important; }
-    .cp-acc-body .cp-panel > .cp-ph { display:none !important; }
-    .cp-acc-body .cp-panel + .cp-panel { margin-top:10px !important; }
-    .cp-acc-body .cp-body { padding:0 !important; }
-    /* Kill empty trailing whitespace from inner sections */
-    .cp-acc-body > *:last-child { margin-bottom:0 !important; }
-    /* Compact quick-stats panel kept above accordion */
-    .cp-acc-stats { background:linear-gradient(135deg,#0D1B2E,#162540); border:1px solid rgba(255,255,255,.07); border-radius:12px; padding:12px 16px; margin-bottom:4px; }
-  `;
-  document.head.appendChild(css);
-
-  function findPanel(navItem){
-    const m = (navItem.getAttribute('onclick')||'').match(/cpTab\(['"]([^'"]+)['"]\)/);
-    if (!m) return null;
-    return { id:m[1], panel:document.getElementById('cpt-'+m[1]) };
-  }
-
-  function buildAccItem(navItem){
-    const info = findPanel(navItem); if (!info) return null;
-    if (navItem.dataset.accMoved === '1') return null;
-    const item = document.createElement('div');
-    item.className = 'cp-acc-item';
-    item.dataset.tab = info.id;
-
-    const head = document.createElement('div');
-    head.className = 'cp-acc-head';
-    head.innerHTML = navItem.innerHTML + '<span class="cp-acc-caret">▼</span>';
-    // Preserve any inline color (e.g. Danger Zone red)
-    if (navItem.style.color) head.style.color = navItem.style.color;
-    head.onclick = () => toggle(info.id);
-    item.appendChild(head);
-
-    const body = document.createElement('div');
-    body.className = 'cp-acc-body';
-    if (info.panel) {
-      info.panel.style.display = '';  // strip any inline display:none
-      body.appendChild(info.panel);
-    }
-    item.appendChild(body);
-
-    navItem.dataset.accMoved = '1';
-    return item;
-  }
-
-  function ensureMounted(){
-    const wrap = document.querySelector('.cp-wrap');
-    const navContainer = document.querySelector('.cp-sidebar .cp-nav');
-    if (!wrap || !navContainer) return null;
-
-    let acc = wrap.querySelector('.cp-acc');
-    if (!acc) {
-      wrap.classList.add('cp-acc-mode');
-      acc = document.createElement('div');
-      acc.className = 'cp-acc';
-      // Keep Quick Stats visible above
-      const qs = document.querySelector('.cp-sidebar > .cp-panel');
-      if (qs) {
-        const wrapStats = document.createElement('div');
-        wrapStats.className = 'cp-acc-stats';
-        qs.style.background = 'transparent';
-        qs.style.border = '0';
-        qs.style.borderRadius = '0';
-        wrapStats.appendChild(qs);
-        acc.appendChild(wrapStats);
-      }
-      wrap.appendChild(acc);
-    }
-
-    // Add any nav items not yet moved
-    navContainer.querySelectorAll('.cp-nav-item').forEach(n => {
-      const it = buildAccItem(n);
-      if (it) acc.appendChild(it);
-    });
-    return acc;
-  }
-
-  function toggle(id){
-    const acc = ensureMounted(); if (!acc) return;
-    const items = acc.querySelectorAll('.cp-acc-item');
-    let opening = true;
-    items.forEach(it => {
-      if (it.dataset.tab === id) {
-        const wasOpen = it.classList.contains('open');
-        it.classList.toggle('open', !wasOpen);
-        opening = !wasOpen;
-        if (!wasOpen) {
-          // Scroll into view after expand animation
-          setTimeout(()=> it.scrollIntoView({behavior:'smooth', block:'start'}), 60);
-        }
-      } else {
-        it.classList.remove('open');
-      }
-    });
-    // Fire original cpTab side-effects (renderers, health update)
-    if (opening && typeof window.cpTab === 'function' && !window._cpTabInToggle) {
-      window._cpTabInToggle = true;
-      try { window.cpTab(id); } catch(e){}
-      window._cpTabInToggle = false;
-    }
-  }
-
-  // Wrap cpTab so external callers still work and accordion follows
-  function wrapCpTab(){
-    const orig = window.cpTab;
-    if (!orig || orig.__accWrapped) return;
-    const wrapped = function(id){
-      try { orig.apply(this, arguments); } catch(e){}
-      if (window._cpTabInToggle) return;
-      const acc = ensureMounted(); if (!acc) return;
-      acc.querySelectorAll('.cp-acc-item').forEach(it => {
-        it.classList.toggle('open', it.dataset.tab === id);
-      });
-    };
-    wrapped.__accWrapped = true;
-    window.cpTab = wrapped;
-  }
-
-  // Run once DOM ready, then keep watching for late-injected tabs
-  function boot(){
-    const acc = ensureMounted();
-    if (!acc) return;
-    wrapCpTab();
-    // Open the first item by default if none open
-    if (!acc.querySelector('.cp-acc-item.open')) {
-      const first = acc.querySelector('.cp-acc-item');
-      if (first) first.classList.add('open');
-    }
-    // Observe nav for dynamically added items
-    const navContainer = document.querySelector('.cp-sidebar .cp-nav');
-    if (navContainer && !navContainer.dataset.accObserved) {
-      navContainer.dataset.accObserved = '1';
-      new MutationObserver(()=>{ ensureMounted(); wrapCpTab(); })
-        .observe(navContainer, {childList:true});
-    }
-    // Observe .cp-content in case a new panel appears before its nav item
-    const content = document.querySelector('.cp-content');
-    if (content && !content.dataset.accObserved) {
-      content.dataset.accObserved = '1';
-      new MutationObserver(()=>{ setTimeout(ensureMounted, 30); })
-        .observe(content, {childList:true});
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', ()=> setTimeout(boot, 300));
-  } else {
-    setTimeout(boot, 300);
-  }
-  // Safety: re-run a couple of times to catch late injections
-  window.addEventListener('load', ()=> { setTimeout(boot, 600); setTimeout(boot, 1500); });
+<script>/* DEV-PANEL ACCORDION REMOVED */</script>
 })();
 </script>
 <!-- ════════════════════════════════════════════════════════════════════
@@ -14301,8 +14099,7 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
     const cpOuter = document.getElementById('cp-outer');
     if (!cpOuter) return;
     if (cpOuter.dataset.v6) {
-      // Already built — just re-render content
-      if (typeof cpRenderModules === 'function') try{cpRenderModules();}catch(e){}
+      // Already built — just update health stats, do NOT re-render modules or reset tabs
       if (typeof cpUpdateHealth === 'function') try{cpUpdateHealth();}catch(e){}
       return;
     }
@@ -14399,17 +14196,17 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
       `;
     }
 
-    // Style the cp-wrap
+    // Style the cp-wrap — use single column since we have top nav pills instead of sidebar
     const cpWrap = cpOuter.querySelector('.cp-wrap');
     if (cpWrap) {
-      cpWrap.style.cssText = 'display:flex;background:linear-gradient(180deg,#0A1628,#08121E);min-height:calc(100vh - 200px)';
-      // Hide sidebar (we now use top nav pills)
+      cpWrap.style.cssText = 'display:block;background:linear-gradient(180deg,#0A1628,#08121E);min-height:calc(100vh - 200px)';
+      // Hide sidebar (we now use top nav pills instead)
       const sidebar = cpWrap.querySelector('.cp-sidebar');
       if (sidebar) sidebar.style.display = 'none';
-      // Style content
+      // Style content to fill full width
       const content = cpWrap.querySelector('.cp-content');
       if (content) {
-        content.style.cssText = 'flex:1;padding:16px 24px 24px;min-width:0';
+        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 24px;min-width:0;width:100%';
       }
     }
   }
@@ -17414,18 +17211,6 @@ select { color-scheme: dark; }
       if (settings.style.display === 'none') settings.style.display = '';
     }
     
-    // CRITICAL: Remove the cp-acc-mode class that hides Dev Panel content!
-    const cpWrap = document.querySelector('.cp-wrap');
-    if (cpWrap && cpWrap.classList.contains('cp-acc-mode')) {
-      console.log('[FIX] Removing cp-acc-mode class to show Dev Panel content');
-      cpWrap.classList.remove('cp-acc-mode');
-      // Show the sidebar and content again
-      const sidebar = cpWrap.querySelector('.cp-sidebar');
-      const content = cpWrap.querySelector('.cp-content');
-      if (sidebar) sidebar.style.display = '';
-      if (content) content.style.display = '';
-    }
-    
     // Ensure app container is visible
     const app = document.getElementById('app');
     if (app && app.classList.contains('show')) {
@@ -17457,7 +17242,8 @@ select { color-scheme: dark; }
   //    We add a CSS rule that makes cp-acc-mode a no-op and keeps content/sidebar visible.
   const fixCss = document.createElement('style');
   fixCss.textContent = `
-    .cp-wrap.cp-acc-mode { display:flex !important; }
+    .cp-wrap.cp-acc-mode { display:grid !important; }
+    .cp-wrap.cp-acc-mode .cp-sidebar { display:flex !important; }
     .cp-wrap.cp-acc-mode .cp-content { display:flex !important; }
     .cp-wrap .cp-acc { display:none !important; } /* hide orphan accordion container */
     #page-forecast.active { display:block !important; min-height:200px; }
@@ -17519,22 +17305,14 @@ select { color-scheme: dark; }
     if (typeof window._rebuildDevPanel === 'function') {
       try { window._rebuildDevPanel(); } catch(e){}
     }
-    if (typeof window.cpRenderModules === 'function') {
-      try { window.cpRenderModules(); } catch(e){}
-    }
-    if (typeof window.cpTab === 'function') {
+    // Only open modules tab if NO panel is currently visible (first load only)
+    const anyVisible = document.querySelector('[id^="cpt-"][style*="display: block"], [id^="cpt-"]:not([style*="display: none"]):not([style*="display:none"])');
+    if (!anyVisible && typeof window.cpTab === 'function') {
       try { window.cpTab('modules'); } catch(e){}
-    }
-    // Open first tab if none active
-    const firstNav = document.querySelector('.cp-nav-item');
-    const anyActive = document.querySelector('.cp-panel:not([style*="display: none"])');
-    if (firstNav && typeof window.cpTab === 'function' && !anyActive) {
-      const m = (firstNav.getAttribute('onclick')||'').match(/cpTab\(['"]([^'"]+)['"]\)/);
-      if (m) try { window.cpTab(m[1]); } catch(e){}
     }
   }
 
-  // Hook tab buttons
+  // Hook tab buttons — run ensureDevPanel once when settings tab is opened
   document.addEventListener('click', function(ev){
     const tab = ev.target.closest && ev.target.closest('[data-p]');
     if (!tab) return;
@@ -17543,11 +17321,9 @@ select { color-scheme: dark; }
     if (p === 'settings') setTimeout(ensureDevPanel, 150);
   }, true);
 
-  // Periodic safety net
-  setInterval(function(){
-    ensureForecast();
-    ensureDevPanel();
-  }, 1500);
+  // One-time check on load (not repeated — prevents overriding user tab selection)
+  setTimeout(function(){ ensureForecast(); ensureDevPanel(); }, 800);
+  setInterval(ensureForecast, 1500); // Only forecast needs periodic check
 
   console.log('[YPH HOTFIX] Dev Panel + Forecast restoration active.');
 })();
