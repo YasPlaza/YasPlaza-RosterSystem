@@ -17384,6 +17384,18 @@ select { color-scheme: dark; }
 // CRITICAL FIX: Ensure Dev Panel and Forecast pages are always visible and functional
 (function ensurePageVisibility() {
   function fix() {
+    // Force Forecast + Dev Panel tab BUTTONS (badges) in the topbar to be visible
+    ['forecast','settings'].forEach(function(p){
+      var tab = document.querySelector('[data-p="'+p+'"]');
+      if (tab) {
+        tab.style.removeProperty('display');
+        tab.style.removeProperty('visibility');
+        tab.style.removeProperty('opacity');
+        tab.style.pointerEvents = '';
+        tab.removeAttribute('disabled');
+      }
+    });
+
     // Force page-forecast to be visible
     const forecast = document.getElementById('page-forecast');
     if (forecast) {
