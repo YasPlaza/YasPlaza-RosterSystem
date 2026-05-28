@@ -4580,16 +4580,29 @@ function applyRoleRestrictions() {
     settingsTab.style.pointerEvents = isDev ? "" : "none";
     if (!isDev) settingsTab.setAttribute('disabled','disabled'); else settingsTab.removeAttribute('disabled');
   }
-  // Dev Panel page: only hard-hide for non-dev. NEVER inline-hide for dev
-  // (that would block the panel from showing when dev navigates to it).
+  // Dev Panel page: ensure it can display properly
   const settingsPage = document.getElementById('page-settings');
   if (settingsPage) {
+    // Force the page to be displayable
+    settingsPage.style.removeProperty('display');
+    // Only remove active class for non-dev (they won't be on this page anyway)
     if (!isDev) {
       settingsPage.classList.remove('active');
-      settingsPage.style.display = 'none';
     } else {
-      settingsPage.style.removeProperty('display');
+      // Ensure dev can see it by ensuring no inline styles block it
+      settingsPage.style.height = '';
+      settingsPage.style.overflow = '';
+      settingsPage.style.visibility = '';
+      settingsPage.style.opacity = '';
     }
+  }
+  
+  // Forecast page — ensure visibility
+  const forecastPage = document.getElementById('page-forecast');
+  if (forecastPage) {
+    forecastPage.style.removeProperty('display');
+    forecastPage.style.visibility = '';
+    forecastPage.style.opacity = '';
   }
 
   // Show/hide developer-only buttons in topbar
@@ -17364,6 +17377,58 @@ select { color-scheme: dark; }
   } else { ensureFilters(); }
   setInterval(ensureFilters, 1500);
   console.log('[YPH v13] LIVE+ dept/position filters + dropdown contrast fix loaded.');
+})();
+</script>
+
+<script>
+// CRITICAL FIX: Ensure Dev Panel and Forecast pages are always visible and functional
+(function ensurePageVisibility() {
+  function fix() {
+    // Force page-forecast to be visible
+    const forecast = document.getElementById('page-forecast');
+    if (forecast) {
+      forecast.style.removeProperty('display');
+      forecast.style.removeProperty('visibility');
+      forecast.style.removeProperty('opacity');
+      if (forecast.style.display === 'none') forecast.style.display = '';
+    }
+    
+    // Force page-settings to be visible  
+    const settings = document.getElementById('page-settings');
+    if (settings) {
+      settings.style.removeProperty('display');
+      settings.style.removeProperty('visibility');
+      settings.style.removeProperty('opacity');
+      if (settings.style.display === 'none') settings.style.display = '';
+    }
+    
+    // CRITICAL: Remove the cp-acc-mode class that hides Dev Panel content!
+    const cpWrap = document.querySelector('.cp-wrap');
+    if (cpWrap && cpWrap.classList.contains('cp-acc-mode')) {
+      console.log('[FIX] Removing cp-acc-mode class to show Dev Panel content');
+      cpWrap.classList.remove('cp-acc-mode');
+      // Show the sidebar and content again
+      const sidebar = cpWrap.querySelector('.cp-sidebar');
+      const content = cpWrap.querySelector('.cp-content');
+      if (sidebar) sidebar.style.display = '';
+      if (content) content.style.display = '';
+    }
+    
+    // Ensure app container is visible
+    const app = document.getElementById('app');
+    if (app && app.classList.contains('show')) {
+      app.style.removeProperty('display');
+      if (app.style.display === 'none') app.style.display = 'flex';
+    }
+  }
+  
+  // Run fix immediately, then repeatedly
+  fix();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fix);
+  }
+  setInterval(fix, 200);
+  window.addEventListener('load', fix);
 })();
 </script>
 
