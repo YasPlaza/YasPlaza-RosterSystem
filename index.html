@@ -1437,11 +1437,11 @@ html, body {
       <div class="card">
         <div class="ch">
           <div class="ct">🗄️ Roster Archives</div>
-          <span style="font-size:11px;color:var(--slate2)">Monthly history snapshots</span>
+          <span style="font-size:11px;color:var(--slate2)">Roster cycle history snapshots</span>
         </div>
         <div style="padding:14px">
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-            <button class="btn btn-gold btn-sm" onclick="archiveMonthSnapshot(YEAR, MONTH, 'manual snapshot')">💾 Save Current Month</button>
+            <button class="btn btn-gold btn-sm" onclick="archiveMonthSnapshot(YEAR, MONTH, 'manual snapshot')">💾 Save Current Roster</button>
             <button class="btn btn-ghost btn-sm" onclick="renderArchives()">↻ Refresh</button>
           </div>
           <div class="archive-list" id="archiveList"></div>
@@ -1451,7 +1451,7 @@ html, body {
         <div style="padding:14px">
           <div class="archive-preview-head">
             <div>
-              <div class="ct" style="margin-bottom:4px">📅 Archived Roster Preview</div>
+              <div class="ct" style="margin-bottom:4px">📅 Archived Roster Cycle Preview</div>
               <div id="archivePreviewMeta" style="font-size:11px;color:var(--slate2)">Select an archive on the left.</div>
             </div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -2423,7 +2423,7 @@ html, body {
   <div class="modal">
     <h3>🧠 Smart Auto Fill Shifts</h3>
     <div style="font-size:11px;color:var(--slate);margin-bottom:10px;line-height:1.5">
-      Auto-fills shifts across a date range with smart safeguards. Use the toggles below to control what gets skipped.
+      Auto-fills shifts across a date range with smart safeguards. Use the options below to control exactly who gets updated and what gets protected.
     </div>
     <div class="fg">
       <div><label class="lbl">From Day</label><input class="inp" id="bFrom" type="number" min="1" max="31" value="1"></div>
@@ -2437,18 +2437,29 @@ html, body {
         </select>
       </div>
     </div>
-    <!-- Smart Auto Fill options -->
     <div style="margin-top:10px;padding:12px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
       <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">⚙️ Smart Options</div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
         <input type="checkbox" id="bSkipOff" checked> Respect off-days &amp; weekly OFF pattern
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
-        <input type="checkbox" id="bSkipLeave" checked> Skip staff on Annual Leave / Sick Leave (AL, SL)
+        <input type="checkbox" id="bSkipLeave" checked> Skip staff on leave codes (AL, SL, ML, UL, CL, BL)
       </label>
-      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
         <input type="checkbox" id="bSkipExisting"> Skip cells that already have a shift (don't overwrite)
       </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="bSkipWeekend"> Skip weekends (Saturday &amp; Sunday)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="bSelectedOnly"> Apply only to selected staff rows
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer">
+        <input type="checkbox" id="bDefaultOnly"> Only staff whose default shift matches the selected shift
+      </label>
+      <div style="font-size:10px;color:var(--slate);margin-top:8px;line-height:1.5">
+        Tip: use row selection in the roster first if you want to fill only a few employees.
+      </div>
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('bulkModal')">Cancel</button>
@@ -3064,24 +3075,43 @@ function shiftIsOffCode(code) {
 function cloneData(obj) { return JSON.parse(JSON.stringify(obj || {})); }
 function archiveDbKey(key) { return String(key).replace(/[^a-zA-Z0-9]/g, "_"); }
 function parseArchiveKey(key) { const [y,m] = String(key).split("-").map(Number); return {year:y, month:m}; }
-function formatArchiveMonth(key) { const p=parseArchiveKey(key); return MONTHS[p.month] + " " + p.year; }
+function formatArchiveMonth(key) { const p=parseArchiveKey(key); return getRosterLabel(p.year, p.month); }
 function buildArchiveSnapshot(y, m, reason="") {
   const key = schKey(y,m);
+  const rosterDays = getRosterDays(y, m);
   const schedules = {};
   const hotels = {};
+  const cycleSchedules = {};
+  const cycleHotels = {};
   Object.keys(staffData).forEach(id => {
     if (schedData[id] && schedData[id][key]) schedules[id] = cloneData(schedData[id][key]);
     if (hotelData[id] && hotelData[id][key]) hotels[id] = cloneData(hotelData[id][key]);
+    const cycleSch = {};
+    const cycleHotel = {};
+    rosterDays.forEach(({y:dayYear, m:dayMonth, d}) => {
+      const monthKey = schKey(dayYear, dayMonth);
+      const dateKey = `${dayYear}-${dayMonth}-${d}`;
+      const code = schedData[id]?.[monthKey]?.[d];
+      const hotelCode = hotelData[id]?.[monthKey]?.[d];
+      if (code !== undefined && code !== null && code !== '') cycleSch[dateKey] = code;
+      if (hotelCode !== undefined && hotelCode !== null && hotelCode !== '') cycleHotel[dateKey] = hotelCode;
+    });
+    if (Object.keys(cycleSch).length) cycleSchedules[id] = cycleSch;
+    if (Object.keys(cycleHotel).length) cycleHotels[id] = cycleHotel;
   });
   const existing = archiveData[key] || {};
   return {
     key, year:y, month:m,
+    label: getRosterLabel(y, m),
+    rosterDays,
     createdAt: existing.createdAt || Date.now(),
     updatedAt: Date.now(),
     reason: reason || existing.reason || "auto snapshot",
     staff: cloneData(staffData),
     schedules,
     hotels,
+    cycleSchedules,
+    cycleHotels,
     deptConfig: cloneData({depts:DEPT_POS, deptColors:DEPT_C})
   };
 }
@@ -3193,22 +3223,21 @@ function renderArchives() {
   if (!list || !preview || !meta) return;
   const keys = Object.keys(archiveData).sort((a,b)=>{ const pa=parseArchiveKey(a), pb=parseArchiveKey(b); return new Date(pb.year,pb.month,1)-new Date(pa.year,pa.month,1); });
   if (!keys.length) {
-    list.innerHTML = `<div style="font-size:12px;color:var(--slate2);padding:12px 4px">No archives yet. Save the current month to start building history.</div>`;
+    list.innerHTML = `<div style="font-size:12px;color:var(--slate2);padding:12px 4px">No archives yet. Save the current roster cycle to start building history.</div>`;
     preview.innerHTML = `<div style="padding:28px 10px;text-align:center;color:var(--slate2)">No archived roster selected.</div>`;
-    meta.textContent = 'Save a snapshot to create history.';
+    meta.textContent = 'Save a roster-cycle snapshot to create history.';
     return;
   }
   if (!currentArchiveKey || !archiveData[currentArchiveKey]) currentArchiveKey = keys[0];
   list.innerHTML = keys.map(key => {
     const snap = archiveData[key];
     const staffCount = Object.keys(snap.staff || {}).length;
-    return `<div class="archive-item ${key===currentArchiveKey?'active':''}" onclick="currentArchiveKey='${key}';renderArchives()"><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--navy)">${formatArchiveMonth(key)}</div><div class="archive-meta">${staffCount} employees archived<br>Updated ${new Date(snap.updatedAt || Date.now()).toLocaleString()}</div></div>`;
+    const label = snap.label || formatArchiveMonth(key);
+    return `<div class="archive-item ${key===currentArchiveKey?'active':''}" onclick="currentArchiveKey='${key}';renderArchives()"><div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--navy)">${label}</div><div class="archive-meta">${staffCount} employees archived<br>Updated ${new Date(snap.updatedAt || Date.now()).toLocaleString()}</div></div>`;
   }).join('');
   const snap = archiveData[currentArchiveKey];
-  meta.textContent = `${getRosterLabel(snap.year, snap.month)} · ${Object.keys(snap.staff || {}).length} employees`;
-  // 15 → 14 next-month cycle
-  const rosterDays = getRosterDays(snap.year, snap.month);
-  // For days from next month, try to pull from the next archive snapshot if it exists
+  meta.textContent = `${snap.label || getRosterLabel(snap.year, snap.month)} · ${Object.keys(snap.staff || {}).length} employees`;
+  const rosterDays = Array.isArray(snap.rosterDays) && snap.rosterDays.length ? snap.rosterDays : getRosterDays(snap.year, snap.month);
   const nextKey = schKey((snap.month===11?snap.year+1:snap.year), (snap.month===11?0:snap.month+1));
   const nextSnap = archiveData[nextKey];
   const hf = document.getElementById('hotelFilter')?.value || 'all';
@@ -3218,16 +3247,17 @@ function renderArchives() {
   if (hf !== 'all') staff = staff.filter(e => e.hotel === hf || e.hotel === 'all');
   const legend = Object.entries(SHIFTS).map(([k,v])=>`<span class="sp sp-${k}" style="cursor:default;font-size:8px">${k}<span style="font-weight:400"> ${shiftTimeOrLabel(v)}</span></span>`).join('');
   const getCellCode = (empId, y, m, d) => {
+    const cycleKey = `${y}-${m}-${d}`;
+    if (snap.cycleSchedules && snap.cycleSchedules[empId] && Object.prototype.hasOwnProperty.call(snap.cycleSchedules[empId], cycleKey)) {
+      return snap.cycleSchedules[empId][cycleKey] || '';
+    }
     if (y === snap.year && m === snap.month) {
       return (snap.schedules && snap.schedules[empId] && snap.schedules[empId][d]) || '';
     }
-    // try next archive
     if (nextSnap && nextSnap.schedules && nextSnap.schedules[empId]) return nextSnap.schedules[empId][d] || '';
-    // fall back to live data
     return (getEmpSch(empId, y, m) || {})[d] || '';
   };
   const rows = staff.map((emp, idx) => {
-    // Aggregate across the cycle for stats
     const aggSch = {};
     rosterDays.forEach(({y,m,d},i)=>{ aggSch[i+1] = getCellCode(emp.id,y,m,d); });
     const stats = calcStats(emp, aggSch);
@@ -7048,48 +7078,59 @@ function openBulk() {
   document.getElementById("bulkModal").style.display="flex";
 }
 async function applyBulk() {
-  const from=+document.getElementById("bFrom").value;
-  const to=+document.getElementById("bTo").value;
-  const code=document.getElementById("bShift").value;
-  const scope=document.getElementById("bScope").value;
-  const hf=document.getElementById("hotelFilter")?.value||"all";
-  let targets=staffList();
-  if(scope==="hotel"&&hf!=="all") targets=targets.filter(e=>e.hotel===hf||e.hotel==="all");
-  if(scope==="visible"){
-    const pf=document.getElementById("rPosF")?.value||"all";
-    const df=document.getElementById("rDeptF")?.value||"all";
-    if(hf!=="all") targets=targets.filter(e=>e.hotel===hf||e.hotel==="all");
-    if(pf!=="all") targets=targets.filter(e=>e.position===pf);
-    if(df!=="all") targets=targets.filter(e=>e.department===df);
+  const from = +document.getElementById("bFrom").value;
+  const to = +document.getElementById("bTo").value;
+  const code = document.getElementById("bShift").value;
+  const scope = document.getElementById("bScope").value;
+  const hf = document.getElementById("hotelFilter")?.value || "all";
+  let targets = staffList();
+  if (scope === "hotel" && hf !== "all") targets = targets.filter(e => e.hotel === hf || e.hotel === "all");
+  if (scope === "visible") {
+    const pf = document.getElementById("rPosF")?.value || "all";
+    const df = document.getElementById("rDeptF")?.value || "all";
+    if (hf !== "all") targets = targets.filter(e => e.hotel === hf || e.hotel === "all");
+    if (pf !== "all") targets = targets.filter(e => e.position === pf);
+    if (df !== "all") targets = targets.filter(e => e.department === df);
   }
-  const skipOff      = !!document.getElementById("bSkipOff")?.checked;
-  const skipLeave    = !!document.getElementById("bSkipLeave")?.checked;
+  const skipOff = !!document.getElementById("bSkipOff")?.checked;
+  const skipLeave = !!document.getElementById("bSkipLeave")?.checked;
   const skipExisting = !!document.getElementById("bSkipExisting")?.checked;
-  const LEAVE_CODES = new Set(["AL","SL","ML","UL","CL","BL"]); // leave codes to protect
-  const OFF_CODES   = new Set(["OFF","EX","O","X"]);            // off-day codes
-  const k=schKey(); const numDays=getDIM(); const updates={}; let skipped=0, written=0;
-  targets.forEach(emp=>{
-    if(!schedData[emp.id]) schedData[emp.id]={};
-    if(!schedData[emp.id][k]) schedData[emp.id][k]={};
-    for(let d=from;d<=Math.min(to,numDays);d++){
+  const skipWeekend = !!document.getElementById("bSkipWeekend")?.checked;
+  const selectedOnly = !!document.getElementById("bSelectedOnly")?.checked;
+  const defaultOnly = !!document.getElementById("bDefaultOnly")?.checked;
+  if (selectedOnly) {
+    if (!selectedIds.size) { alert("Select one or more staff rows first, then use Smart Fill again."); return; }
+    targets = targets.filter(e => selectedIds.has(e.id));
+  }
+  if (defaultOnly) targets = targets.filter(e => (e.defaultShift || '') === code);
+  if (!targets.length) { alert("No staff matched the current Smart Fill filters."); return; }
+  const LEAVE_CODES = new Set(["AL","SL","ML","UL","CL","BL","SICK","ABS"]);
+  const OFF_CODES = new Set(["OFF","EX","O","X","PH"]);
+  const k = schKey();
+  const numDays = getDIM();
+  const updates = {};
+  let skipped = 0, written = 0;
+  targets.forEach(emp => {
+    if (!schedData[emp.id]) schedData[emp.id] = {};
+    if (!schedData[emp.id][k]) schedData[emp.id][k] = {};
+    for (let d = from; d <= Math.min(to, numDays); d++) {
+      const dow = new Date(YEAR, MONTH, d).getDay();
       const cur = schedData[emp.id][k][d];
+      if (skipWeekend && (dow === 0 || dow === 6)) { skipped++; continue; }
       if (skipExisting && cur) { skipped++; continue; }
-      if (skipLeave    && cur && LEAVE_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
-      if (skipOff      && cur && OFF_CODES.has(String(cur).toUpperCase()))   { skipped++; continue; }
-      // Respect employee's weekly OFF pattern if defined (emp.offDays = [0..6] day-of-week numbers, or count like 2)
-      if (skipOff && Array.isArray(emp.offDaysList)) {
-        const dow = new Date(YEAR, MONTH, d).getDay();
-        if (emp.offDaysList.includes(dow)) { skipped++; continue; }
-      }
-      updates[`schedules/${emp.id}/${k}/${d}`]=code;
-      schedData[emp.id][k][d]=code;
+      if (skipLeave && cur && LEAVE_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
+      if (skipOff && cur && OFF_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
+      if (skipOff && Array.isArray(emp.offDaysList) && emp.offDaysList.includes(dow)) { skipped++; continue; }
+      updates[`schedules/${emp.id}/${k}/${d}`] = code;
+      schedData[emp.id][k][d] = code;
       written++;
     }
   });
-  if(db) { try { await db.ref().update(updates); } catch(e){} }
+  if (db && Object.keys(updates).length) { try { await db.ref().update(updates); } catch(e){} }
   queueArchiveSnapshot(k, "smart auto fill");
   closeModal("bulkModal");
   renderRoster();
+  alert(`✅ Smart Fill complete. Updated ${written} cell${written===1?'':'s'}${skipped ? ` · Skipped ${skipped}` : ''}.`);
   if (skipped) {
     try { console.log(`[Smart Auto Fill] wrote ${written}, skipped ${skipped} protected cells`); } catch(e){}
   }
@@ -17430,5 +17471,361 @@ select { color-scheme: dark; }
   };
   // Mark so we don't double-wrap
   window.cpTab.__yphFixed = true;
+})();
+</script>
+
+<script>
+/* YPH FINAL FIXES v2 — forecast fallback, roster-cycle archives, dev-panel scroll, long-page arrow */
+(function(){
+  if (window.__yphFinalFixV2) return;
+  window.__yphFinalFixV2 = true;
+
+  var style = document.createElement('style');
+  style.id = 'yph-final-fixes-v2';
+  style.textContent = `
+    #page-forecast.active{
+      display:block !important;
+      visibility:visible !important;
+      opacity:1 !important;
+      min-height:100% !important;
+      background:#fff !important;
+      padding-bottom:96px !important;
+      overflow-y:auto !important;
+    }
+    #page-settings.active{
+      position:relative !important;
+      top:auto !important;
+      left:auto !important;
+      right:auto !important;
+      bottom:auto !important;
+      z-index:auto !important;
+      display:flex !important;
+      flex-direction:column !important;
+      height:calc(100vh - 56px) !important;
+      max-height:calc(100vh - 56px) !important;
+      min-height:0 !important;
+      overflow:hidden !important;
+      padding:0 !important;
+      background:#08121E !important;
+    }
+    #page-settings.active #cp-outer{
+      flex:1 1 auto !important;
+      height:auto !important;
+      max-height:100% !important;
+      min-height:0 !important;
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      -webkit-overflow-scrolling:touch !important;
+      padding:14px 14px 96px !important;
+    }
+    #page-settings.active .cp-wrap{
+      display:grid !important;
+      grid-template-columns:220px minmax(0,1fr) !important;
+      gap:14px !important;
+      flex:1 1 auto !important;
+      min-height:0 !important;
+      overflow:hidden !important;
+      padding-bottom:14px !important;
+    }
+    #page-settings.active .cp-sidebar,
+    #page-settings.active .cp-content{
+      min-height:0 !important;
+    }
+    #page-settings.active .cp-content{
+      overflow-y:auto !important;
+      overflow-x:hidden !important;
+      padding-right:6px !important;
+      padding-bottom:64px !important;
+    }
+    @media (max-width: 980px){
+      #page-settings.active .cp-wrap{ grid-template-columns:1fr !important; }
+    }
+    #yphScrollDownBtn{
+      position:fixed;
+      right:88px;
+      bottom:22px;
+      z-index:9999;
+      width:48px;
+      height:48px;
+      border:none;
+      border-radius:999px;
+      background:linear-gradient(135deg,#C9963A,#E8B04A);
+      color:#0F1E35;
+      font-size:24px;
+      font-weight:900;
+      box-shadow:0 12px 30px rgba(15,30,53,.28);
+      cursor:pointer;
+      display:none;
+      align-items:center;
+      justify-content:center;
+    }
+    #yphScrollDownBtn:hover{ transform:translateY(-1px); }
+  `;
+  document.head.appendChild(style);
+
+  function activeScrollContainer(){
+    var settings = document.getElementById('page-settings');
+    if (settings && settings.classList.contains('active')) return document.getElementById('cp-outer') || settings;
+    return document.querySelector('.page.active') || document.scrollingElement || document.documentElement;
+  }
+
+  function ensureScrollButton(){
+    var btn = document.getElementById('yphScrollDownBtn');
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'yphScrollDownBtn';
+      btn.type = 'button';
+      btn.title = 'Scroll down';
+      btn.setAttribute('aria-label', 'Scroll down');
+      btn.textContent = '↓';
+      btn.onclick = function(){
+        var scroller = activeScrollContainer();
+        if (!scroller) return;
+        var amount = Math.max(360, Math.floor((scroller.clientHeight || window.innerHeight) * 0.85));
+        try { scroller.scrollBy({ top: amount, behavior: 'smooth' }); }
+        catch(e){ scroller.scrollTop += amount; }
+        setTimeout(updateScrollButton, 220);
+      };
+      document.body.appendChild(btn);
+    }
+    return btn;
+  }
+
+  function updateScrollButton(){
+    var btn = ensureScrollButton();
+    var scroller = activeScrollContainer();
+    if (!scroller) { btn.style.display = 'none'; return; }
+    var overflow = (scroller.scrollHeight - scroller.clientHeight) > 60;
+    var nearBottom = (scroller.scrollTop + scroller.clientHeight) >= (scroller.scrollHeight - 80);
+    btn.style.display = overflow && !nearBottom ? 'flex' : 'none';
+  }
+
+  function hotelDefsFromGlobals(data){
+    var defs = [];
+    try {
+      if (Array.isArray(window.HOTELS_DATA) && window.HOTELS_DATA.length) defs = window.HOTELS_DATA.slice();
+      else if (Array.isArray(window.HOTELS) && window.HOTELS.length) defs = window.HOTELS.slice();
+    } catch(e){}
+    defs = (defs || []).filter(function(h){ return h && h.id && h.id !== 'all' && h.active !== false; }).map(function(h){
+      return { id: h.id, name: h.name || h.id, color: h.color || '#1B2A4A' };
+    });
+    if (!defs.length && Array.isArray(data) && data.length) {
+      var colors = ['#C9963A','#4527A0','#E65C00','#1B6B3A','#0F766E','#B71C1C','#5B21B6'];
+      var seen = {};
+      defs = data.map(function(r){ return r && r.hotel; }).filter(Boolean).filter(function(id){ if (seen[id]) return false; seen[id] = true; return true; }).map(function(id, i){
+        var nice = String(id).replace(/[_-]+/g, ' ').replace(/\w/g, function(c){ return c.toUpperCase(); });
+        return { id: id, name: nice, color: colors[i % colors.length] };
+      });
+    }
+    return defs;
+  }
+
+  function loadForecastRows(){
+    var rows = [];
+    try {
+      var v = JSON.parse(localStorage.getItem('yph_forecast_v2') || '[]');
+      if (Array.isArray(v)) rows = v;
+    } catch(e){}
+    return rows;
+  }
+
+  function filteredHotels(defs){
+    var hf = document.getElementById('hotelFilter')?.value || 'all';
+    if (!hf || hf === 'all') return defs;
+    var one = defs.find(function(h){ return h.id === hf; });
+    return one ? [one] : defs;
+  }
+
+  function next10Rows(hotelId, data){
+    var today = new Date();
+    today.setHours(0,0,0,0);
+    var out = [];
+    for (var i=0;i<10;i++) {
+      var d = new Date(today.getTime() + i * 86400000);
+      var ds = d.toISOString().slice(0,10);
+      var row = data.find(function(r){ return r && r.hotel === hotelId && r.date === ds; }) || { hotel: hotelId, date: ds, occ: 0, arr: 0, dep: 0, notes: '' };
+      out.push({ hotel: hotelId, date: ds, _date: d, occ: +row.occ || 0, arr: +row.arr || 0, dep: +row.dep || 0, notes: row.notes || '' });
+    }
+    return out;
+  }
+
+  function fmtDate(d){
+    try { return new Date(d).toLocaleDateString('en-GB',{ weekday:'short', day:'2-digit', month:'short' }); }
+    catch(e){ return String(d || ''); }
+  }
+
+  function renderForecastFallback(reason){
+    var kpi = document.getElementById('fcGlobalKpi');
+    var sections = document.getElementById('fcHotelSections');
+    var suggestions = document.getElementById('fcSuggestionsBox');
+    var recs = document.getElementById('fcRecsBox');
+    var errEl = document.getElementById('fcRenderErr');
+    if (!kpi || !sections || !suggestions || !recs) return;
+
+    var data = loadForecastRows();
+    var defs = filteredHotels(hotelDefsFromGlobals(data));
+    if (!defs.length && data.length) defs = hotelDefsFromGlobals(data);
+
+    if (!data.length) {
+      kpi.innerHTML = '<div style="background:#fff;border-radius:14px;padding:20px;box-shadow:var(--sh);grid-column:1/-1;color:var(--slate);font-size:12px;text-align:center">No forecast data yet. Use <b>Import Excel/CSV</b> or <b>Manual Edit</b> to add the next 10 days.</div>';
+      sections.innerHTML = '<div style="background:#fff;border-radius:14px;padding:24px;box-shadow:var(--sh);color:var(--slate);font-size:12px;text-align:center">The Forecast page is ready — once data is added, occupancy, arrivals, departures, and recommendations will appear here.</div>';
+      suggestions.innerHTML = '<div style="background:#FDF3E3;color:#7A5B16;padding:12px 16px;border-radius:10px;border-left:4px solid #C9963A;font-weight:600;font-size:12px">Add forecast data to unlock staffing suggestions.</div>';
+      recs.innerHTML = '<div style="color:var(--slate);font-size:12px">No recommendations yet because there is no forecast data.</div>';
+      if (errEl && reason === 'error') errEl.style.display = 'block';
+      return;
+    }
+
+    var allVisible = defs.map(function(h){ return { h: h, rows: next10Rows(h.id, data) }; });
+    var gOcc = 0, gCount = 0, gArr = 0, gDep = 0, peak = { occ: 0, label: '—' };
+    allVisible.forEach(function(item){
+      item.rows.forEach(function(r){
+        gOcc += r.occ; gCount++; gArr += r.arr; gDep += r.dep;
+        if (r.occ >= peak.occ) peak = { occ: r.occ, label: fmtDate(r._date) + ' · ' + item.h.name };
+      });
+    });
+    var avgOcc = gCount ? (gOcc / gCount) : 0;
+    function card(title, value, sub, color){
+      return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:var(--sh);border-top:4px solid '+color+'"><div style="font-size:10px;color:var(--slate);text-transform:uppercase;font-weight:700;letter-spacing:.4px">'+title+'</div><div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:'+color+';margin-top:6px">'+value+'</div><div style="font-size:11px;color:var(--slate);margin-top:6px">'+sub+'</div></div>';
+    }
+    kpi.innerHTML =
+      card('Avg Occupancy', avgOcc.toFixed(1) + '%', defs.length + ' hotel(s) · next 10 days', avgOcc >= 92 ? '#B71C1C' : avgOcc >= 85 ? '#E65C00' : '#1B6B3A') +
+      card('Total Arrivals', gArr, 'Across visible hotels', '#4527A0') +
+      card('Total Departures', gDep, 'Across visible hotels', '#E65C00') +
+      card('Peak Day', peak.occ ? (peak.occ + '%') : '—', peak.label, '#C9963A');
+
+    sections.innerHTML = allVisible.map(function(item){
+      var rows = item.rows;
+      var strip = rows.map(function(r){
+        var color = r.occ >= 92 ? '#B71C1C' : r.occ >= 85 ? '#E65C00' : r.occ >= 70 ? '#C9963A' : '#1B6B3A';
+        var bg = r.occ >= 92 ? '#FDECEA' : r.occ >= 85 ? '#FFF3E0' : r.occ >= 70 ? '#FDF3E3' : '#D4EDDA';
+        return '<div style="background:'+bg+';border:1.5px solid '+color+';border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--navy)">'+fmtDate(r._date)+'</div><div style="font-family:'Syne';font-size:18px;font-weight:800;color:'+color+';margin:3px 0">'+r.occ+'%</div><div style="font-size:9px;color:var(--slate)">↓'+r.arr+' ↑'+r.dep+'</div></div>';
+      }).join('');
+      var table = rows.map(function(r){
+        return '<tr style="border-bottom:1px solid #eee"><td style="padding:6px;font-weight:600">'+fmtDate(r._date)+'</td><td style="padding:6px;text-align:center;font-weight:700">'+r.occ+'%</td><td style="padding:6px;text-align:center">'+r.arr+'</td><td style="padding:6px;text-align:center">'+r.dep+'</td><td style="padding:6px;color:var(--slate)">'+(r.notes || '—')+'</td></tr>';
+      }).join('');
+      return '<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid '+item.h.color+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,'+item.h.color+'15,transparent);flex-wrap:wrap;gap:8px"><div style="font-family:'Syne';font-weight:800;font-size:15px;color:'+item.h.color+'">🏨 '+item.h.name+'</div></div><div style="padding:14px 16px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">'+strip+'</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th><th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th><th style="padding:7px;text-align:left">Notes</th></tr></thead><tbody>'+table+'</tbody></table></div></div></div>';
+    }).join('');
+
+    var alerts = [];
+    allVisible.forEach(function(item){
+      item.rows.forEach(function(r){
+        if (r.occ >= 92) alerts.push('🔴 ' + item.h.name + ' · ' + fmtDate(r._date) + ' at ' + r.occ + '% occupancy — critical coverage day.');
+        else if (r.occ >= 85) alerts.push('🟠 ' + item.h.name + ' · ' + fmtDate(r._date) + ' at ' + r.occ + '% occupancy — reinforce FO and HK.');
+        if (r.arr >= 50) alerts.push('🌆 ' + item.h.name + ' · ' + fmtDate(r._date) + ' has ' + r.arr + ' arrivals — add afternoon support.');
+        if (r.dep >= 50) alerts.push('🌅 ' + item.h.name + ' · ' + fmtDate(r._date) + ' has ' + r.dep + ' departures — add morning checkout coverage.');
+      });
+    });
+    suggestions.innerHTML = alerts.length
+      ? '<div style="background:#FFF3E0;color:#7A3700;padding:12px 16px;border-radius:10px;border-left:4px solid #E65C00;font-weight:600;font-size:12px">' + alerts.slice(0,8).map(function(t){ return '<div style="padding:3px 0;border-top:1px solid rgba(230,92,0,.2)">' + t + '</div>'; }).join('') + '</div>'
+      : '<div style="background:#D4EDDA;color:#1B6B3A;padding:12px 16px;border-radius:10px;border-left:4px solid #1B6B3A;font-weight:600;font-size:12px">✓ All clear — no staffing alerts for the next 10 days.</div>';
+
+    var totalHighOcc = allVisible.reduce(function(sum, item){ return sum + item.rows.filter(function(r){ return r.occ >= 85; }).length; }, 0);
+    var heavyArrivalDays = allVisible.reduce(function(sum, item){ return sum + item.rows.filter(function(r){ return r.arr >= 50; }).length; }, 0);
+    var heavyDepartureDays = allVisible.reduce(function(sum, item){ return sum + item.rows.filter(function(r){ return r.dep >= 50; }).length; }, 0);
+    var rowsHtml = [];
+    if (totalHighOcc) rowsHtml.push('<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">Front Office</td><td style="padding:7px;color:#1B6B3A;font-weight:600">Add extra supervisors / reception cover on high-occ days</td><td style="padding:7px;color:var(--slate)">'+totalHighOcc+' high-occupancy day(s)</td></tr>');
+    if (totalHighOcc) rowsHtml.push('<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">Housekeeping</td><td style="padding:7px;color:#1B6B3A;font-weight:600">Boost morning room-attendant coverage</td><td style="padding:7px;color:var(--slate)">Turnover pressure on busy days</td></tr>');
+    if (heavyArrivalDays) rowsHtml.push('<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">F&amp;B Service</td><td style="padding:7px;color:#1B6B3A;font-weight:600">Add mid-shift support for guest arrivals</td><td style="padding:7px;color:var(--slate)">'+heavyArrivalDays+' heavy-arrival day(s)</td></tr>');
+    if (heavyDepartureDays) rowsHtml.push('<tr style="border-bottom:1px solid #eee"><td style="padding:7px;font-weight:700;color:var(--navy)">Front Office</td><td style="padding:7px;color:#1B6B3A;font-weight:600">Add early checkout coverage</td><td style="padding:7px;color:var(--slate)">'+heavyDepartureDays+' heavy-departure day(s)</td></tr>');
+    recs.innerHTML = rowsHtml.length
+      ? '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#F7FAFF"><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Department</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Recommended Action</th><th style="padding:8px;text-align:left;color:var(--slate);text-transform:uppercase;font-size:10px">Reason</th></tr></thead><tbody>'+rowsHtml.join('')+'</tbody></table>'
+      : '<div style="color:var(--slate);font-size:12px">No specific department recommendations — staffing levels appear adequate.</div>';
+
+    if (errEl && reason === 'error') {
+      errEl.style.display = 'block';
+      if (!errEl.textContent.trim()) errEl.textContent = 'Forecast fallback renderer loaded because the main renderer failed.';
+    }
+  }
+
+  function forecastLooksBlank(){
+    var kpi = document.getElementById('fcGlobalKpi');
+    var sections = document.getElementById('fcHotelSections');
+    var kpiText = kpi ? kpi.textContent.replace(/\s+/g, '') : '';
+    var secText = sections ? sections.textContent.replace(/\s+/g, '') : '';
+    return !kpi || !sections || (kpiText.length < 3 && secText.length < 3);
+  }
+
+  function runForecastSafe(){
+    var page = document.getElementById('page-forecast');
+    if (!page || !page.classList.contains('active')) return;
+    page.style.display = 'block';
+    page.style.visibility = 'visible';
+    page.style.opacity = '1';
+    var errEl = document.getElementById('fcRenderErr');
+    var failed = false;
+    if (typeof window.renderForecast === 'function') {
+      try {
+        window.renderForecast();
+        if (errEl) errEl.style.display = 'none';
+      } catch (e) {
+        failed = true;
+        if (errEl) {
+          errEl.textContent = 'Forecast renderer error: ' + (e && e.message ? e.message : e);
+          errEl.style.display = 'block';
+        }
+        try { console.error('[YPH FINAL FIX v2] renderForecast failed:', e); } catch(ex){}
+      }
+    }
+    setTimeout(function(){ if (failed || forecastLooksBlank()) renderForecastFallback(failed ? 'error' : 'blank'); }, 90);
+    setTimeout(function(){ if (forecastLooksBlank()) renderForecastFallback('blank'); }, 280);
+  }
+
+  function fixDevPanel(){
+    var sp = document.getElementById('page-settings');
+    if (!sp || !sp.classList.contains('active')) return;
+    var cp = document.getElementById('cp-outer');
+    if (cp) {
+      cp.style.overflowY = 'auto';
+      cp.style.overflowX = 'hidden';
+      cp.style.paddingBottom = '96px';
+    }
+    if (typeof window.mountAll === 'function') { try { window.mountAll(); } catch(e){} }
+  }
+
+  function bindScroller(){
+    var scroller = activeScrollContainer();
+    if (!scroller || scroller.__yphScrollBound) return;
+    scroller.__yphScrollBound = true;
+    scroller.addEventListener('scroll', updateScrollButton, { passive: true });
+  }
+
+  if (window.switchPage && !window.switchPage.__yphFinalWrappedV2) {
+    var originalSwitchPage = window.switchPage;
+    var wrapped = function(name){
+      var result = originalSwitchPage.apply(this, arguments);
+      if (name === 'forecast') {
+        setTimeout(runForecastSafe, 80);
+        setTimeout(runForecastSafe, 220);
+      }
+      if (name === 'settings') {
+        setTimeout(fixDevPanel, 80);
+        setTimeout(fixDevPanel, 220);
+      }
+      setTimeout(function(){ bindScroller(); updateScrollButton(); }, 80);
+      return result;
+    };
+    wrapped.__yphFinalWrappedV2 = true;
+    window.switchPage = wrapped;
+  }
+
+  document.addEventListener('click', function(e){
+    var forecastBtn = e.target.closest && e.target.closest('[data-p="forecast"]');
+    var settingsBtn = e.target.closest && e.target.closest('[data-p="settings"]');
+    if (forecastBtn) { setTimeout(runForecastSafe, 120); setTimeout(runForecastSafe, 350); }
+    if (settingsBtn) { setTimeout(fixDevPanel, 120); setTimeout(updateScrollButton, 180); }
+  }, true);
+
+  window.addEventListener('load', function(){
+    ensureScrollButton();
+    bindScroller();
+    updateScrollButton();
+    setTimeout(function(){ runForecastSafe(); fixDevPanel(); updateScrollButton(); }, 500);
+  });
+  document.addEventListener('DOMContentLoaded', function(){
+    ensureScrollButton();
+    bindScroller();
+    setTimeout(function(){ runForecastSafe(); fixDevPanel(); updateScrollButton(); }, 280);
+  });
+  setInterval(function(){ bindScroller(); updateScrollButton(); runForecastSafe(); fixDevPanel(); }, 1200);
 })();
 </script>
