@@ -2852,7 +2852,7 @@ function seedStaffIfEmpty() {
   }
 }
 let activeSchListener = null;
-let popEmpId = null, popDay = null;
+let popEmpId = null, popDay = null, popY = null, popM = null;
 let sectionOverrides = JSON.parse(localStorage.getItem('sectionOverrides_v1')||'{}'); // {empId:{monthKey:{day:sectionName}}}
 function saveSectionOverrides(){
   try{ localStorage.setItem('sectionOverrides_v1', JSON.stringify(sectionOverrides)); }catch(e){}
@@ -5325,13 +5325,15 @@ function renderRoster() {
     </table>`;
 }
 
-function openPicker(ev, empId, day) {
+function openPicker(ev, empId, day, y, m) {
   ev.stopPropagation(); popEmpId=empId; popDay=day;
+  popY = (y!==undefined && y!==null) ? y : YEAR;
+  popM = (m!==undefined && m!==null) ? m : MONTH;
   const pop=document.getElementById("shiftPop");
   const emp = staffList().find(e=>e.id===empId);
   const dept = emp?.department;
   const sections = (DEPT_SECTIONS[dept]||[]);
-  const curSec = sectionOverrides[empId]?.[schKey()]?.[day] || emp?.section || '';
+  const curSec = sectionOverrides[empId]?.[schKey(popY,popM)]?.[day] || emp?.section || '';
   const shiftHtml = Object.entries(SHIFTS).map(([k,v])=>
     `<div class="spi" style="background:${v.bg};border-color:${v.border}" onclick="selectShift('${k}')">
       <span class="spi-c" style="color:${v.color}">${k}</span>
@@ -5354,13 +5356,18 @@ function openPicker(ev, empId, day) {
 }
 function selectDaySection(secName){
   if(!popEmpId || !popDay) return;
+  // setDaySection uses current schKey — temporarily swap month context
+  const _y=YEAR,_m=MONTH;
+  if(popY!=null) YEAR=popY; if(popM!=null) MONTH=popM;
   setDaySection(popEmpId, popDay, secName);
+  YEAR=_y; MONTH=_m;
   renderRoster();
-  // keep popup open so user can see change; close on shift click
 }
 async function selectShift(code) {
   if(popEmpId && popDay) {
-    const key=schKey();
+    const ky = (popY!=null)?popY:YEAR;
+    const km = (popM!=null)?popM:MONTH;
+    const key=schKey(ky,km);
     if(!schedData[popEmpId]) schedData[popEmpId]={};
     if(!schedData[popEmpId][key]) schedData[popEmpId][key]={};
     schedData[popEmpId][key][popDay]=code;
@@ -6275,7 +6282,7 @@ renderRoster = function() {
       const secPill = daySec ? `<div class="day-sec-pill" title="Section for this day">${daySec}</div>` : '';
       const isCrossMonth = dm !== MONTH;
       return `<td class="${isSat ? "sat-td" : ""}" style="padding:2px 1px;text-align:center${isCrossMonth?';background:rgba(15,30,53,.04)':''}">
-        <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
+        <div class="sp ${sh ? 'sp-' + code : 'sp-empty'}" onclick="openPicker(event, '${emp.id}', ${d}, ${dy}, ${dm})" title="${sh ? sh.label + ' ' + sh.time : ''}">${code || "—"}</div>
         ${renderHotelPill(emp.id, d)}
         ${secPill}
       </td>`;
@@ -6360,7 +6367,7 @@ window.addEventListener('resize', () => {
   if (active === 'roster') renderRoster();
 });
 
-function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; }
+function closePop() { document.getElementById("shiftPop").style.display="none"; popEmpId=null; popDay=null; popY=null; popM=null; }
 document.addEventListener("click",e=>{ 
   if(!document.getElementById("shiftPop").contains(e.target)) closePop();
   // Close swap partner dropdown when clicking outside
@@ -17829,5 +17836,250 @@ select { color-scheme: dark; }
     setTimeout(function(){ runForecastSafe(); fixDevPanel(); updateScrollButton(); }, 280);
   });
   setInterval(function(){ bindScroller(); updateScrollButton(); runForecastSafe(); fixDevPanel(); }, 1200);
+})();
+</script>
+
+<style id="ios26-polish">
+/* iOS 26 "Liquid Glass" polish — non-destructive */
+:root{
+  --glass-bg: rgba(255,255,255,0.62);
+  --glass-bg-strong: rgba(255,255,255,0.78);
+  --glass-border: rgba(255,255,255,0.55);
+  --glass-shadow: 0 8px 32px rgba(15,30,53,0.12), inset 0 1px 0 rgba(255,255,255,0.6);
+}
+body{ -webkit-font-smoothing:antialiased; }
+.card, .sc, .cp-ph, .cp-section, .modal, #shiftPop, .panel, .pop, .bx, .stat, .tile {
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  border-radius: 18px !important;
+}
+.btn, button.btn, .bgold, .bghost {
+  border-radius: 14px !important;
+  transition: transform .18s cubic-bezier(.2,.9,.3,1.2), box-shadow .18s ease, background .18s ease !important;
+}
+.btn:active, button.btn:active { transform: scale(0.96); }
+.sp{ border-radius: 12px !important; transition: transform .15s ease, box-shadow .15s ease; }
+.sp:hover{ transform: translateY(-1px); box-shadow: 0 4px 14px rgba(15,30,53,.18); }
+.tab{ border-radius: 14px !important; transition: all .18s ease; }
+.tab.active{ box-shadow: 0 6px 22px rgba(201,150,58,.35); }
+.inp, input.inp, select.inp, textarea.inp{
+  border-radius: 12px !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* Dev panel scroll — bulletproof */
+#page-settings.active{
+  display:flex !important; flex-direction:column !important;
+  height: 100dvh !important; max-height: 100dvh !important;
+  overflow: hidden !important; padding: 0 !important;
+}
+#page-settings.active #cp-outer{
+  flex:1 1 auto !important; min-height:0 !important; height:auto !important;
+  max-height: calc(100dvh - 60px) !important;
+  overflow-y: auto !important; overflow-x: hidden !important;
+  -webkit-overflow-scrolling: touch !important;
+  scroll-behavior: smooth;
+  padding-bottom: 120px !important;
+}
+#page-settings .cp-wrap, #page-settings .cp-content { height:auto !important; min-height:0 !important; overflow:visible !important; }
+/* Custom scrollbar */
+#cp-outer::-webkit-scrollbar{ width:10px; }
+#cp-outer::-webkit-scrollbar-thumb{ background:linear-gradient(180deg,#C9963A,#E8B04A); border-radius:10px; }
+#cp-outer::-webkit-scrollbar-track{ background:rgba(15,30,53,.05); }
+
+/* App background slot (developer-configurable) */
+body.has-bg-image::before{
+  content:""; position:fixed; inset:0; z-index:-1;
+  background-image: var(--app-bg-image);
+  background-size: cover; background-position:center; background-repeat:no-repeat;
+  filter: saturate(115%);
+}
+body.has-bg-image::after{
+  content:""; position:fixed; inset:0; z-index:-1;
+  background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.78));
+}
+</style>
+
+<script id="yph-final-patch">
+(function(){
+  /* ─────────────── App Background (dev tab) ─────────────── */
+  function applyAppBg(dataUrl){
+    if(dataUrl){
+      document.documentElement.style.setProperty('--app-bg-image', `url("${dataUrl}")`);
+      document.body.classList.add('has-bg-image');
+    } else {
+      document.documentElement.style.removeProperty('--app-bg-image');
+      document.body.classList.remove('has-bg-image');
+    }
+  }
+  function loadSavedBg(){
+    try{ const v = localStorage.getItem('yph_app_bg'); if(v) applyAppBg(v); }catch(e){}
+  }
+  window.cpUploadAppBg = function(input){
+    const f = input.files && input.files[0]; if(!f) return;
+    if(f.size > 5*1024*1024){ alert('Image too large (max 5 MB).'); return; }
+    const r = new FileReader();
+    r.onload = function(ev){
+      const url = ev.target.result;
+      try{ localStorage.setItem('yph_app_bg', url); }catch(e){ alert('Could not save (storage full).'); }
+      applyAppBg(url);
+      const prev = document.getElementById('cpBgPreview');
+      if(prev) prev.style.backgroundImage = `url("${url}")`;
+    };
+    r.readAsDataURL(f);
+  };
+  window.cpClearAppBg = function(){
+    try{ localStorage.removeItem('yph_app_bg'); }catch(e){}
+    applyAppBg(null);
+    const prev = document.getElementById('cpBgPreview');
+    if(prev) prev.style.backgroundImage = '';
+  };
+
+  /* Remove any old floating bg card from previous build */
+  function cleanOld(){ const old = document.getElementById('cp-bg-card'); if(old) old.remove(); }
+
+  /* Inject nav item + dedicated panel into Dev Panel */
+  function mountBgTab(){
+    cleanOld();
+    const nav = document.getElementById('cpNav');
+    const content = document.querySelector('#page-settings .cp-content');
+    if(!nav || !content) return false;
+
+    if(!document.getElementById('cpni-background')){
+      const dangerNav = document.getElementById('cpni-danger');
+      const item = document.createElement('div');
+      item.className = 'cp-nav-item';
+      item.id = 'cpni-background';
+      item.setAttribute('onclick',"cpTab('background')");
+      item.innerHTML = '<span class="cp-ni-icon">🖼️</span>Background';
+      if(dangerNav) nav.insertBefore(item, dangerNav); else nav.appendChild(item);
+    }
+
+    if(!document.getElementById('cpt-background')){
+      const saved = (()=>{try{return localStorage.getItem('yph_app_bg')||''}catch(e){return ''}})();
+      const panel = document.createElement('div');
+      panel.className = 'cp-panel';
+      panel.id = 'cpt-background';
+      panel.style.display = 'none';
+      panel.innerHTML = `
+        <div class="cp-ph"><div class="cp-pt">🖼️ App Background <span class="cp-badge">Developer Only</span></div></div>
+        <div style="background:#fff;border-radius:14px;padding:18px;box-shadow:var(--sh);display:grid;gap:14px">
+          <p style="font-size:13px;color:var(--slate);margin:0">Upload a custom image for the app background. Saved on this device only.</p>
+          <div id="cpBgPreview" style="height:220px;border-radius:12px;background:#eef2f7 ${saved?`url("${saved}")`:''} center/cover no-repeat;border:1px dashed #cbd5e1"></div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px">
+            <label class="btn bgold" style="cursor:pointer">📤 Upload Image
+              <input type="file" accept="image/*" onchange="cpUploadAppBg(this)" style="display:none">
+            </label>
+            <button class="btn" onclick="cpClearAppBg()">🗑 Reset to Default</button>
+          </div>
+          <div style="font-size:11px;color:var(--slate2)">Tip: use a 1920×1080 or larger image. Max 5 MB.</div>
+        </div>`;
+      content.appendChild(panel);
+    }
+
+    /* Extend cpTab so 'background' is included in hide-list */
+    if(window.cpTab && !window.cpTab._bgPatched){
+      const orig = window.cpTab;
+      window.cpTab = function(id){
+        const all = ['modules','hotels','departments','shifts','access','live','notifications','firebase','logs','danger','background'];
+        all.forEach(t=>{ const el=document.getElementById('cpt-'+t); if(el) el.style.display=(t===id)?'block':'none'; });
+        document.querySelectorAll('.cp-nav-item').forEach(el=>el.classList.remove('cpa'));
+        const ni=document.getElementById('cpni-'+id); if(ni) ni.classList.add('cpa');
+        if(id!=='background' && orig) try{ orig(id); }catch(e){}
+      };
+      window.cpTab._bgPatched = true;
+    }
+    return true;
+  }
+  let _tries=0;
+  const iv=setInterval(()=>{ _tries++; if(mountBgTab()||_tries>40) clearInterval(iv); }, 600);
+  setInterval(cleanOld, 2000);
+
+  /* ─────────────── Dev panel scroll guard ─────────────── */
+  function forceDevScroll(){
+    const p=document.getElementById('page-settings'), o=document.getElementById('cp-outer');
+    if(!p||!o||!p.classList.contains('active')) return;
+    o.style.maxHeight=(window.innerHeight-60)+'px';
+    o.style.overflowY='auto';
+  }
+  window.addEventListener('resize', forceDevScroll);
+  setInterval(forceDevScroll, 1500);
+
+  /* ─────────────── Forecast safety / rebuild ─────────────── */
+  function fcSafeRender(){
+    const fp=document.getElementById('page-forecast');
+    if(!fp || !fp.classList.contains('active')) return;
+    const errEl=document.getElementById('fcRenderErr');
+    try{
+      if(typeof window.renderForecast==='function'){
+        window.renderForecast();
+        if(errEl) errEl.style.display='none';
+        // If KPI grid still shows the loading placeholder, treat as empty data
+        const kpi=document.getElementById('fcGlobalKpi');
+        if(kpi && /Loading forecast data/i.test(kpi.innerHTML)){
+          kpi.innerHTML = `<div style="background:#fff;border-radius:12px;padding:24px;text-align:center;color:var(--slate);box-shadow:var(--sh);grid-column:1/-1">
+            <div style="font-size:22px;margin-bottom:6px">📊</div>
+            <div style="font-weight:700;color:var(--navy);margin-bottom:4px">No forecast data yet</div>
+            <div style="font-size:12px">Use <b>📁 Import Excel/CSV</b> or <b>✏️ Manual Edit</b> above to add occupancy data.</div>
+          </div>`;
+        }
+        return;
+      }
+      throw new Error('renderForecast function not loaded');
+    }catch(e){
+      // Rebuild a minimal forecast view as a fallback
+      fcFallbackBuild(e);
+    }
+  }
+  function fcFallbackBuild(err){
+    const fp=document.getElementById('page-forecast'); if(!fp) return;
+    fp.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+        <div>
+          <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--navy)">🏨 10-Day Occupancy Forecast</div>
+          <div style="font-size:11px;color:var(--slate);margin-top:3px">Lightweight forecast view (recovery mode).</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <label class="btn btn-primary btn-sm" style="cursor:pointer">📁 Import Excel/CSV
+            <input type="file" id="fcFileInputFb" accept=".csv,.xlsx,.xls" style="display:none" onchange="(window.fcHandleFile||function(){alert('Importer unavailable — reload the page.')})(event)">
+          </label>
+          <button class="btn btn-ghost btn-sm" onclick="(window.fcManualEdit||function(){alert('Manual edit unavailable.')})()">✏️ Manual Edit</button>
+          <button class="btn btn-ghost btn-sm" onclick="location.reload()">🔄 Reload App</button>
+        </div>
+      </div>
+      <div style="background:#FEF3C7;border:1px solid #F59E0B;color:#78350F;border-radius:10px;padding:12px 16px;font-size:12px;margin-bottom:14px">
+        ⚠️ The original forecast view failed to load (${(err&&err.message)||'unknown error'}). Showing recovery view. Your data is safe.
+      </div>
+      <div id="fcGlobalKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:14px"></div>
+      <div id="fcHotelSections" style="display:flex;flex-direction:column;gap:14px"></div>`;
+    const kpi=document.getElementById('fcGlobalKpi');
+    let data={}; try{ data=JSON.parse(localStorage.getItem('yph_forecast_v2')||localStorage.getItem('yph_forecast')||'{}')||{}; }catch(e){}
+    const hotels = Object.keys(data);
+    if(!hotels.length){
+      kpi.innerHTML = `<div style="background:#fff;border-radius:12px;padding:24px;text-align:center;color:var(--slate);box-shadow:var(--sh);grid-column:1/-1">
+        <div style="font-size:22px;margin-bottom:6px">📊</div>
+        <div style="font-weight:700;color:var(--navy);margin-bottom:4px">No forecast data yet</div>
+        <div style="font-size:12px">Import a CSV/Excel to begin.</div>
+      </div>`;
+      return;
+    }
+    let arr=0,dep=0,occS=0,occN=0;
+    hotels.forEach(h=>{
+      const rows = Array.isArray(data[h])?data[h]:Object.values(data[h]||{});
+      rows.slice(0,10).forEach(r=>{ arr+=(+r.arr||0); dep+=(+r.dep||0); occS+=(+r.occ||0); occN++; });
+    });
+    const card=(l,v,c)=>`<div style="background:#fff;border-radius:12px;padding:16px;box-shadow:var(--sh)">
+      <div style="font-size:10px;color:var(--slate);text-transform:uppercase;letter-spacing:.5px">${l}</div>
+      <div style="font-family:'Syne';font-weight:800;font-size:22px;color:${c||'var(--navy)'};margin-top:4px">${v}</div></div>`;
+    kpi.innerHTML = card('Avg Occupancy',(occN?(occS/occN).toFixed(1):'0')+'%','#0F766E')+card('Total Arrivals',arr,'#4527A0')+card('Total Departures',dep,'#E65C00')+card('Hotels',hotels.length,'#C9963A');
+  }
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('[data-p="forecast"]');
+    if(btn){ setTimeout(fcSafeRender, 150); setTimeout(fcSafeRender, 450); }
+  }, true);
+  window.addEventListener('load', ()=>setTimeout(fcSafeRender, 700));
+
+  loadSavedBg();
+  document.addEventListener('DOMContentLoaded', loadSavedBg);
 })();
 </script>
