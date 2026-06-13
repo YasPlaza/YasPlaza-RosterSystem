@@ -14273,7 +14273,7 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
       // Style content to fill full width
       const content = cpWrap.querySelector('.cp-content');
       if (content) {
-        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 96px;min-width:0;width:100%;overflow-y:auto;overflow-x:hidden;height:calc(100vh - 320px);max-height:none;';
+        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 96px;min-width:0;width:100%;overflow-y:visible;overflow-x:hidden;';
       }
     }
   }
@@ -18091,17 +18091,17 @@ body.has-bg-image::after{
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════════════════
-     DEFINITIVE FIX — Forecast page visibility + Dev Panel scroll
-═══════════════════════════════════════════════════════ -->
+
+<!-- ═══════════════════════════════════════════
+     FINAL FIX — Forecast visible + Dev Panel scrolls
+═══════════════════════════════════════════ -->
 <style>
+  /* Forecast: absolute fill below topbar, full scroll */
   #page-forecast.active {
     display: block !important;
     position: absolute !important;
     top: 56px !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
+    left: 0 !important; right: 0 !important; bottom: 0 !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     background: #f4f6fa !important;
@@ -18110,18 +18110,17 @@ body.has-bg-image::after{
     opacity: 1 !important;
     z-index: 2 !important;
     height: auto !important;
-    min-height: 0 !important;
-    flex: none !important;
   }
+  /* Dev panel: no height cap, just scroll */
   #page-settings.active .cp-content {
     overflow-y: auto !important;
-    height: calc(100vh - 320px) !important;
+    height: auto !important;
     max-height: none !important;
-    padding-bottom: 80px !important;
+    padding-bottom: 120px !important;
   }
   #page-settings.active .cp-nav {
     overflow-y: auto !important;
-    max-height: calc(100vh - 200px) !important;
+    max-height: none !important;
   }
 </style>
 <script>
@@ -18129,7 +18128,9 @@ body.has-bg-image::after{
   function fixForecast() {
     var fp = document.getElementById('page-forecast');
     if (!fp || !fp.classList.contains('active')) return;
-    fp.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;';
+    fp.style.display = 'block';
+    fp.style.visibility = 'visible';
+    fp.style.opacity = '1';
     if (typeof window.renderForecast === 'function') {
       try { window.renderForecast(); } catch(e) {}
     }
@@ -18138,13 +18139,14 @@ body.has-bg-image::after{
     var content = document.querySelector('#page-settings.active .cp-content');
     if (content) {
       content.style.overflowY = 'auto';
-      content.style.height = (window.innerHeight - 320) + 'px'; content.style.maxHeight = 'none';
-      content.style.paddingBottom = '80px';
+      content.style.height = 'auto';
+      content.style.maxHeight = 'none';
+      content.style.paddingBottom = '120px';
     }
     var nav = document.querySelector('#page-settings.active .cp-nav');
     if (nav) {
       nav.style.overflowY = 'auto';
-      nav.style.maxHeight = (window.innerHeight - 200) + 'px';
+      nav.style.maxHeight = 'none';
     }
   }
   document.addEventListener('click', function(e) {
