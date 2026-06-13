@@ -354,7 +354,7 @@ body{font-family:'DM Sans',sans-serif;background:#0B1525;color:var(--navy);heigh
 .exit-btn:hover{background:rgba(255,255,255,.14);color:#fff}
 
 .page{display:none;flex:1;height:calc(100vh - 56px);max-height:calc(100vh - 56px);overflow-y:auto;overflow-x:hidden;padding:18px 22px;animation:fadeIn .25s ease both;scroll-behavior:auto}
-.page.active{display:block}
+.page.active{display:flex;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
 /* ════ CARDS ════ */
@@ -915,7 +915,12 @@ html, body {
   display: none !important;
 }
 .page.active {
-  display: block !important;
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 /* Dev panel special case — full height flex column */
 #page-settings.active {
@@ -938,7 +943,7 @@ html, body {
 }
 </style>
 <style id="yph-visibility-fix">
-#page-forecast.active{display:block!important;visibility:visible!important;opacity:1!important;height:auto!important;min-height:100%;overflow-y:auto!important;padding-bottom:40px!important;background:#fff}
+#page-forecast.active{display:flex!important;flex-direction:column!important;flex:1!important;min-height:0!important;visibility:visible!important;opacity:1!important;overflow-y:auto!important;padding-bottom:40px!important;background:#fff}
 #fcHotelSections{display:flex!important;flex-direction:column;gap:14px}
 #page-settings.active{display:flex!important;flex-direction:column!important;height:calc(100vh - 56px)!important;max-height:calc(100vh - 56px)!important;overflow:hidden!important;padding:0!important}
 #page-settings.active #cp-outer{flex:1 1 auto!important;height:auto!important;min-height:0!important;max-height:100%!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch;padding-bottom:80px!important}
@@ -1731,10 +1736,10 @@ html, body {
 #cp-outer{flex:1;overflow:hidden;display:flex;flex-direction:column;padding:14px 14px 0}
 #cp-topbar-area{flex-shrink:0}
 .cp-wrap{display:grid;grid-template-columns:220px 1fr;gap:14px;flex:1;overflow:hidden;min-height:0;padding-bottom:14px}
-.cp-sidebar{display:flex;flex-direction:column;gap:10px;overflow-y:auto;height:100%}
-.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden;flex-shrink:0}
+.cp-sidebar{display:flex;flex-direction:column;gap:10px;overflow-y:auto;height:100%;min-height:0}
+.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow-y:auto;overflow-x:hidden;flex-shrink:0;max-height:100%}
 .cp-content{overflow-y:auto;height:100%;padding-right:4px}
-.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow:hidden}
+.cp-nav{background:linear-gradient(135deg,var(--navy2,#0D1B2E),#162540);border:1px solid rgba(201,150,58,.2);border-radius:14px;overflow-y:auto;overflow-x:hidden}
 .cp-nav-hdr{padding:11px 15px;background:rgba(201,150,58,.1);border-bottom:1px solid rgba(201,150,58,.2);font-size:10px;font-weight:700;color:#C9963A;text-transform:uppercase;letter-spacing:1px}
 .cp-nav-item{display:flex;align-items:center;gap:8px;padding:10px 15px;cursor:pointer;font-size:12px;font-weight:500;border-bottom:1px solid rgba(255,255,255,.04);transition:.15s;color:rgba(255,255,255,.6);user-select:none}
 .cp-nav-item:hover{background:rgba(201,150,58,.07);color:#fff}
@@ -14268,7 +14273,7 @@ console.log('[YPH v5] Enhancement module loaded: LIVE+I (Dev-only) · LIVE+ mult
       // Style content to fill full width
       const content = cpWrap.querySelector('.cp-content');
       if (content) {
-        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 24px;min-width:0;width:100%;overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 220px)';
+        content.style.cssText = 'display:flex;flex-direction:column;gap:12px;padding:16px 24px 96px;min-width:0;width:100%;overflow-y:auto;overflow-x:hidden;height:calc(100vh - 320px);max-height:none;';
       }
     }
   }
@@ -17308,7 +17313,7 @@ select { color-scheme: dark; }
     .cp-wrap.cp-acc-mode .cp-sidebar { display:flex !important; }
     .cp-wrap.cp-acc-mode .cp-content { display:flex !important; }
     .cp-wrap .cp-acc { display:none !important; } /* hide orphan accordion container */
-    #page-forecast.active { display:block !important; min-height:200px; }
+    #page-forecast.active { display:flex !important; flex-direction:column !important; flex:1 !important; min-height:0 !important; overflow-y:auto !important; }
     #page-settings.active {
       position:fixed !important;
       top:56px !important;
@@ -17493,10 +17498,12 @@ select { color-scheme: dark; }
   style.id = 'yph-final-fixes-v2';
   style.textContent = `
     #page-forecast.active{
-      display:block !important;
+      display:flex !important;
+      flex-direction:column !important;
+      flex:1 !important;
+      min-height:0 !important;
       visibility:visible !important;
       opacity:1 !important;
-      min-height:100% !important;
       background:#fff !important;
       padding-bottom:96px !important;
       overflow-y:auto !important;
@@ -17694,7 +17701,7 @@ select { color-scheme: dark; }
     });
     var avgOcc = gCount ? (gOcc / gCount) : 0;
     function card(title, value, sub, color){
-      return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:var(--sh);border-top:4px solid '+color+'"><div style="font-size:10px;color:var(--slate);text-transform:uppercase;font-weight:700;letter-spacing:.4px">'+title+'</div><div style="font-family:\'Syne\',sans-serif;font-size:24px;font-weight:800;color:'+color+';margin-top:6px">'+value+'</div><div style="font-size:11px;color:var(--slate);margin-top:6px">'+sub+'</div></div>';
+      return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:var(--sh);border-top:4px solid '+color+'"><div style="font-size:10px;color:var(--slate);text-transform:uppercase;font-weight:700;letter-spacing:.4px">'+title+'</div><div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:'+color+';margin-top:6px">'+value+'</div><div style="font-size:11px;color:var(--slate);margin-top:6px">'+sub+'</div></div>';
     }
     kpi.innerHTML =
       card('Avg Occupancy', avgOcc.toFixed(1) + '%', defs.length + ' hotel(s) · next 10 days', avgOcc >= 92 ? '#B71C1C' : avgOcc >= 85 ? '#E65C00' : '#1B6B3A') +
@@ -17707,12 +17714,12 @@ select { color-scheme: dark; }
       var strip = rows.map(function(r){
         var color = r.occ >= 92 ? '#B71C1C' : r.occ >= 85 ? '#E65C00' : r.occ >= 70 ? '#C9963A' : '#1B6B3A';
         var bg = r.occ >= 92 ? '#FDECEA' : r.occ >= 85 ? '#FFF3E0' : r.occ >= 70 ? '#FDF3E3' : '#D4EDDA';
-        return '<div style="background:'+bg+';border:1.5px solid '+color+';border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--navy)">'+fmtDate(r._date)+'</div><div style="font-family:\'Syne\';font-size:18px;font-weight:800;color:'+color+';margin:3px 0">'+r.occ+'%</div><div style="font-size:9px;color:var(--slate)">↓'+r.arr+' ↑'+r.dep+'</div></div>';
+        return '<div style="background:'+bg+';border:1.5px solid '+color+';border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--navy)">'+fmtDate(r._date)+'</div><div style="font-family:'Syne';font-size:18px;font-weight:800;color:'+color+';margin:3px 0">'+r.occ+'%</div><div style="font-size:9px;color:var(--slate)">↓'+r.arr+' ↑'+r.dep+'</div></div>';
       }).join('');
       var table = rows.map(function(r){
         return '<tr style="border-bottom:1px solid #eee"><td style="padding:6px;font-weight:600">'+fmtDate(r._date)+'</td><td style="padding:6px;text-align:center;font-weight:700">'+r.occ+'%</td><td style="padding:6px;text-align:center">'+r.arr+'</td><td style="padding:6px;text-align:center">'+r.dep+'</td><td style="padding:6px;color:var(--slate)">'+(r.notes || '—')+'</td></tr>';
       }).join('');
-      return '<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid '+item.h.color+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,'+item.h.color+'15,transparent);flex-wrap:wrap;gap:8px"><div style="font-family:\'Syne\';font-weight:800;font-size:15px;color:'+item.h.color+'">🏨 '+item.h.name+'</div></div><div style="padding:14px 16px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">'+strip+'</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th><th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th><th style="padding:7px;text-align:left">Notes</th></tr></thead><tbody>'+table+'</tbody></table></div></div></div>';
+      return '<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid '+item.h.color+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,'+item.h.color+'15,transparent);flex-wrap:wrap;gap:8px"><div style="font-family:'Syne';font-weight:800;font-size:15px;color:'+item.h.color+'">🏨 '+item.h.name+'</div></div><div style="padding:14px 16px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">'+strip+'</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th><th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th><th style="padding:7px;text-align:left">Notes</th></tr></thead><tbody>'+table+'</tbody></table></div></div></div>';
     }).join('');
 
     var alerts = [];
@@ -18081,5 +18088,76 @@ body.has-bg-image::after{
 
   loadSavedBg();
   document.addEventListener('DOMContentLoaded', loadSavedBg);
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     DEFINITIVE FIX — Forecast page visibility + Dev Panel scroll
+═══════════════════════════════════════════════════════ -->
+<style>
+  #page-forecast.active {
+    display: block !important;
+    position: absolute !important;
+    top: 56px !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    background: #f4f6fa !important;
+    padding: 18px 22px 80px !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    z-index: 2 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    flex: none !important;
+  }
+  #page-settings.active .cp-content {
+    overflow-y: auto !important;
+    height: calc(100vh - 320px) !important;
+    max-height: none !important;
+    padding-bottom: 80px !important;
+  }
+  #page-settings.active .cp-nav {
+    overflow-y: auto !important;
+    max-height: calc(100vh - 200px) !important;
+  }
+</style>
+<script>
+(function(){
+  function fixForecast() {
+    var fp = document.getElementById('page-forecast');
+    if (!fp || !fp.classList.contains('active')) return;
+    fp.style.cssText += ';display:block!important;visibility:visible!important;opacity:1!important;';
+    if (typeof window.renderForecast === 'function') {
+      try { window.renderForecast(); } catch(e) {}
+    }
+  }
+  function fixDevPanel() {
+    var content = document.querySelector('#page-settings.active .cp-content');
+    if (content) {
+      content.style.overflowY = 'auto';
+      content.style.height = (window.innerHeight - 320) + 'px'; content.style.maxHeight = 'none';
+      content.style.paddingBottom = '80px';
+    }
+    var nav = document.querySelector('#page-settings.active .cp-nav');
+    if (nav) {
+      nav.style.overflowY = 'auto';
+      nav.style.maxHeight = (window.innerHeight - 200) + 'px';
+    }
+  }
+  document.addEventListener('click', function(e) {
+    var tab = e.target.closest && e.target.closest('[data-p]');
+    if (!tab) return;
+    var p = tab.getAttribute('data-p');
+    if (p === 'forecast') [100,300,700,1500].forEach(function(d){setTimeout(fixForecast,d);});
+    if (p === 'settings') [200,500,1200].forEach(function(d){setTimeout(fixDevPanel,d);});
+  }, true);
+  window.addEventListener('load', function() {
+    setTimeout(fixForecast, 600);
+    setTimeout(fixDevPanel, 600);
+  });
+  setInterval(function(){ fixForecast(); fixDevPanel(); }, 600);
 })();
 </script>
