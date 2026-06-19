@@ -577,6 +577,14 @@ tr.rank-divider + tr td{border-top:2px solid #0F766E !important}
   #page-sections .card[style*="grid-column:1/-1"]{grid-column:1 !important}
   #page-sections > div{grid-template-columns:1fr !important}
 }
+/* ── Request Filter Buttons ── */
+.req-filter-btn{
+  font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;
+  padding:5px 12px;border-radius:7px;border:none;background:transparent;
+  color:var(--slate);cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.req-filter-btn:hover{background:var(--ice);color:var(--navy)}
+.req-filter-active{background:var(--navy) !important;color:#fff !important;box-shadow:0 2px 6px rgba(15,30,53,.2)}
 @media(max-width:768px){
   .g4{grid-template-columns:1fr 1fr}
   .estats{grid-template-columns:1fr 1fr}
@@ -1427,15 +1435,53 @@ html, body {
   </div>
 
   <div class="page" id="page-requests">
+    <!-- ── Stats Bar ── -->
+    <div id="reqStatsBar" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px"></div>
+
+    <!-- ── Filter & Search Row ── -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px">
+      <div style="display:flex;gap:4px;background:#fff;border:1.5px solid #dde3f0;border-radius:10px;padding:3px">
+        <button id="reqTabAll"  class="req-filter-btn req-filter-active" onclick="reqSetTab('all')">All</button>
+        <button id="reqTabSwap" class="req-filter-btn" onclick="reqSetTab('swap')">🔄 Swaps</button>
+        <button id="reqTabLeave"class="req-filter-btn" onclick="reqSetTab('leave')">🏖 Leave</button>
+        <button id="reqTabSick" class="req-filter-btn" onclick="reqSetTab('sick')">🤒 Sick</button>
+      </div>
+      <input id="reqSearch" class="inp" placeholder="🔍 Search by name, department…" style="flex:1;min-width:180px;max-width:320px;font-size:12px;padding:8px 12px" oninput="renderAdminRequests()">
+      <select id="reqFilterDept" class="inp" style="font-size:12px;padding:7px 10px;min-width:140px" onchange="renderAdminRequests()">
+        <option value="">All Departments</option>
+      </select>
+      <button class="btn btn-ghost btn-sm" onclick="renderAdminRequests()" title="Refresh">↻ Refresh</button>
+      <button class="btn btn-sm" style="background:#0F1E35;color:#fff" onclick="reqBulkApprove()" id="reqBulkBtn" title="Approve all visible">✓ Approve All</button>
+    </div>
+
+    <!-- ── Main Grid ── -->
     <div class="req-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-      <div class="card">
-        <div class="ch"><div class="ct">🔄 Shift Swap Requests</div><span id="swapCount" style="font-size:11px;color:var(--slate2)">0 pending</span></div>
+      <div class="card" id="reqSwapCard">
+        <div class="ch" style="flex-wrap:wrap;gap:6px">
+          <div class="ct">🔄 Shift Swap Requests</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="swapCount" style="font-size:11px;color:var(--slate2)">0 pending admin review</span>
+            <span id="swapApprovedBadge" style="display:none;font-size:10px;background:var(--green-l);color:var(--green);padding:2px 8px;border-radius:100px;font-weight:700"></span>
+          </div>
+        </div>
         <div style="padding:14px" id="adminSwapList"></div>
       </div>
-      <div class="card">
-        <div class="ch"><div class="ct">🏖 Leave Requests</div><span id="leaveCount" style="font-size:11px;color:var(--slate2)">0 pending</span></div>
+      <div class="card" id="reqLeaveCard">
+        <div class="ch" style="flex-wrap:wrap;gap:6px">
+          <div class="ct">🏖 Leave Requests</div>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="leaveCount" style="font-size:11px;color:var(--slate2)">0 pending</span>
+            <span id="leaveSickBadge" style="display:none;font-size:10px;background:#FFE4E6;color:#9F1239;padding:2px 8px;border-radius:100px;font-weight:700"></span>
+          </div>
+        </div>
         <div style="padding:14px" id="adminLeaveList"></div>
       </div>
+    </div>
+
+    <!-- ── History / Resolved (collapsed) ── -->
+    <div style="margin-top:16px">
+      <button class="btn btn-ghost btn-sm" onclick="reqToggleHistory(this)" style="width:100%;justify-content:center;border:1.5px dashed #dde3f0">📂 Show Resolved Requests History</button>
+      <div id="reqHistory" style="display:none;margin-top:10px"></div>
     </div>
   </div>
 
@@ -3605,32 +3651,200 @@ function getSickCoverageSuggestions(sickEmp, fromDay, toDay, monthKey) {
   return suggestions.sort((a, b) => b.matchScore - a.matchScore || (b.isOff ? 1 : -1) - (a.isOff ? 1 : -1));
 }
 
-// ─── ADMIN REQUEST MANAGEMENT ───
+// ─── ADMIN REQUEST MANAGEMENT — ENHANCED ───
+let _reqTab = 'all';
+function reqSetTab(tab) {
+  _reqTab = tab;
+  ['all','swap','leave','sick'].forEach(t => {
+    const btn = document.getElementById('reqTab'+t.charAt(0).toUpperCase()+t.slice(1));
+    if (btn) btn.classList.toggle('req-filter-active', t === tab);
+  });
+  const sc = document.getElementById('reqSwapCard');
+  const lc = document.getElementById('reqLeaveCard');
+  if (tab === 'leave' || tab === 'sick') { if(sc) sc.style.display='none'; if(lc) lc.style.display=''; }
+  else if (tab === 'swap') { if(sc) sc.style.display=''; if(lc) lc.style.display='none'; }
+  else { if(sc) sc.style.display=''; if(lc) lc.style.display=''; }
+  renderAdminRequests();
+}
+
+function reqBulkApprove() {
+  const tab = _reqTab;
+  if (tab === 'swap' || tab === 'all') {
+    const pendingSwaps = Object.values(swapRequests).filter(r => r.status === 'partner_approved');
+    pendingSwaps.forEach(r => adminApproveSwap(r.id));
+  }
+  if (tab === 'leave' || tab === 'sick' || tab === 'all') {
+    const filter = tab === 'sick' ? (r => r.status==='pending' && r.type==='SICK') : (r => r.status==='pending');
+    Object.values(leaveRequests).filter(filter).forEach(r => adminApproveLeave(r.id));
+  }
+}
+
+function reqToggleHistory(btn) {
+  const el = document.getElementById('reqHistory');
+  if (!el) return;
+  const showing = el.style.display !== 'none';
+  el.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing ? '📂 Show Resolved Requests History' : '📂 Hide History';
+  if (!showing) renderReqHistory();
+}
+
+function renderReqHistory() {
+  const el = document.getElementById('reqHistory');
+  if (!el) return;
+  const doneSwaps = Object.values(swapRequests).filter(r => r.status === 'admin_approved' || r.status === 'rejected');
+  const doneLeaves = Object.values(leaveRequests).filter(r => r.status === 'approved' || r.status === 'rejected');
+  const all = [
+    ...doneSwaps.map(r => ({...r, _kind:'swap'})),
+    ...doneLeaves.map(r => ({...r, _kind:'leave'}))
+  ].sort((a,b) => (b.updated||b.created) - (a.updated||a.created));
+  if (!all.length) { el.innerHTML = '<div style="color:var(--slate2);text-align:center;padding:20px;background:#fff;border-radius:10px">No resolved requests yet.</div>'; return; }
+  const statusLabel = s => s === 'admin_approved' || s === 'approved'
+    ? '<span style="background:var(--green-l);color:var(--green);padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700">✓ Approved</span>'
+    : '<span style="background:var(--red-l);color:var(--red);padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700">✕ Rejected</span>';
+  el.innerHTML = `<div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:var(--sh)">
+    <div style="padding:12px 16px;background:var(--ice2);font-size:11px;font-weight:700;color:var(--navy);border-bottom:1px solid #e8edf5">📋 ${all.length} Resolved Requests</div>
+    ${all.map(r => {
+      if (r._kind === 'swap') {
+        const from = staffData[r.fromEmp], to = staffData[r.toEmp];
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa">
+          <span style="font-size:16px">🔄</span>
+          <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--navy)">${from?.name||r.fromEmp} ↔ ${to?.name||r.toEmp}</div>
+          <div style="font-size:10px;color:var(--slate2)">Swap · Day ${r.day}</div></div>
+          ${statusLabel(r.status)}
+        </div>`;
+      } else {
+        const emp = staffData[r.empId];
+        const typeIcons = {AL:'🏖',EX:'✨',UNP:'💸',TRN:'🎓',SICK:'🤒',ABS:'⛔'};
+        return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa">
+          <span style="font-size:16px">${typeIcons[r.type]||'📋'}</span>
+          <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--navy)">${emp?.name||r.empId}</div>
+          <div style="font-size:10px;color:var(--slate2)">${r.type} · Day ${r.fromDay}${r.toDay!==r.fromDay?'–'+r.toDay:''}</div></div>
+          ${statusLabel(r.status)}
+        </div>`;
+      }
+    }).join('')}
+  </div>`;
+}
+
+function _reqRenderStatsBar(pendingSwaps, pendingLeaves) {
+  const el = document.getElementById('reqStatsBar');
+  if (!el) return;
+  const sickCount = pendingLeaves.filter(r => r.type === 'SICK').length;
+  const alCount = pendingLeaves.filter(r => r.type === 'AL').length;
+  const totalPending = pendingSwaps.length + pendingLeaves.length;
+  const doneToday = [...Object.values(swapRequests), ...Object.values(leaveRequests)]
+    .filter(r => {
+      const d = new Date((r.updated||r.created||0));
+      const now = new Date();
+      return d.toDateString() === now.toDateString() && (r.status === 'approved' || r.status === 'admin_approved' || r.status === 'rejected');
+    }).length;
+  const card = (icon, label, val, bg, color) =>
+    `<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 12px rgba(15,30,53,.07);border-left:4px solid ${color}">
+      <div style="font-size:20px;margin-bottom:4px">${icon}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:${color}">${val}</div>
+      <div style="font-size:11px;color:var(--slate);margin-top:2px">${label}</div>
+    </div>`;
+  el.innerHTML =
+    card('⏳','Total Pending', totalPending, '', totalPending > 0 ? '#E65C00' : '#1B6B3A') +
+    card('🔄','Swap Approvals', pendingSwaps.length, '', '#5B21B6') +
+    card('🤒','Sick — Urgent', sickCount, '', sickCount > 0 ? '#B71C1C' : '#1B6B3A') +
+    card('🏖','Annual Leave', alCount, '', '#0F766E') +
+    card('✅','Resolved Today', doneToday, '', '#1B6B3A');
+
+  // Populate dept filter
+  const df = document.getElementById('reqFilterDept');
+  if (df && df.options.length <= 1) {
+    const depts = [...new Set([...Object.values(staffData)].map(s => s.department).filter(Boolean))].sort();
+    depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; df.appendChild(o); });
+  }
+}
+
 function renderAdminRequests() {
+  const search = (document.getElementById('reqSearch')?.value || '').toLowerCase().trim();
+  const filterDept = document.getElementById('reqFilterDept')?.value || '';
+  const tab = _reqTab;
+
   // Swap requests
   const swapEl = document.getElementById("adminSwapList");
-  const pendingSwaps = Object.values(swapRequests).filter(r => r.status === "partner_approved").sort((a,b) => b.created - a.created);
+  let pendingSwaps = Object.values(swapRequests).filter(r => r.status === "partner_approved").sort((a,b) => b.created - a.created);
+  if (search) pendingSwaps = pendingSwaps.filter(r => {
+    const from = staffData[r.fromEmp], to = staffData[r.toEmp];
+    const str = [(from?.name||''),(to?.name||''),(from?.department||''),(to?.department||'')].join(' ').toLowerCase();
+    return str.includes(search);
+  });
+  if (filterDept) pendingSwaps = pendingSwaps.filter(r => staffData[r.fromEmp]?.department === filterDept || staffData[r.toEmp]?.department === filterDept);
+
+  // Leave requests
+  let pendingLeaves = Object.values(leaveRequests).filter(r => r.status === "pending").sort((a,b) => {
+    if (a.type === 'SICK' && b.type !== 'SICK') return -1;
+    if (b.type === 'SICK' && a.type !== 'SICK') return 1;
+    return b.created - a.created;
+  });
+  if (tab === 'sick') pendingLeaves = pendingLeaves.filter(r => r.type === 'SICK');
+  if (search) pendingLeaves = pendingLeaves.filter(r => {
+    const emp = staffData[r.empId];
+    return [(emp?.name||''),(emp?.department||''),(r.reason||'')].join(' ').toLowerCase().includes(search);
+  });
+  if (filterDept) pendingLeaves = pendingLeaves.filter(r => staffData[r.empId]?.department === filterDept);
+
+  _reqRenderStatsBar(Object.values(swapRequests).filter(r => r.status === 'partner_approved'), Object.values(leaveRequests).filter(r => r.status === 'pending'));
+
+  // Update badges
+  const sickC = pendingLeaves.filter(r => r.type === 'SICK').length;
+  const sickBadge = document.getElementById('leaveSickBadge');
+  if (sickBadge) { sickBadge.style.display = sickC ? '' : 'none'; sickBadge.textContent = sickC + ' sick 🚨'; }
+
+  const approvedSwapC = Object.values(swapRequests).filter(r=>r.status==='admin_approved').length;
+  const swapApprBadge = document.getElementById('swapApprovedBadge');
+  if (swapApprBadge) { swapApprBadge.style.display = approvedSwapC ? '' : 'none'; swapApprBadge.textContent = approvedSwapC + ' resolved'; }
+
   document.getElementById("swapCount").textContent = pendingSwaps.length + " pending admin review";
 
   if (!swapEl) return;
-  if (!pendingSwaps.length) { swapEl.innerHTML = '<div style="color:var(--slate2);text-align:center;padding:20px">No swap requests awaiting approval</div>'; }
+  if (!pendingSwaps.length) {
+    swapEl.innerHTML = `<div style="text-align:center;padding:36px 20px">
+      <div style="font-size:32px;margin-bottom:8px">🎉</div>
+      <div style="font-weight:700;color:var(--navy);margin-bottom:4px">All clear!</div>
+      <div style="font-size:12px;color:var(--slate2)">No swap requests awaiting approval</div>
+    </div>`;
+  }
   else {
     swapEl.innerHTML = pendingSwaps.map(r => {
       const from = staffData[r.fromEmp];
       const to = staffData[r.toEmp];
-      return `<div style="background:var(--ice2);border:1.5px solid var(--gold);border-radius:10px;padding:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div>
-            <div style="font-weight:700;font-size:12px">🔄 Swap Request — Day ${r.day}</div>
-            <div style="font-size:11px;color:var(--slate);margin-top:4px">
-              <b>${from?.name}</b> (${from?.id}) wants to swap with <b>${to?.name}</b> (${to?.id})<br>
-              <span style="font-size:10px">${from?.department} · ${from?.position}</span>
+      const fromShift = schedData[r.fromEmp]?.[r.monthKey]?.[r.day] || '—';
+      const toShift   = schedData[r.toEmp]?.[r.monthKey]?.[r.day]   || '—';
+      const timeAgo = r.created ? _reqTimeAgo(r.created) : '';
+      return `<div style="background:#fff;border:1.5px solid var(--gold);border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(201,150,58,.1)">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:7px;margin-bottom:8px">
+              <span style="background:var(--amber-l);color:var(--amber);font-size:10px;font-weight:800;padding:2px 9px;border-radius:100px;border:1px solid rgba(230,92,0,.2)">🔄 SWAP</span>
+              <span style="font-size:10px;color:var(--slate2)">${timeAgo}</span>
             </div>
+            <!-- Who → Who -->
+            <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;background:var(--ice2);border-radius:9px;padding:10px 12px;margin-bottom:8px">
+              <div>
+                <div style="font-size:10px;color:var(--slate2);margin-bottom:2px">FROM</div>
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">${from?.name||r.fromEmp}</div>
+                <div style="font-size:10px;color:var(--slate)">${from?.position||''} · ${from?.department||''}</div>
+                <div style="margin-top:4px"><span style="font-size:11px;background:var(--gold-l);color:var(--gold);padding:2px 8px;border-radius:6px;font-weight:700">${fromShift}</span></div>
+              </div>
+              <div style="font-size:18px;color:var(--gold)">⇄</div>
+              <div style="text-align:right">
+                <div style="font-size:10px;color:var(--slate2);margin-bottom:2px">TO</div>
+                <div style="font-weight:700;font-size:12px;color:var(--navy)">${to?.name||r.toEmp}</div>
+                <div style="font-size:10px;color:var(--slate)">${to?.position||''} · ${to?.department||''}</div>
+                <div style="margin-top:4px"><span style="font-size:11px;background:var(--purple-l);color:var(--purple);padding:2px 8px;border-radius:6px;font-weight:700">${toShift}</span></div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--slate);margin-bottom:8px">📅 Day ${r.day}${r.monthKey ? ' · '+r.monthKey : ''}${r.note?'<br>💬 '+r.note:''}</div>
           </div>
-          <div style="display:flex;gap:4px">
-            <button class="btn btn-gold btn-sm" onclick="adminApproveSwap('${r.id}')">✓ Approve</button>
-            <button class="btn btn-danger btn-sm" onclick="adminRejectSwap('${r.id}')">✕ Reject</button>
-          </div>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;flex:1" onclick="adminApproveSwap('${r.id}')">✓ Approve Swap</button>
+          <button class="btn btn-sm" style="background:var(--red-l);color:var(--red);border:1.5px solid var(--red);flex:1" onclick="adminRejectSwap('${r.id}')">✕ Reject</button>
+          <button class="btn btn-ghost btn-sm" style="flex:0" onclick="reqViewSwapDetail('${r.id}')" title="View full details">👁</button>
         </div>
       </div>`;
     }).join("");
@@ -3638,65 +3852,140 @@ function renderAdminRequests() {
 
   // Leave requests
   const leaveEl = document.getElementById("adminLeaveList");
-  const pendingLeaves = Object.values(leaveRequests).filter(r => r.status === "pending").sort((a,b) => {
-    if (a.type === 'SICK' && b.type !== 'SICK') return -1;
-    if (b.type === 'SICK' && a.type !== 'SICK') return 1;
-    return b.created - a.created;
-  });
-  document.getElementById("leaveCount").textContent = pendingLeaves.length + " pending";
 
   if (!leaveEl) return;
-  if (!pendingLeaves.length) { leaveEl.innerHTML = '<div style="color:var(--slate2);text-align:center;padding:20px">No leave requests awaiting approval</div>'; }
+  if (!pendingLeaves.length) {
+    leaveEl.innerHTML = `<div style="text-align:center;padding:36px 20px">
+      <div style="font-size:32px;margin-bottom:8px">🎉</div>
+      <div style="font-weight:700;color:var(--navy);margin-bottom:4px">All clear!</div>
+      <div style="font-size:12px;color:var(--slate2)">${tab==='sick'?'No sick leave requests':'No leave requests awaiting approval'}</div>
+    </div>`;
+  }
   else {
     leaveEl.innerHTML = pendingLeaves.map(r => {
       const emp = staffData[r.empId];
       const typeLabels = {AL: "🏖 Annual Leave", EX: "✨ Extra Off", UNP: "💸 Unpaid", TRN: "🎓 Training", SICK: "🤒 Sick Leave", ABS: "⛔ Absent"};
+      const typeColors = {AL:'#0F766E', EX:'#5B21B6', UNP:'#78350F', TRN:'#1E40AF', SICK:'#B71C1C', ABS:'#374151'};
+      const typeBgs   = {AL:'#CCFBF1', EX:'#EDE9FE', UNP:'#FEF3C7', TRN:'#DBEAFE', SICK:'#FFE4E6', ABS:'#F3F4F6'};
       const days = r.toDay - r.fromDay + 1;
       const alLeft = (emp?.annualLeave || 0) - (emp?.alUsed || 0);
       const isSick = r.type === 'SICK';
-      const borderColor = isSick ? '#FB7185' : '#4ADE80';
-      const bgColor = isSick ? 'rgba(251,113,133,.06)' : 'var(--ice2)';
+      const borderColor = isSick ? '#FB7185' : (r.type==='AL' ? '#4ADE80' : '#A5B4FC');
+      const bgColor = isSick ? 'rgba(251,113,133,.04)' : '#fff';
+      const timeAgo = r.created ? _reqTimeAgo(r.created) : '';
+      const initials = (emp?.name||r.empId).split(' ').filter(Boolean).map(w=>w[0]).slice(0,2).join('').toUpperCase();
+      const avatarColor = isSick ? '#B71C1C' : '#0F766E';
+
       let coverageHTML = '';
       if (isSick && emp) {
         const suggestions = getSickCoverageSuggestions(emp, r.fromDay, r.toDay, r.monthKey);
         if (suggestions.length) {
-          coverageHTML = `<div style="margin-top:10px;background:rgba(201,150,58,.07);border:1px solid rgba(201,150,58,.25);border-radius:8px;padding:10px">
-            <div style="font-size:10px;font-weight:700;color:#C9963A;margin-bottom:7px">💡 COVERAGE SUGGESTIONS — who can cover</div>
-            ${suggestions.slice(0,4).map((s,i) => `<div style="display:flex;align-items:center;gap:8px;padding:5px 7px;background:rgba(255,255,255,.7);border-radius:6px;margin-bottom:4px">
-              <div style="width:22px;height:22px;border-radius:50%;background:${s.matchScore>=2?'#10B981':'#F59E0B'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center">${i+1}</div>
-              <div style="flex:1"><div style="font-size:11px;font-weight:700;color:#0F1E35">${s.name}</div>
-              <div style="font-size:9px;color:#64748B">${s.position} · ${s.section||s.department} · Day ${r.fromDay}: <b style="color:${s.dayShift==='OFF'?'#10B981':'#E65C00'}">${s.dayShift||'—'}</b></div></div>
-              <span style="font-size:9px;background:${s.matchScore>=2?'#D4EDDA':'#FFF3E0'};color:${s.matchScore>=2?'#1B6B3A':'#E65C00'};padding:2px 7px;border-radius:10px;font-weight:700">${s.matchScore>=2?'Best':'Good'}</span>
-            </div>`).join('')}
-            <div style="font-size:9px;color:#64748B;margin-top:5px">Best = same position & section · Good = same dept or has off day</div>
+          const opts = suggestions.slice(0,6);
+          coverageHTML = `<div style="margin-top:10px;background:rgba(201,150,58,.06);border:1.5px solid rgba(201,150,58,.3);border-radius:10px;padding:12px">
+            <div style="font-size:10px;font-weight:800;color:#C9963A;margin-bottom:8px;display:flex;align-items:center;gap:5px">
+              💡 AI COVERAGE SUGGESTIONS
+              <span style="font-size:9px;font-weight:400;color:var(--slate2)">— tap to select who will cover</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px" id="covList_${r.id}">
+              ${opts.map((s,i) => {
+                const isBest = s.matchScore >= 2;
+                return `<label style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:${isBest?'rgba(16,185,129,.07)':'rgba(245,158,11,.07)'};border:1.5px solid ${isBest?'rgba(16,185,129,.25)':'rgba(245,158,11,.25)'};border-radius:8px;cursor:pointer;transition:all .15s" onmouseover="this.style.transform='translateX(2px)'" onmouseout="this.style.transform=''">
+                  <input type="radio" name="cover_${r.id}" value="${s.empId||s.id||s.name}" style="accent-color:${isBest?'#10B981':'#F59E0B'};width:13px;height:13px">
+                  <div style="width:26px;height:26px;border-radius:50%;background:${isBest?'#10B981':'#F59E0B'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
+                  <div style="flex:1">
+                    <div style="font-size:11px;font-weight:700;color:var(--navy)">${s.name}</div>
+                    <div style="font-size:9px;color:var(--slate)">${s.position} · ${s.section||s.department||''} · Day ${r.fromDay}: <b style="color:${s.dayShift==='OFF'?'#10B981':'#E65C00'}">${s.dayShift||'—'}</b></div>
+                  </div>
+                  <span style="font-size:9px;background:${isBest?'#D4EDDA':'#FFF3E0'};color:${isBest?'#1B6B3A':'#E65C00'};padding:3px 8px;border-radius:100px;font-weight:700;flex-shrink:0">${isBest?'⭐ Best':'👍 Good'}</span>
+                </label>`;
+              }).join('')}
+            </div>
+            <div style="font-size:9px;color:var(--slate2);margin-top:6px">⭐ Best = same position & section · 👍 Good = same dept or has off day</div>
           </div>`;
         } else {
-          coverageHTML = `<div style="margin-top:8px;padding:8px;background:rgba(239,68,68,.06);border-radius:6px;font-size:10px;color:#B91C1C">⚠️ No available staff found to cover this shift.</div>`;
+          coverageHTML = `<div style="margin-top:8px;padding:10px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:11px;color:#B91C1C">
+            ⚠️ No available staff found to cover this shift.
+          </div>`;
         }
       }
-      return `<div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:10px;padding:12px;margin-bottom:8px">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div style="flex:1">
-            <div style="display:flex;align-items:center;gap:7px;margin-bottom:4px">
-              ${isSick ? '<span style="background:#FFE4E6;color:#9F1239;font-size:10px;font-weight:800;padding:2px 8px;border-radius:100px;border:1px solid #FB7185">🚨 URGENT</span>' : ''}
-              <div style="font-weight:700;font-size:12px">${typeLabels[r.type]} — ${emp?.name||r.empId}</div>
+
+      return `<div style="background:${bgColor};border:1.5px solid ${borderColor};border-radius:12px;padding:14px;margin-bottom:10px;box-shadow:0 2px 8px rgba(15,30,53,.06)">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <!-- Avatar -->
+          <div style="width:36px;height:36px;border-radius:50%;background:${avatarColor};color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</div>
+          <div style="flex:1;min-width:0">
+            <!-- Header row -->
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:5px">
+              ${isSick ? '<span style="background:#FFE4E6;color:#9F1239;font-size:10px;font-weight:800;padding:2px 9px;border-radius:100px;border:1px solid #FB7185">🚨 URGENT</span>' : ''}
+              <span style="background:${typeBgs[r.type]||'#F3F4F6'};color:${typeColors[r.type]||'#374151'};font-size:10px;font-weight:700;padding:2px 9px;border-radius:100px">${typeLabels[r.type]||r.type}</span>
+              <span style="font-size:10px;color:var(--slate2)">${timeAgo}</span>
             </div>
+            <!-- Employee info -->
+            <div style="font-weight:700;font-size:13px;color:var(--navy)">${emp?.name||r.empId}</div>
             <div style="font-size:11px;color:var(--slate);margin-top:2px">
-              Day ${r.fromDay}${r.fromDay!==r.toDay?" – "+r.toDay:""} · ${days} day(s)<br>
-              ${emp?.department||''} · ${emp?.position||''}${emp?.section?' · 📍'+emp.section:''}<br>
-              ${r.type==="AL"?'<span style="color:'+(days>alLeft?'var(--red)':'var(--green)')+'">AL Balance: '+alLeft+' days left</span>' : ""}
-              ${r.reason ? '<br>Reason: '+r.reason : ""}
+              ${emp?.department||''} · ${emp?.position||''}${emp?.section?' · 📍'+emp.section:''}
             </div>
+            <!-- Leave details -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;margin-bottom:4px">
+              <span style="background:var(--ice2);border-radius:7px;padding:4px 10px;font-size:11px">📅 Day ${r.fromDay}${r.fromDay!==r.toDay?" – Day "+r.toDay:""}</span>
+              <span style="background:var(--ice2);border-radius:7px;padding:4px 10px;font-size:11px">⏱ ${days} day${days!==1?'s':''}</span>
+              ${r.type==="AL" ? `<span style="background:${days>alLeft?'var(--red-l)':'var(--green-l)'};color:${days>alLeft?'var(--red)':'var(--green)'};border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700">🏖 ${alLeft} days AL left</span>` : ""}
+            </div>
+            ${r.reason ? `<div style="font-size:11px;color:var(--slate);background:var(--ice2);border-radius:7px;padding:6px 10px;margin-bottom:6px">💬 "${r.reason}"</div>` : ""}
             ${coverageHTML}
           </div>
-          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0;margin-left:10px">
-            <button class="btn btn-gold btn-sm" onclick="adminApproveLeave('${r.id}')">✓ Approve</button>
-            <button class="btn btn-danger btn-sm" onclick="adminRejectLeave('${r.id}')">✕ Reject</button>
-          </div>
+        </div>
+        <!-- Action buttons -->
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;flex:1" onclick="adminApproveLeaveWithCover('${r.id}')">✓ Approve</button>
+          <button class="btn btn-sm" style="background:var(--red-l);color:var(--red);border:1.5px solid var(--red);flex:1" onclick="adminRejectLeaveWithNote('${r.id}')">✕ Reject</button>
+          <button class="btn btn-ghost btn-sm" onclick="reqViewLeaveDetail('${r.id}')" title="View full details" style="flex:0">👁</button>
         </div>
       </div>`;
     }).join("");
   }
+}
+
+function _reqTimeAgo(ts) {
+  const diff = Date.now() - ts;
+  const m = Math.floor(diff/60000), h = Math.floor(m/60), d = Math.floor(h/24);
+  if (d > 0) return d+'d ago';
+  if (h > 0) return h+'h ago';
+  if (m > 0) return m+'m ago';
+  return 'just now';
+}
+
+function adminApproveLeaveWithCover(reqId) {
+  const covRadio = document.querySelector(`input[name="cover_${reqId}"]:checked`);
+  const coverName = covRadio ? covRadio.value : null;
+  if (coverName) {
+    // Show brief confirmation
+    const emp = staffData[leaveRequests[reqId]?.empId];
+    showToast(`✅ Approved — ${coverName} assigned to cover ${emp?.name||''}`);
+  }
+  adminApproveLeave(reqId);
+}
+
+function adminRejectLeaveWithNote(reqId) {
+  const note = prompt('Optional: add a reason for rejection (leave blank to skip)');
+  const req = leaveRequests[reqId];
+  if (req && note) req.rejectNote = note;
+  adminRejectLeave(reqId);
+}
+
+function reqViewSwapDetail(reqId) {
+  const r = swapRequests[reqId];
+  if (!r) return;
+  const from = staffData[r.fromEmp], to = staffData[r.toEmp];
+  alert(`SWAP REQUEST DETAIL\n\nFrom: ${from?.name||r.fromEmp} (${r.fromEmp})\nTo: ${to?.name||r.toEmp} (${r.toEmp})\nDay: ${r.day}\nMonth: ${r.monthKey||'N/A'}\nStatus: ${r.status}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
+}
+
+function reqViewLeaveDetail(reqId) {
+  const r = leaveRequests[reqId];
+  if (!r) return;
+  const emp = staffData[r.empId];
+  const typeLabels = {AL:"Annual Leave",EX:"Extra Off",UNP:"Unpaid",TRN:"Training",SICK:"Sick Leave",ABS:"Absent"};
+  alert(`LEAVE REQUEST DETAIL\n\nEmployee: ${emp?.name||r.empId}\nDept: ${emp?.department||'N/A'} · ${emp?.position||''}\nType: ${typeLabels[r.type]||r.type}\nDays: ${r.fromDay}–${r.toDay} (${r.toDay-r.fromDay+1} days)\nReason: ${r.reason||'None provided'}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
 }
 
 async function adminApproveSwap(reqId) {
@@ -17701,7 +17990,7 @@ select { color-scheme: dark; }
     });
     var avgOcc = gCount ? (gOcc / gCount) : 0;
     function card(title, value, sub, color){
-      return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:var(--sh);border-top:4px solid '+color+'"><div style="font-size:10px;color:var(--slate);text-transform:uppercase;font-weight:700;letter-spacing:.4px">'+title+'</div><div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:'+color+';margin-top:6px">'+value+'</div><div style="font-size:11px;color:var(--slate);margin-top:6px">'+sub+'</div></div>';
+      return '<div style="background:#fff;border-radius:14px;padding:16px;box-shadow:var(--sh);border-top:4px solid '+color+'"><div style="font-size:10px;color:var(--slate);text-transform:uppercase;font-weight:700;letter-spacing:.4px">'+title+'</div><div style="font-family:\'Syne\',sans-serif;font-size:24px;font-weight:800;color:'+color+';margin-top:6px">'+value+'</div><div style="font-size:11px;color:var(--slate);margin-top:6px">'+sub+'</div></div>';
     }
     kpi.innerHTML =
       card('Avg Occupancy', avgOcc.toFixed(1) + '%', defs.length + ' hotel(s) · next 10 days', avgOcc >= 92 ? '#B71C1C' : avgOcc >= 85 ? '#E65C00' : '#1B6B3A') +
@@ -17714,12 +18003,12 @@ select { color-scheme: dark; }
       var strip = rows.map(function(r){
         var color = r.occ >= 92 ? '#B71C1C' : r.occ >= 85 ? '#E65C00' : r.occ >= 70 ? '#C9963A' : '#1B6B3A';
         var bg = r.occ >= 92 ? '#FDECEA' : r.occ >= 85 ? '#FFF3E0' : r.occ >= 70 ? '#FDF3E3' : '#D4EDDA';
-        return '<div style="background:'+bg+';border:1.5px solid '+color+';border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--navy)">'+fmtDate(r._date)+'</div><div style="font-family:'Syne';font-size:18px;font-weight:800;color:'+color+';margin:3px 0">'+r.occ+'%</div><div style="font-size:9px;color:var(--slate)">↓'+r.arr+' ↑'+r.dep+'</div></div>';
+        return '<div style="background:'+bg+';border:1.5px solid '+color+';border-radius:8px;padding:8px;text-align:center"><div style="font-size:9px;font-weight:700;color:var(--navy)">'+fmtDate(r._date)+'</div><div style="font-family:\'Syne\';font-size:18px;font-weight:800;color:'+color+';margin:3px 0">'+r.occ+'%</div><div style="font-size:9px;color:var(--slate)">↓'+r.arr+' ↑'+r.dep+'</div></div>';
       }).join('');
       var table = rows.map(function(r){
         return '<tr style="border-bottom:1px solid #eee"><td style="padding:6px;font-weight:600">'+fmtDate(r._date)+'</td><td style="padding:6px;text-align:center;font-weight:700">'+r.occ+'%</td><td style="padding:6px;text-align:center">'+r.arr+'</td><td style="padding:6px;text-align:center">'+r.dep+'</td><td style="padding:6px;color:var(--slate)">'+(r.notes || '—')+'</td></tr>';
       }).join('');
-      return '<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid '+item.h.color+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,'+item.h.color+'15,transparent);flex-wrap:wrap;gap:8px"><div style="font-family:'Syne';font-weight:800;font-size:15px;color:'+item.h.color+'">🏨 '+item.h.name+'</div></div><div style="padding:14px 16px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">'+strip+'</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th><th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th><th style="padding:7px;text-align:left">Notes</th></tr></thead><tbody>'+table+'</tbody></table></div></div></div>';
+      return '<div class="card" style="background:#fff;border-radius:var(--r);box-shadow:var(--sh);overflow:hidden;border-top:4px solid '+item.h.color+'"><div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:linear-gradient(90deg,'+item.h.color+'15,transparent);flex-wrap:wrap;gap:8px"><div style="font-family:\'Syne\';font-weight:800;font-size:15px;color:'+item.h.color+'">🏨 '+item.h.name+'</div></div><div style="padding:14px 16px"><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:6px;margin-bottom:12px">'+strip+'</div><div style="overflow:auto"><table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:var(--navy);color:#fff"><th style="padding:7px;text-align:left">Date</th><th style="padding:7px">Occ</th><th style="padding:7px">Arrivals</th><th style="padding:7px">Departures</th><th style="padding:7px;text-align:left">Notes</th></tr></thead><tbody>'+table+'</tbody></table></div></div></div>';
     }).join('');
 
     var alerts = [];
