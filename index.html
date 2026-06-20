@@ -2473,15 +2473,43 @@ html, body {
   </div>
 </div>
 <div class="mover" id="bulkModal" style="display:none" onclick="if(event.target===this)closeModal('bulkModal')">
-  <div class="modal">
+  <div class="modal" style="width:580px;max-height:92vh;overflow-y:auto">
     <h3>🧠 Smart Auto Fill Shifts</h3>
     <div style="font-size:11px;color:var(--slate);margin-bottom:10px;line-height:1.5">
-      Auto-fills shifts across a date range with smart safeguards. Use the options below to control exactly who gets updated and what gets protected.
+      Auto-fills shifts across a date range with smart safeguards. Now supports multiple shifts (Morning, Afternoon, Mid-11, Mid-12, Night) and the full 15→14 roster cycle.
     </div>
+
+    <div style="margin-bottom:10px">
+      <label class="lbl">Date Range</label>
+      <div style="display:flex;gap:8px;margin-bottom:6px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;background:var(--ice2);padding:6px 12px;border-radius:8px;flex:1">
+          <input type="radio" name="bRangeMode" id="bRangeRoster" value="roster" checked onchange="bToggleRangeMode()"> 📅 Full Roster Cycle (<span id="bRosterLabelSpan"></span>)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;background:var(--ice2);padding:6px 12px;border-radius:8px;flex:1">
+          <input type="radio" name="bRangeMode" id="bRangeCustom" value="custom" onchange="bToggleRangeMode()"> ✏️ Custom Range
+        </label>
+      </div>
+      <div id="bCustomRangeRow" class="fg" style="display:none;margin-top:6px">
+        <div><label class="lbl">From (cycle day 1–30)</label><input class="inp" id="bFrom" type="number" min="1" max="30" value="1"></div>
+        <div><label class="lbl">To (cycle day 1–30)</label><input class="inp" id="bTo" type="number" min="1" max="30" value="30"></div>
+      </div>
+      <div style="font-size:10px;color:var(--slate2);margin-top:4px">Cycle day 1 = roster start (15th); cycle day 30 = roster end (14th next month).</div>
+    </div>
+
+    <div style="margin-bottom:10px;padding:12px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
+      <label class="lbl" style="margin-bottom:8px">🔄 Shifts to Fill (select one or more)</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="bShiftChecks"></div>
+      <div style="font-size:10px;color:var(--slate);margin-top:8px">Tip: select all 4 working shifts (Morning, Afternoon, Mid-11/Mid-12, Night) to cover round-the-clock operations in one pass.</div>
+    </div>
+
     <div class="fg">
-      <div><label class="lbl">From Day</label><input class="inp" id="bFrom" type="number" min="1" max="31" value="1"></div>
-      <div><label class="lbl">To Day</label><input class="inp" id="bTo" type="number" min="1" max="31" value="30"></div>
-      <div><label class="lbl">Shift</label><select class="inp" id="bShift"></select></div>
+      <div><label class="lbl">Fill Mode</label>
+        <select class="inp" id="bFillMode">
+          <option value="rotate">Rotate evenly across selected shifts</option>
+          <option value="defaultShift">Use each staff's default shift (only if selected)</option>
+          <option value="balance">Balance staff count per shift per day</option>
+        </select>
+      </div>
       <div><label class="lbl">Apply To</label>
         <select class="inp" id="bScope">
           <option value="visible">Visible staff only</option>
@@ -2490,6 +2518,7 @@ html, body {
         </select>
       </div>
     </div>
+
     <div style="margin-top:10px;padding:12px;background:var(--ice2);border:1.5px dashed var(--gold);border-radius:10px">
       <div style="font-size:11px;font-weight:700;color:var(--navy);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">⚙️ Smart Options</div>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
@@ -2505,10 +2534,13 @@ html, body {
         <input type="checkbox" id="bSkipWeekend"> Skip weekends (Saturday &amp; Sunday)
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
+        <input type="checkbox" id="bNoEveToMor" checked> Block Night → Morning next day (insufficient rest)
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);margin-bottom:6px;cursor:pointer">
         <input type="checkbox" id="bSelectedOnly"> Apply only to selected staff rows
       </label>
       <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--navy);cursor:pointer">
-        <input type="checkbox" id="bDefaultOnly"> Only staff whose default shift matches the selected shift
+        <input type="checkbox" id="bDefaultOnly"> Only staff whose default shift is among the selected shifts
       </label>
       <div style="font-size:10px;color:var(--slate);margin-top:8px;line-height:1.5">
         Tip: use row selection in the roster first if you want to fill only a few employees.
@@ -5215,7 +5247,7 @@ function fillAllSelects() {
   }
 
   // Shift selects
-  ["f-shift","bShift"].forEach(id=>{
+  ["f-shift"].forEach(id=>{
     const el=document.getElementById(id); if(!el) return;
     el.innerHTML=Object.entries(SHIFTS).map(([k,v])=>`<option value="${k}">${k} — ${v.label} ${shiftTime(v)}</option>`).join("");
   });
@@ -5909,8 +5941,12 @@ function openAutoSchedule() {
   setV('autoFODutyManagerMin', r.foDutyManagerMin ?? 1);
   setV('autoFOAgentMin', r.foAgentMin ?? 1);
   setV('autoFOBellmanMin', r.foBellmanMin ?? 1);
+  document.getElementById('autoRangeRoster').checked = true;
   setV('autoStartDay', 1);
-  setV('autoEndDay', getDIM());
+  setV('autoEndDay', 30);
+  const arLbl = document.getElementById('autoRosterLabelSpan');
+  if (arLbl) arLbl.textContent = (typeof getRosterLabel === 'function') ? getRosterLabel() : "";
+  autoToggleRangeMode();
   setC('autoNoWeekendOff', r.noWeekendOff);
   setC('autoSpreadOff', r.spreadOff !== false);
   setC('autoRespectRequests', r.respectLeave !== false);
@@ -5919,6 +5955,35 @@ function openAutoSchedule() {
 
   document.getElementById('autoScheduleModal').style.display = 'flex';
   document.getElementById('autoSchedulePreview').style.display = 'none';
+}
+
+function autoToggleRangeMode() {
+  const isCustom = document.getElementById('autoRangeCustom')?.checked;
+  const row = document.getElementById('autoCustomRangeRow');
+  if (row) row.style.display = isCustom ? 'grid' : 'none';
+}
+
+// Resolve the effective cycle-day range and the {monthKey, day, dow} cells it covers,
+// using the 15→14 roster cycle. Mirrors bGetEffectiveRange/bGetCycleCells used by Smart Fill.
+function autoGetEffectiveRange() {
+  const useRoster = document.getElementById('autoRangeRoster')?.checked ?? true;
+  const from = useRoster ? 1 : Math.max(1, +document.getElementById('autoStartDay')?.value || 1);
+  const to = useRoster ? 30 : Math.min(30, +document.getElementById('autoEndDay')?.value || 30);
+  return { from, to };
+}
+
+function autoGetCycleCells() {
+  const { from, to } = autoGetEffectiveRange();
+  const rosterDays = getRosterDays();
+  const cells = [];
+  for (let i = from - 1; i <= to - 1 && i < rosterDays.length; i++) {
+    const rd = rosterDays[i];
+    if (!rd) continue;
+    const monthKey = schKey(rd.y, rd.m);
+    const dow = new Date(rd.y, rd.m, rd.d).getDay();
+    cells.push({ cycleDay: i + 1, monthKey, day: rd.d, dow, y: rd.y, m: rd.m });
+  }
+  return cells;
 }
 
 function refreshAutoSectionPosition() {
@@ -6020,10 +6085,10 @@ function generateAutoSchedule(previewOnly = false) {
   const excludePositions = (document.getElementById('autoExcludePositions')?.value || '').split('||').filter(Boolean);
   const noNightPositions = (document.getElementById('autoNoNightPositions')?.value || '').split('||').filter(Boolean);
 
-  const startDay = Math.max(1, parseInt(document.getElementById('autoStartDay')?.value || 1) || 1);
-  const endDay = Math.min(parseInt(document.getElementById('autoEndDay')?.value || getDIM()) || getDIM(), getDIM());
-  const numDays = getDIM();
-  const key = schKey();
+  const { from: startCycleDay, to: endCycleDay } = autoGetEffectiveRange();
+  const cycleCells = autoGetCycleCells(); // [{cycleDay, monthKey, day, dow}, ...]
+  const numDays = cycleCells.length || 30;
+  const key = schKey(); // primary/current key, used for archive snapshot + UI refresh
   let changes = 0;
   let conflicts = [];
 
@@ -6055,63 +6120,65 @@ function generateAutoSchedule(previewOnly = false) {
     }
   }
 
-  // Build shift rotation based on selected shifts
+  // Build shift rotation based on selected shifts — supports MOR, AFT, M11, M12, EVE (4+ working shifts)
   const shiftCodes = (shiftScope.length ? shiftScope : ['MOR', 'AFT', 'EVE']).filter(c => SHIFTS[c]);
   if (!shiftCodes.length) shiftCodes.push('MOR');
   const offCodes = ['OFF', 'AL', 'EX', 'UNP', 'PH'];
 
   targetStaff.forEach((emp, empIdx) => {
     if (!schedData[emp.id]) schedData[emp.id] = {};
-    if (!schedData[emp.id][key]) schedData[emp.id][key] = {};
 
-    const sch = schedData[emp.id][key];
+    const empOff = (typeof emp.offDays === 'number' && emp.offDays > 0) ? emp.offDays : 8;
+    const empDef = shiftCodes.includes(emp.defaultShift) ? emp.defaultShift : shiftCodes[empIdx % shiftCodes.length];
+    const fixedOffDayIdx = (pattern === 'fixed') ? getDistributedOffDays(empOff, numDays, empIdx) : null; // indices into cycleCells (1-based cycleDay)
 
-    for (let day = startDay; day <= endDay; day++) {
-      // Skip if respecting requests and day has approved leave
+    cycleCells.forEach((cell, cellIdx) => {
+      const cycleDay = cell.cycleDay;
+      if (cycleDay < startCycleDay || cycleDay > endCycleDay) return;
+      const cellKey = cell.monthKey, day = cell.day;
+      if (!schedData[emp.id][cellKey]) schedData[emp.id][cellKey] = {};
+      const sch = schedData[emp.id][cellKey];
+
+      // Skip if respecting requests and day has approved leave (leave requests are keyed by monthKey + calendar day)
       if (respectRequests) {
-        const hasLeave = Object.values(leaveRequests).some(r => 
-          r.empId === emp.id && r.status === 'approved' && 
-          r.monthKey === key && day >= r.fromDay && day <= r.toDay
+        const hasLeave = Object.values(leaveRequests).some(r =>
+          r.empId === emp.id && r.status === 'approved' &&
+          r.monthKey === cellKey && day >= r.fromDay && day <= r.toDay
         );
-        if (hasLeave) continue;
+        if (hasLeave) return;
       }
 
-      // Skip weekends for some staff (distribute fairly)
-      const dow = new Date(YEAR, MONTH, day).getDay();
-      const isWeekend = dow === 5 || dow === 6; // Fri, Sat
+      const isWeekend = cell.dow === 5 || cell.dow === 6; // Fri, Sat
 
       let assignedShift;
-      const empOff = (typeof emp.offDays === 'number' && emp.offDays > 0) ? emp.offDays : 8;
-      const empDef = shiftCodes.includes(emp.defaultShift) ? emp.defaultShift : shiftCodes[empIdx % shiftCodes.length];
 
       if (pattern === 'rotate') {
-        const shiftIdx = (empIdx + Math.floor((day - 1) / 2)) % shiftCodes.length;
+        const shiftIdx = (empIdx + Math.floor((cycleDay - 1) / 2)) % shiftCodes.length;
         assignedShift = shiftCodes[shiftIdx];
-        // Distribute off days across the month
+        // Distribute off days evenly across the 30-day cycle
         const offEvery = Math.max(3, Math.floor(numDays / Math.max(1, empOff)));
-        if ((day + empIdx) % offEvery === 0) {
+        if ((cycleDay + empIdx) % offEvery === 0) {
           assignedShift = (noWeekendOff && isWeekend) ? shiftCodes[shiftIdx] : 'OFF';
         }
       } else if (pattern === 'fixed') {
         assignedShift = empDef;
-        const offDays = getDistributedOffDays(empOff, numDays, empIdx);
-        if (offDays.includes(day)) {
+        if (fixedOffDayIdx.includes(cycleDay)) {
           assignedShift = (noWeekendOff && isWeekend) ? empDef : 'OFF';
         }
       } else if (pattern === 'balanced') {
         const currentHours = calcStats(emp, sch).hrs;
-        const avgHours = targetStaff.reduce((sum, e) => sum + calcStats(e, getEmpSch(e.id)).hrs, 0) / Math.max(1,targetStaff.length);
+        const avgHours = targetStaff.reduce((sum, e) => sum + calcStats(e, getEmpSch(e.id, cell.y, cell.m)).hrs, 0) / Math.max(1,targetStaff.length);
         if (currentHours > avgHours + 8 && !(noWeekendOff && isWeekend)) {
           assignedShift = 'OFF';
         } else {
-          assignedShift = shiftCodes[(empIdx + day) % shiftCodes.length];
+          assignedShift = shiftCodes[(empIdx + cycleDay) % shiftCodes.length];
         }
       } else {
-        assignedShift = shiftCodes[(empIdx + day) % shiftCodes.length];
+        assignedShift = shiftCodes[(empIdx + cycleDay) % shiftCodes.length];
       }
       if (!assignedShift) assignedShift = empDef;
 
-      // Block EVE for positions excluded from night shift
+      // Block EVE (Night) for positions excluded from night shift
       if (assignedShift === 'EVE' && noNightPositions.includes(emp.position)) {
         assignedShift = shiftCodes.includes('AFT') ? 'AFT' : (shiftCodes.find(c=>c!=='EVE') || 'MOR');
       }
@@ -6121,21 +6188,28 @@ function generateAutoSchedule(previewOnly = false) {
         assignedShift = shiftCodes.includes('AFT') ? 'AFT' : (shiftCodes.find(c=>c!=='EVE') || 'MOR');
       }
 
-      // Block EVE → MOR next day (insufficient rest)
-      if (noEveToMor && assignedShift === 'MOR' && sch[day - 1] === 'EVE') {
-        assignedShift = 'AFT';
+      // Block EVE → MOR next day (insufficient rest) — checks the previous cycle cell, which may be in a different month
+      const prevCell = cycleCells[cellIdx - 1];
+      const nextCell = cycleCells[cellIdx + 1];
+      if (noEveToMor && assignedShift === 'MOR' && prevCell) {
+        const prevVal = schedData[emp.id]?.[prevCell.monthKey]?.[prevCell.day];
+        if (prevVal === 'EVE') assignedShift = shiftCodes.includes('AFT') ? 'AFT' : (shiftCodes.find(c=>c!=='MOR') || assignedShift);
       }
       // Also: if today is EVE and tomorrow already MOR, push today to AFT
-      if (noEveToMor && assignedShift === 'EVE' && sch[day + 1] === 'MOR') {
-        assignedShift = 'AFT';
+      if (noEveToMor && assignedShift === 'EVE' && nextCell) {
+        const nextVal = schedData[emp.id]?.[nextCell.monthKey]?.[nextCell.day];
+        if (nextVal === 'MOR') assignedShift = shiftCodes.includes('AFT') ? 'AFT' : (shiftCodes.find(c=>c!=='EVE') || assignedShift);
       }
 
-      // Check for conflicts before applying
-      const dayConflicts = detectConflicts(emp.id, day, assignedShift);
+      // Check for conflicts before applying (best-effort: detectConflicts works within the active calendar month)
+      let dayConflicts = [];
+      if (cellKey === schKey()) {
+        dayConflicts = detectConflicts(emp.id, day, assignedShift);
+      }
       const errors = dayConflicts.filter(c => c.severity === 'error');
 
       if (errors.length) {
-        conflicts.push(...errors.map(e => `${emp.name} Day ${day}: ${e.message}`));
+        conflicts.push(...errors.map(e => `${emp.name} Cycle Day ${cycleDay}: ${e.message}`));
         // Fall back to OFF if error
         assignedShift = 'OFF';
       }
@@ -6145,11 +6219,11 @@ function generateAutoSchedule(previewOnly = false) {
         if (!previewOnly) {
           sch[day] = assignedShift;
           if (db) {
-            db.ref(`schedules/${emp.id}/${key}/${day}`).set(assignedShift).catch(() => {});
+            db.ref(`schedules/${emp.id}/${cellKey}/${day}`).set(assignedShift).catch(() => {});
           }
         }
       }
-    }
+    });
   });
 
   // Front Office: enforce required role coverage per selected shift and section
@@ -6161,34 +6235,36 @@ function generateAutoSchedule(previewOnly = false) {
       { label:'Bellman', min:foBellmanMin, match:e=>/(bellman|bellmen|bell\s*captain)/i.test(e.position||'') },
     ];
     const foStaff = targetStaff.filter(e => e.department === 'Front Office');
-    const canAssignRoleShift = (emp, day, code) => {
+    const canAssignRoleShift = (emp, cellKey, day, code) => {
       if (!emp || !code || offCodes.includes(code)) return false;
       if (code === 'EVE' && noNightPositions.includes(emp.position)) return false;
       if (code === 'EVE' && genderIsNightFilter && !genderMatches(emp)) return false;
-      if (respectRequests && Object.values(leaveRequests).some(r => r.empId === emp.id && r.status === 'approved' && r.monthKey === key && day >= r.fromDay && day <= r.toDay)) return false;
+      if (respectRequests && Object.values(leaveRequests).some(r => r.empId === emp.id && r.status === 'approved' && r.monthKey === cellKey && day >= r.fromDay && day <= r.toDay)) return false;
       return true;
     };
-    for (let day = startDay; day <= endDay; day++) {
+    cycleCells.forEach(cell => {
+      if (cell.cycleDay < startCycleDay || cell.cycleDay > endCycleDay) return;
+      const cellKey = cell.monthKey, day = cell.day;
       shiftCodes.forEach(code => {
         roleRules.forEach(rule => {
           if (!rule.min) return;
           const rolePool = foStaff.filter(rule.match);
-          const assigned = rolePool.filter(e => (schedData[e.id]?.[key]?.[day] || '') === code).length;
+          const assigned = rolePool.filter(e => (schedData[e.id]?.[cellKey]?.[day] || '') === code).length;
           let need = Math.max(0, rule.min - assigned);
           const candidates = rolePool.filter(e => {
-            const cur = schedData[e.id]?.[key]?.[day] || '';
-            return (cur === '' || offCodes.includes(cur)) && canAssignRoleShift(e, day, code);
+            const cur = schedData[e.id]?.[cellKey]?.[day] || '';
+            return (cur === '' || offCodes.includes(cur)) && canAssignRoleShift(e, cellKey, day, code);
           });
           candidates.slice(0, need).forEach(e => {
             if (!schedData[e.id]) schedData[e.id] = {};
-            if (!schedData[e.id][key]) schedData[e.id][key] = {};
-            if (schedData[e.id][key][day] !== code) { schedData[e.id][key][day] = code; changes++; if (db) db.ref(`schedules/${e.id}/${key}/${day}`).set(code).catch(()=>{}); }
+            if (!schedData[e.id][cellKey]) schedData[e.id][cellKey] = {};
+            if (schedData[e.id][cellKey][day] !== code) { schedData[e.id][cellKey][day] = code; changes++; if (db) db.ref(`schedules/${e.id}/${cellKey}/${day}`).set(code).catch(()=>{}); }
             need--;
           });
-          if (need > 0) conflicts.push(`Front Office ${code} Day ${day}: need ${need} more ${rule.label}${need>1?'s':''}`);
+          if (need > 0) conflicts.push(`Front Office ${code} Cycle Day ${cell.cycleDay}: need ${need} more ${rule.label}${need>1?'s':''}`);
         });
       });
-    }
+    });
   }
 
   if (!previewOnly) {
@@ -6211,28 +6287,29 @@ function getDistributedOffDays(totalOff, numDays, seed) {
 }
 
 async function resetRosterCurrentMonth() {
-  const startDay = Math.max(1, parseInt(document.getElementById('autoStartDay')?.value || 1) || 1);
-  const endDay = Math.min(parseInt(document.getElementById('autoEndDay')?.value || getDIM()) || getDIM(), getDIM());
+  const { from: startCycleDay, to: endCycleDay } = autoGetEffectiveRange();
+  const cells = autoGetCycleCells();
   const dept = document.getElementById('autoDept')?.value || 'all';
   const section = document.getElementById('autoSection')?.value || 'all';
-  if (!confirm(`Reset roster for selected staff (days ${startDay}–${endDay})? This cannot be undone.`)) return;
+  if (!confirm(`Reset roster for selected staff (cycle day ${startCycleDay}–${endCycleDay})? This cannot be undone.`)) return;
   const key = schKey();
   let targets = staffList();
   if (dept !== 'all') targets = targets.filter(e=>e.department===dept);
   if (section !== 'all') targets = targets.filter(e=>(e.section||'')===section);
   targets.forEach(emp => {
     if(!schedData[emp.id]) schedData[emp.id]={};
-    if(!schedData[emp.id][key]) schedData[emp.id][key]={};
-    for(let d=startDay; d<=endDay; d++) {
-      schedData[emp.id][key][d] = '';
-      if(db) db.ref(`schedules/${emp.id}/${key}/${d}`).remove().catch(()=>{});
-    }
+    cells.forEach(cell => {
+      const cellKey = cell.monthKey, d = cell.day;
+      if(!schedData[emp.id][cellKey]) schedData[emp.id][cellKey]={};
+      schedData[emp.id][cellKey][d] = '';
+      if(db) db.ref(`schedules/${emp.id}/${cellKey}/${d}`).remove().catch(()=>{});
+    });
   });
   saveLocal();
   queueArchiveSnapshot(key, 'roster reset');
   renderRoster();
   closeModal('autoScheduleModal');
-  alert(`✅ Roster cleared for days ${startDay}–${endDay} for ${targets.length} staff.`);
+  alert(`✅ Roster cleared for cycle day ${startCycleDay}–${endCycleDay} for ${targets.length} staff.`);
 }
 
 async function applyAutoSchedule() {
@@ -7374,16 +7451,67 @@ async function clearAll() {
 }
 
 // ═══════════════════════════════════════════════════
-// BULK FILL
+// BULK FILL — multi-shift, roster-cycle aware
 // ═══════════════════════════════════════════════════
 function openBulk() {
-  document.getElementById("bTo").value=getDIM();
+  // Build shift checkboxes (all working shifts, OFF/leave excluded from this picker)
+  const WORK_CODES = ["MOR","AFT","M11","M12","EVE"];
+  const box = document.getElementById("bShiftChecks");
+  if (box) {
+    box.innerHTML = WORK_CODES.filter(c => SHIFTS[c]).map(c => {
+      const v = SHIFTS[c];
+      const checked = (c === "MOR" || c === "AFT" || c === "EVE") ? "checked" : "";
+      return `<label style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--navy);background:#fff;border:1.5px solid #dde3f0;border-radius:8px;padding:7px 10px;cursor:pointer">
+        <input type="checkbox" class="bShiftChk" value="${c}" ${checked}>
+        <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${v.bg};border:1.5px solid ${v.border}"></span>
+        <span><b>${c}</b> — ${v.label} <span style="color:var(--slate2);font-size:10px">${shiftTime(v)}</span></span>
+      </label>`;
+    }).join("");
+  }
+  // Default range = full roster cycle (15th → 14th next month), 30 cycle-days
+  document.getElementById("bRangeRoster").checked = true;
+  document.getElementById("bFrom").value = 1;
+  document.getElementById("bTo").value = 30;
+  const lbl = document.getElementById("bRosterLabelSpan");
+  if (lbl) lbl.textContent = (typeof getRosterLabel === 'function') ? getRosterLabel() : "";
+  bToggleRangeMode();
   document.getElementById("bulkModal").style.display="flex";
 }
+
+function bToggleRangeMode() {
+  const isCustom = document.getElementById("bRangeCustom")?.checked;
+  const row = document.getElementById("bCustomRangeRow");
+  if (row) row.style.display = isCustom ? "grid" : "none";
+}
+
+// Resolve the effective {from, to} cycle-day range and the list of {monthKey, day, cycleDay, dow}
+// cells it covers, using the 15→14 roster cycle when "roster" mode is selected,
+// or a custom 1–30 cycle-day range otherwise.
+function bGetEffectiveRange() {
+  const useRoster = document.getElementById("bRangeRoster")?.checked;
+  const from = useRoster ? 1 : Math.max(1, +document.getElementById("bFrom").value || 1);
+  const to = useRoster ? 30 : Math.min(30, +document.getElementById("bTo").value || 30);
+  return { from, to };
+}
+
+function bGetCycleCells() {
+  const { from, to } = bGetEffectiveRange();
+  const rosterDays = getRosterDays(); // [{y,m,d}, ...] length 30, cycle index 0 = day15 of current month
+  const cells = [];
+  for (let i = from - 1; i <= to - 1 && i < rosterDays.length; i++) {
+    const rd = rosterDays[i];
+    if (!rd) continue;
+    const monthKey = schKey(rd.y, rd.m);
+    const dow = new Date(rd.y, rd.m, rd.d).getDay();
+    cells.push({ cycleDay: i + 1, monthKey, day: rd.d, dow });
+  }
+  return cells;
+}
+
 async function applyBulk() {
-  const from = +document.getElementById("bFrom").value;
-  const to = +document.getElementById("bTo").value;
-  const code = document.getElementById("bShift").value;
+  const codes = Array.from(document.querySelectorAll('#bShiftChecks .bShiftChk:checked')).map(el => el.value);
+  if (!codes.length) { alert("Select at least one shift to fill (Morning, Afternoon, Mid-11, Mid-12, or Night)."); return; }
+  const fillMode = document.getElementById("bFillMode")?.value || "rotate";
   const scope = document.getElementById("bScope").value;
   const hf = document.getElementById("hotelFilter")?.value || "all";
   let targets = staffList();
@@ -7399,41 +7527,79 @@ async function applyBulk() {
   const skipLeave = !!document.getElementById("bSkipLeave")?.checked;
   const skipExisting = !!document.getElementById("bSkipExisting")?.checked;
   const skipWeekend = !!document.getElementById("bSkipWeekend")?.checked;
+  const noEveToMor = !!document.getElementById("bNoEveToMor")?.checked;
   const selectedOnly = !!document.getElementById("bSelectedOnly")?.checked;
   const defaultOnly = !!document.getElementById("bDefaultOnly")?.checked;
   if (selectedOnly) {
     if (!selectedIds.size) { alert("Select one or more staff rows first, then use Smart Fill again."); return; }
     targets = targets.filter(e => selectedIds.has(e.id));
   }
-  if (defaultOnly) targets = targets.filter(e => (e.defaultShift || '') === code);
+  if (defaultOnly) targets = targets.filter(e => codes.includes(e.defaultShift || ''));
   if (!targets.length) { alert("No staff matched the current Smart Fill filters."); return; }
+
   const LEAVE_CODES = new Set(["AL","SL","ML","UL","CL","BL","SICK","ABS"]);
   const OFF_CODES = new Set(["OFF","EX","O","X","PH"]);
-  const k = schKey();
-  const numDays = getDIM();
+  const cells = bGetCycleCells();
+  if (!cells.length) { alert("No valid days found in the selected range."); return; }
+
   const updates = {};
   let skipped = 0, written = 0;
-  targets.forEach(emp => {
+
+  targets.forEach((emp, empIdx) => {
     if (!schedData[emp.id]) schedData[emp.id] = {};
-    if (!schedData[emp.id][k]) schedData[emp.id][k] = {};
-    for (let d = from; d <= Math.min(to, numDays); d++) {
-      const dow = new Date(YEAR, MONTH, d).getDay();
-      const cur = schedData[emp.id][k][d];
-      if (skipWeekend && (dow === 0 || dow === 6)) { skipped++; continue; }
-      if (skipExisting && cur) { skipped++; continue; }
-      if (skipLeave && cur && LEAVE_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
-      if (skipOff && cur && OFF_CODES.has(String(cur).toUpperCase())) { skipped++; continue; }
-      if (skipOff && Array.isArray(emp.offDaysList) && emp.offDaysList.includes(dow)) { skipped++; continue; }
+    // For "balance" mode, track running count of assignments per shift for this employee's pass
+    let rotateCursor = empIdx % codes.length;
+    cells.forEach((cell, cellIdx) => {
+      const k = cell.monthKey, d = cell.day;
+      if (!schedData[emp.id][k]) schedData[emp.id][k] = {};
+      const sch = schedData[emp.id][k];
+      const cur = sch[d];
+      if (skipWeekend && (cell.dow === 0 || cell.dow === 6)) { skipped++; return; }
+      if (skipExisting && cur) { skipped++; return; }
+      if (skipLeave && cur && LEAVE_CODES.has(String(cur).toUpperCase())) { skipped++; return; }
+      if (skipOff && cur && OFF_CODES.has(String(cur).toUpperCase())) { skipped++; return; }
+      if (skipOff && Array.isArray(emp.offDaysList) && emp.offDaysList.includes(cell.dow)) { skipped++; return; }
+
+      // Determine which shift code to assign for this cell
+      let code;
+      if (fillMode === "defaultShift") {
+        code = codes.includes(emp.defaultShift) ? emp.defaultShift : codes[0];
+      } else if (fillMode === "balance") {
+        // Pick the shift with the fewest assignments so far today across targets (simple day-local balance)
+        code = codes[cellIdx % codes.length];
+      } else {
+        // rotate: each employee starts at a different offset and rotates through codes day by day
+        code = codes[rotateCursor % codes.length];
+        rotateCursor++;
+      }
+
+      // Block Night -> Morning next day (insufficient rest), only meaningful within the same monthKey
+      if (noEveToMor && code === "MOR") {
+        const prevVal = sch[d - 1];
+        if (prevVal === "EVE") {
+          code = codes.includes("AFT") ? "AFT" : (codes.find(c => c !== "MOR") || code);
+        }
+      }
+      if (noEveToMor && code === "EVE") {
+        const nextVal = sch[d + 1];
+        if (nextVal === "MOR") {
+          code = codes.includes("AFT") ? "AFT" : (codes.find(c => c !== "EVE") || code);
+        }
+      }
+
       updates[`schedules/${emp.id}/${k}/${d}`] = code;
-      schedData[emp.id][k][d] = code;
+      sch[d] = code;
       written++;
-    }
+    });
   });
+
   if (db && Object.keys(updates).length) { try { await db.ref().update(updates); } catch(e){} }
+  const k = schKey();
   queueArchiveSnapshot(k, "smart auto fill");
   closeModal("bulkModal");
   renderRoster();
-  alert(`✅ Smart Fill complete. Updated ${written} cell${written===1?'':'s'}${skipped ? ` · Skipped ${skipped}` : ''}.`);
+  const { from, to } = bGetEffectiveRange();
+  alert(`✅ Smart Fill complete. Updated ${written} cell${written===1?'':'s'} across ${codes.length} shift${codes.length===1?'':'s'} (cycle day ${from}–${to})${skipped ? ` · Skipped ${skipped}` : ''}.`);
   if (skipped) {
     try { console.log(`[Smart Auto Fill] wrote ${written}, skipped ${skipped} protected cells`); } catch(e){}
   }
@@ -7553,12 +7719,14 @@ function printRoster() {
         </select>
       </div>
       <div><label class="lbl">Shifts to schedule</label>
-        <select class="inp" id="autoShiftScope" multiple size="3" style="height:auto;min-height:72px">
+        <select class="inp" id="autoShiftScope" multiple size="5" style="height:auto;min-height:108px">
           <option value="MOR" selected>MOR — Morning</option>
           <option value="AFT" selected>AFT — Afternoon</option>
-          <option value="EVE" selected>EVE — Evening/Night</option>
+          <option value="M11">M11 — Mid-11</option>
+          <option value="M12">M12 — Mid-12</option>
+          <option value="EVE" selected>EVE — Night</option>
         </select>
-        <div style="font-size:10px;color:var(--slate);margin-top:4px">Select the shifts needed for this section.</div>
+        <div style="font-size:10px;color:var(--slate);margin-top:4px">Select the shifts needed for this section. Hold Ctrl/Cmd to multi-select. Include Mid-11/Mid-12 to cover all 4+ working shifts.</div>
       </div>
       <div><label class="lbl">Hotel Priority</label>
         <select class="inp" id="autoHotel">
@@ -7642,10 +7810,20 @@ function printRoster() {
       </div>
     </div>
     <div id="autoSchedulePreview" style="margin-top:12px;padding:12px;background:var(--ice2);border-radius:10px;font-size:11px;color:var(--slate);display:none"></div>
-    <div style="background:var(--red-l);border:1.5px solid var(--red);border-radius:8px;padding:10px;margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <div><label class="lbl">📅 Roster Start Day</label><input class="inp" id="autoStartDay" type="number" min="1" max="31" value="1"></div>
-      <div><label class="lbl">📅 Roster End Day</label><input class="inp" id="autoEndDay" type="number" min="1" max="31"></div>
-      <div class="ff" style="grid-column:1/-1;font-size:10px;color:var(--red)">Optional: restrict auto-scheduling to a date range within the selected month.</div>
+    <div style="background:var(--red-l);border:1.5px solid var(--red);border-radius:8px;padding:10px;margin-top:10px">
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;background:#fff;padding:6px 12px;border-radius:8px;flex:1">
+          <input type="radio" name="autoRangeMode" id="autoRangeRoster" value="roster" checked onchange="autoToggleRangeMode()"> 📅 Full Roster Cycle (<span id="autoRosterLabelSpan"></span>)
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;background:#fff;padding:6px 12px;border-radius:8px;flex:1">
+          <input type="radio" name="autoRangeMode" id="autoRangeCustom" value="custom" onchange="autoToggleRangeMode()"> ✏️ Custom Range
+        </label>
+      </div>
+      <div id="autoCustomRangeRow" class="fg" style="display:none">
+        <div><label class="lbl">📅 From (cycle day 1–30)</label><input class="inp" id="autoStartDay" type="number" min="1" max="30" value="1"></div>
+        <div><label class="lbl">📅 To (cycle day 1–30)</label><input class="inp" id="autoEndDay" type="number" min="1" max="30" value="30"></div>
+      </div>
+      <div class="ff" style="font-size:10px;color:var(--red);margin-top:6px">Cycle day 1 = roster start (15th); cycle day 30 = roster end (14th next month). Custom range still uses cycle-day numbering.</div>
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeModal('autoScheduleModal')">Cancel</button>
@@ -15939,46 +16117,12 @@ console.log('[YPH v6] Improvements loaded: Roster toolbar redesign · DEV panel 
     }
   };
 
-  // Enhanced Smart Auto Fill modal
+  // Enhanced Smart Auto Fill modal — DISABLED: superseded by native multi-shift fill controls
+  // built directly into #bulkModal (see openBulk/applyBulk). The old decorative fields here
+  // (v7FillMode, v7FillOverwrite, etc.) were never wired to applyBulk() and would confuse users
+  // alongside the new real controls, so this injector is now a no-op.
   function injectSmartFillEnhancements() {
-    const modal = document.getElementById('bulkModal');
-    if (!modal || modal.dataset.v7fill) return;
-    modal.dataset.v7fill = '1';
-
-    const form = modal.querySelector('.fg') || modal.querySelector('[style*="grid"]') || modal.querySelector('.modal-body');
-    if (!form) return;
-
-    const extra = document.createElement('div');
-    extra.className = 'v7as-addon';
-    extra.style.marginTop = '12px';
-    extra.innerHTML = `
-      <div class="v7as-addon-title">🧠 Smart Fill Options <span style="font-size:9px;background:#EDE9FE;color:#7C3AED;border:1px solid #DDD6FE;border-radius:5px;padding:1px 7px;font-weight:700">SMART</span></div>
-      <div class="v7as-chk-row" style="margin-bottom:8px">
-        <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectLeave" checked> Respect annual leave</label>
-        <label class="v7as-chk-item"><input type="checkbox" id="v7FillRespectOff" checked> Respect off days</label>
-        <label class="v7as-chk-item"><input type="checkbox" id="v7FillNoConsecNight"> Max 3 consecutive nights</label>
-        <label class="v7as-chk-item"><input type="checkbox" id="v7FillBalance"> Balance across hotels</label>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <label style="font-size:10px;color:#6D28D9;font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">Fill Mode</label>
-          <select id="v7FillMode" class="v7as-inp">
-            <option value="all">Fill All Empty Cells</option>
-            <option value="gap">Fill Coverage Gaps Only</option>
-            <option value="pattern">Apply Pattern</option>
-          </select>
-        </div>
-        <div>
-          <label style="font-size:10px;color:#6D28D9;font-weight:700;display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px">If Cell Has Value</label>
-          <select id="v7FillOverwrite" class="v7as-inp">
-            <option value="skip">Skip Existing</option>
-            <option value="overwrite">Overwrite All</option>
-            <option value="overwrite_off">Overwrite OFF Only</option>
-          </select>
-        </div>
-      </div>
-    `;
-    form.appendChild(extra);
+    return;
   }
 
   setTimeout(injectAutoScheduleEnhancements, 1500);
@@ -17299,9 +17443,12 @@ setTimeout(()=>{
     const wrapped = async function(){
       const pres = pressureByDay();
       const peakDays = Object.keys(pres).filter(d => isPressureDay(pres[d])).map(Number);
-      const code = (document.getElementById('bShift')||{}).value || '';
-      const from = +(document.getElementById('bFrom')||{}).value;
-      const to   = +(document.getElementById('bTo')||{}).value;
+      const checkedShiftEls = document.querySelectorAll('#bShiftChecks input[type="checkbox"]:checked');
+      const codes = Array.from(checkedShiftEls).map(el => el.value);
+      const code = codes.length === 1 ? codes[0] : '';
+      const range = (typeof bGetEffectiveRange === 'function') ? bGetEffectiveRange() : null;
+      const from = range ? range.from : +(document.getElementById('bFrom')||{}).value;
+      const to   = range ? range.to   : +(document.getElementById('bTo')||{}).value;
       const blockAL = (document.getElementById('yphFcBlockALPeak')||{}).checked;
       const skipAL  = (document.getElementById('yphFcSkipAL')||{}).checked;
 
