@@ -18670,3 +18670,183 @@ body.has-bg-image::after{
   })();
 </script>
 
+<!-- === DEV PANEL FULL-WIDTH LAYOUT FIX (v2, wins the cascade) ===
+     Fixes the half-width/blank-right issue caused by the older grid sidebar
+     override fighting the v6 top navigation layout. -->
+<style id="dev-panel-full-layout-fix-v2">
+  #page-settings.active #cp-outer {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+  }
+  #page-settings.active #cp-topbar-area {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+  }
+  #page-settings.active .cp-wrap {
+    display: block !important;
+    grid-template-columns: none !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    background: linear-gradient(180deg,#0A1628,#08121E) !important;
+    box-sizing: border-box !important;
+  }
+  #page-settings.active .cp-sidebar {
+    display: none !important;
+  }
+  #page-settings.active .cp-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    padding: 16px 24px 120px !important;
+    box-sizing: border-box !important;
+  }
+  #page-settings.active .cp-content > .cp-panel,
+  #page-settings.active #cpt-modules {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+  }
+  #page-settings.active #cpModGrid,
+  #page-settings.active .mg {
+    width: 100% !important;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+  }
+  @media (max-width: 760px) {
+    #page-settings.active .cpv6-topbar { align-items:flex-start !important; }
+    #page-settings.active .cpv6-tools { width:100% !important; flex-wrap:wrap !important; }
+    #page-settings.active .cpv6-stats { grid-template-columns:1fr 1fr !important; padding-left:14px !important; padding-right:14px !important; }
+    #page-settings.active .cpv6-nav { padding-left:14px !important; padding-right:14px !important; }
+    #page-settings.active .cp-content { padding-left:14px !important; padding-right:14px !important; }
+  }
+</style>
+<script>
+  (function () {
+    function enforceFullDevPanelLayout() {
+      var sp = document.getElementById('page-settings');
+      if (!sp || !sp.classList.contains('active')) return;
+      var outer = document.getElementById('cp-outer');
+      var wrap = sp.querySelector('.cp-wrap');
+      var sidebar = sp.querySelector('.cp-sidebar');
+      var content = sp.querySelector('.cp-content');
+      if (outer) {
+        outer.style.display = 'flex';
+        outer.style.flexDirection = 'column';
+        outer.style.overflow = 'hidden';
+        outer.style.padding = '0';
+      }
+      if (wrap) {
+        wrap.classList.remove('cp-acc-mode');
+        wrap.style.display = 'block';
+        wrap.style.gridTemplateColumns = 'none';
+        wrap.style.width = '100%';
+        wrap.style.maxWidth = 'none';
+        wrap.style.height = '100%';
+        wrap.style.overflow = 'hidden';
+      }
+      if (sidebar) sidebar.style.display = 'none';
+      if (content) {
+        content.style.display = 'flex';
+        content.style.flexDirection = 'column';
+        content.style.width = '100%';
+        content.style.maxWidth = 'none';
+        content.style.height = '100%';
+        content.style.overflowY = 'auto';
+        content.style.overflowX = 'hidden';
+        content.style.padding = '16px 24px 120px';
+      }
+    }
+    document.addEventListener('click', function(e){
+      var t = e.target.closest && (e.target.closest('[data-p="settings"]') || e.target.closest('.cpv6-nitem'));
+      if (t) [50, 200, 600].forEach(function(ms){ setTimeout(enforceFullDevPanelLayout, ms); });
+    }, true);
+    window.addEventListener('load', function(){ setTimeout(enforceFullDevPanelLayout, 700); });
+    setInterval(enforceFullDevPanelLayout, 800);
+    window._enforceFullDevPanelLayout = enforceFullDevPanelLayout;
+  })();
+</script>
+
+<!-- === DEV PANEL FRONTMOST + FULL-VIEW FIX (v3) ===
+     Ensures the Dev Panel is not hidden behind the login/landing overlay and
+     uses the full visible page. -->
+<style id="dev-panel-frontmost-full-view-fix-v3">
+  #page-settings.active {
+    z-index: 2147483000 !important;
+    top: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    bottom: 0 !important;
+  }
+  body:has(#page-settings.active) #landing,
+  body:has(#page-settings.active) .landing,
+  body:has(#page-settings.active) [id*="landing" i] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  #page-settings.active #cp-outer {
+    height: 100vh !important;
+    max-height: 100vh !important;
+  }
+  #page-settings.active .cpv6-topbar {
+    padding-top: 18px !important;
+  }
+</style>
+<script>
+  (function () {
+    var previousLandingDisplay = null;
+    function forceFrontmostFullDevPanel() {
+      var sp = document.getElementById('page-settings');
+      var active = !!(sp && sp.classList.contains('active'));
+      var landing = document.getElementById('landing');
+      if (active) {
+        if (sp) {
+          sp.style.zIndex = '2147483000';
+          sp.style.top = '0';
+          sp.style.bottom = '0';
+          sp.style.height = '100vh';
+          sp.style.maxHeight = '100vh';
+        }
+        if (landing) {
+          if (previousLandingDisplay === null) previousLandingDisplay = landing.style.display || '';
+          landing.style.display = 'none';
+          landing.style.visibility = 'hidden';
+          landing.style.opacity = '0';
+          landing.style.pointerEvents = 'none';
+        }
+        if (typeof window._enforceFullDevPanelLayout === 'function') window._enforceFullDevPanelLayout();
+      } else if (landing && previousLandingDisplay !== null) {
+        landing.style.display = previousLandingDisplay;
+        landing.style.visibility = '';
+        landing.style.opacity = '';
+        landing.style.pointerEvents = '';
+        previousLandingDisplay = null;
+      }
+    }
+    document.addEventListener('click', function(e){
+      var t = e.target.closest && (e.target.closest('[data-p="settings"]') || e.target.closest('.cpv6-nitem') || e.target.closest('#landing'));
+      if (t) [20, 80, 200, 600].forEach(function(ms){ setTimeout(forceFrontmostFullDevPanel, ms); });
+    }, true);
+    window.addEventListener('load', function(){ setTimeout(forceFrontmostFullDevPanel, 700); });
+    setInterval(forceFrontmostFullDevPanel, 500);
+    window._forceFrontmostFullDevPanel = forceFrontmostFullDevPanel;
+  })();
+</script>
+
