@@ -18851,9 +18851,7 @@ body.has-bg-image::after{
 </script>
 
 
-<!-- === DEV PANEL FULL-VIEW FIX v4 (final, wins the cascade) ===
-     Makes the dev panel truly fill the viewport and guarantees its
-     inner content scrolls so nothing (e.g. Departments list) is clipped. -->
+<!-- === DEV PANEL FULL-VIEW FIX v4 (final, wins the cascade) === -->
 <style id="dev-panel-full-view-fix-v4">
   html:has(#page-settings.active),
   body:has(#page-settings.active) {
@@ -18864,7 +18862,6 @@ body.has-bg-image::after{
   #page-settings.active {
     position: fixed !important;
     inset: 0 !important;
-    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
     width: 100vw !important;
     height: 100vh !important;
     max-height: 100vh !important;
@@ -18876,9 +18873,7 @@ body.has-bg-image::after{
     flex-direction: column !important;
     z-index: 2147483000 !important;
     background: #08121e !important;
-    transform: none !important;
   }
-  #page-settings.active > * { min-height: 0 !important; }
   #page-settings.active #cp-outer {
     display: flex !important;
     flex-direction: column !important;
@@ -18891,12 +18886,6 @@ body.has-bg-image::after{
     padding: 0 !important;
     box-sizing: border-box !important;
   }
-  #page-settings.active #cp-topbar-area,
-  #page-settings.active .cpv6-topbar,
-  #page-settings.active .cpv6-stats,
-  #page-settings.active .cpv6-nav {
-    flex: 0 0 auto !important;
-  }
   #page-settings.active .cp-wrap {
     display: flex !important;
     flex-direction: column !important;
@@ -18906,7 +18895,6 @@ body.has-bg-image::after{
     overflow: hidden !important;
     width: 100% !important;
     max-width: none !important;
-    box-sizing: border-box !important;
   }
   #page-settings.active .cp-sidebar { display: none !important; }
   #page-settings.active .cp-content {
@@ -18923,38 +18911,48 @@ body.has-bg-image::after{
     overscroll-behavior: contain !important;
     padding: 16px 24px 160px !important;
     box-sizing: border-box !important;
-    scrollbar-gutter: stable both-edges;
   }
-  #page-settings.active .cp-content > * { max-width: 100% !important; }
 </style>
 <script>
   (function () {
-    function fixV4() {
+    function closeDevPanel() {
       var sp = document.getElementById('page-settings');
-      if (!sp || !sp.classList.contains('active')) return;
-      var content = sp.querySelector('.cp-content');
-      if (content) {
-        content.style.flex = '1 1 auto';
-        content.style.minHeight = '0';
-        content.style.maxHeight = '100%';
-        content.style.overflowY = 'auto';
-        content.style.overflowX = 'hidden';
-        content.style.paddingBottom = '160px';
+      if (sp) {
+        sp.classList.remove('active');
+        ['top','left','right','bottom','position','height','maxHeight','minHeight',
+         'width','transform','margin','zIndex','display','overflow'
+        ].forEach(function(k){ sp.style[k] = ''; });
       }
-      var wrap = sp.querySelector('.cp-wrap');
-      if (wrap) {
-        wrap.style.display = 'flex';
-        wrap.style.flexDirection = 'column';
-        wrap.style.flex = '1 1 auto';
-        wrap.style.minHeight = '0';
-        wrap.style.overflow = 'hidden';
+      // Undo the v3 landing-hider so the landing screen shows again
+      var landing = document.getElementById('landing');
+      if (landing) {
+        landing.style.display = 'flex';
+        landing.style.visibility = '';
+        landing.style.opacity = '';
+        landing.style.pointerEvents = '';
       }
+      // Restore document scroll
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     }
-    document.addEventListener('click', function () {
-      [30, 120, 300, 700].forEach(function (ms) { setTimeout(fixV4, ms); });
+    // Intercept the Exit button (and any element that calls backToLanding)
+    document.addEventListener('click', function (e) {
+      var t = e.target.closest && e.target.closest(
+        '.cpv6-exit, [onclick*="backToLanding"]'
+      );
+      if (t) setTimeout(closeDevPanel, 0);
     }, true);
-    window.addEventListener('load', function () { setTimeout(fixV4, 400); });
-    setInterval(fixV4, 600);
+    // ESC also exits the panel
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') {
+        var sp = document.getElementById('page-settings');
+        if (sp && sp.classList.contains('active')) {
+          if (typeof window.backToLanding === 'function') window.backToLanding();
+          closeDevPanel();
+        }
+      }
+    });
+    window._closeDevPanel = closeDevPanel;
   })();
 </script>
 </body></html>
