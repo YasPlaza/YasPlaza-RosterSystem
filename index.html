@@ -18915,44 +18915,71 @@ body.has-bg-image::after{
 </style>
 <script>
   (function () {
-    function closeDevPanel() {
+    // Remember the last non-settings page so Exit returns there
+    window._lastAppPage = window._lastAppPage || 'roster';
+    try {
+      var _origSP2 = window.switchPage;
+      if (typeof _origSP2 === 'function') {
+        window.switchPage = function (name) {
+          if (name && name !== 'settings') window._lastAppPage = name;
+          return _origSP2.apply(this, arguments);
+        };
+      }
+    } catch (e) {}
+
+    function clearSettingsInlineStyles() {
       var sp = document.getElementById('page-settings');
-      if (sp) {
-        sp.classList.remove('active');
-        ['top','left','right','bottom','position','height','maxHeight','minHeight',
-         'width','transform','margin','zIndex','display','overflow'
-        ].forEach(function(k){ sp.style[k] = ''; });
-      }
-      // Undo the v3 landing-hider so the landing screen shows again
-      var landing = document.getElementById('landing');
-      if (landing) {
-        landing.style.display = 'flex';
-        landing.style.visibility = '';
-        landing.style.opacity = '';
-        landing.style.pointerEvents = '';
-      }
-      // Restore document scroll
+      if (!sp) return;
+      ['top','left','right','bottom','position','height','maxHeight','minHeight',
+       'width','transform','margin','zIndex','display','overflow'
+      ].forEach(function (k) { sp.style[k] = ''; });
+    }
+
+    // Exit the Dev Panel by returning to the MAIN APP (not landing).
+    function exitDevPanelToApp() {
+      clearSettingsInlineStyles();
       document.documentElement.style.overflow = '';
       document.body.style.overflow = '';
+      var target = window._lastAppPage && window._lastAppPage !== 'settings'
+        ? window._lastAppPage : 'roster';
+      try {
+        if (typeof window.switchPage === 'function') {
+          window.switchPage(target);
+        } else {
+          var sp = document.getElementById('page-settings');
+          if (sp) sp.classList.remove('active');
+        }
+      } catch (e) {}
+      var app = document.getElementById('app');
+      if (app) { app.style.display = ''; app.classList.add('show'); }
+      var landing = document.getElementById('landing');
+      if (landing) landing.style.display = 'none';
     }
-    // Intercept the Exit button (and any element that calls backToLanding)
+
+    // Intercept the Dev Panel Exit button and block backToLanding()
     document.addEventListener('click', function (e) {
       var t = e.target.closest && e.target.closest(
-        '.cpv6-exit, [onclick*="backToLanding"]'
+        '.cpv6-exit, #page-settings [onclick*="backToLanding"]'
       );
-      if (t) setTimeout(closeDevPanel, 0);
+      if (t) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        exitDevPanelToApp();
+      }
     }, true);
-    // ESC also exits the panel
+
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         var sp = document.getElementById('page-settings');
         if (sp && sp.classList.contains('active')) {
-          if (typeof window.backToLanding === 'function') window.backToLanding();
-          closeDevPanel();
+          e.preventDefault();
+          exitDevPanelToApp();
         }
       }
     });
-    window._closeDevPanel = closeDevPanel;
+
+    window._exitDevPanelToApp = exitDevPanelToApp;
   })();
 </script>
 </body></html>
