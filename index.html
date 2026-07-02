@@ -10871,7 +10871,7 @@ function devExportScheduleJSON() {
     hotels.forEach(h => {
       for (let i=0;i<10;i++){
         const d = new Date(today.getTime()+i*86400000);
-        rows.push([h.id, d.toISOString().slice(0,10),'','','','']);
+        rows.push([h.id, (function(x){var y=x.getFullYear(),mo=String(x.getMonth()+1).padStart(2,'0'),dd=String(x.getDate()).padStart(2,'0');return y+'-'+mo+'-'+dd;})(d),'','','','']);
       }
     });
     const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
@@ -11004,7 +11004,7 @@ function devExportScheduleJSON() {
         '<thead><tr style="background:var(--navy);color:#fff"><th style="padding:6px">Date</th><th style="padding:6px">Occ %</th><th style="padding:6px">Arrivals</th><th style="padding:6px">Departures</th><th style="padding:6px">Notes</th></tr></thead><tbody>';
       for (let i=0;i<10;i++){
         const d = new Date(today.getTime()+i*86400000);
-        const ds = d.toISOString().slice(0,10);
+        const ds = (function(x){var y=x.getFullYear(),mo=String(x.getMonth()+1).padStart(2,'0'),dd=String(x.getDate()).padStart(2,'0');return y+'-'+mo+'-'+dd;})(d);
         const row = data.find(r=>r.hotel===h.id && r.date===ds) || {date:ds,occ:'',arr:'',dep:'',notes:''};
         html += `<tr><td style="padding:3px"><input type="date" value="${row.date}" data-h="${h.id}" data-i="${i}" data-f="date" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:100%"></td>`+
           `<td style="padding:3px"><input type="number" value="${row.occ||''}" data-h="${h.id}" data-i="${i}" data-f="occ" min="0" max="100" style="border:1px solid #ddd;padding:4px;border-radius:4px;width:70px"></td>`+
@@ -11044,12 +11044,13 @@ function devExportScheduleJSON() {
   };
 
   // ─── Build next-10 days for one hotel ───
+  function _localYMD(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
   function getNext10(hotelId, allData){
     const today = new Date(); today.setHours(0,0,0,0);
     const out = [];
     for (let i=0;i<10;i++){
       const d = new Date(today.getTime()+i*86400000);
-      const ds = d.toISOString().slice(0,10);
+      const ds = _localYMD(d);
       const row = allData.find(r => r.hotel===hotelId && r.date===ds) || {hotel:hotelId,date:ds,occ:0,arr:0,dep:0,notes:''};
       out.push(Object.assign({}, row, {_date:d}));
     }
@@ -11089,7 +11090,7 @@ function devExportScheduleJSON() {
       const combinedRows = [];
       for (let i = 0; i < 10; i++) {
         const d = new Date(today.getTime() + i * 86400000);
-        const ds = d.toISOString().slice(0, 10);
+        const ds = (function(x){var y=x.getFullYear(),mo=String(x.getMonth()+1).padStart(2,'0'),dd=String(x.getDate()).padStart(2,'0');return y+'-'+mo+'-'+dd;})(d);
         let arr=0, dep=0, occSum=0, occCount=0, rev=0;
         subHotels.forEach(sh => {
           const r = allData.find(x => x.hotel === sh.id && x.date === ds);
@@ -18534,9 +18535,10 @@ select { color-scheme: dark; }
     var today = new Date();
     today.setHours(0,0,0,0);
     var out = [];
+    function _lymd(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
     for (var i=0;i<10;i++) {
       var d = new Date(today.getTime() + i * 86400000);
-      var ds = d.toISOString().slice(0,10);
+      var ds = _lymd(d);
       var row = data.find(function(r){ return r && r.hotel === hotelId && r.date === ds; }) || { hotel: hotelId, date: ds, occ: 0, arr: 0, dep: 0, notes: '' };
       out.push({ hotel: hotelId, date: ds, _date: d, occ: +row.occ || 0, arr: +row.arr || 0, dep: +row.dep || 0, notes: row.notes || '' });
     }
