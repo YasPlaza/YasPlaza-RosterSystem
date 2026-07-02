@@ -2035,7 +2035,10 @@ html, body {
           </div>
         </div>
         <button class="bgold" onclick="cpChangeDevPass()" style="margin-bottom:16px">🔐 Update Developer Password</button>
-        <div class="cp-stitle">Department Passwords</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="cp-stitle" style="margin-bottom:0;flex:1">Department Passwords</div>
+          <button class="bx bxn" style="font-size:10px;padding:6px 10px;white-space:nowrap" onclick="cpBulkResetDeptPass()">🔁 Reset All</button>
+        </div>
         <div id="cpDeptPassList" style="margin-bottom:12px"></div>
         <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:9px;align-items:flex-end;padding:11px;background:rgba(201,150,58,.05);border:1.5px dashed rgba(201,150,58,.25);border-radius:9px">
           <div><label class="cp-lbl2">Department</label><select class="cp-inp2" id="cpDeptPassSel"></select></div>
@@ -2136,7 +2139,28 @@ html, body {
         <div class="cp-pt">📋 Activity Logs <span class="cp-badge">System Audit</span></div>
         <button class="bx bxn" onclick="ACCESS_LOG=[];localStorage.removeItem('accessLog_v1');cpRenderLogs()" style="font-size:11px;padding:6px 12px">Clear</button>
       </div>
-      <div class="cp-body"><div class="clog" id="cpLogList"></div></div>
+      <div class="cp-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1.4fr;gap:8px;margin-bottom:12px">
+          <div><label class="cp-lbl2">Department</label>
+            <select class="cp-inp2" id="cpLogDeptFilter" onchange="cpRenderLogs()">
+              <option value="">All Departments</option>
+            </select>
+          </div>
+          <div><label class="cp-lbl2">Action Type</label>
+            <select class="cp-inp2" id="cpLogTypeFilter" onchange="cpRenderLogs()">
+              <option value="">All Types</option>
+              <option value="s">✅ Success</option>
+              <option value="w">⚠️ Warning</option>
+              <option value="e">⛔ Error</option>
+              <option value="i">ℹ️ Info</option>
+            </select>
+          </div>
+          <div><label class="cp-lbl2">Search</label>
+            <input class="cp-inp2" id="cpLogSearch" placeholder="Search log messages…" oninput="cpRenderLogs()">
+          </div>
+        </div>
+        <div class="clog" id="cpLogList"></div>
+      </div>
     </div>
 
     <!-- DANGER ZONE -->
@@ -2876,7 +2900,9 @@ let adminPass = "Admin@2025";      // Legacy fallback
 let managerPass = "Manager@2025";   // Legacy fallback
 let developerPass = "Dev@2025";     // Developer only
 let deptPasswords = {};              // {departmentName: password} — set by Developer
+let deptPasswordMeta = {};           // {departmentName: {setAt: timestamp}} — last-changed tracking
 let deptAccessGrants = {};           // {dept: [panel1, panel2...]} — granted by Developer
+let DEPT_FORCE_LOGOUT = {};          // {departmentName: timestamp} — Developer-triggered session kill
 let staffData = {};
 
 // ======== DEPARTMENT ACCESS CONTROL ========
@@ -4163,7 +4189,9 @@ function saveLocal() {
         managerPass: managerPass, 
         developerPass: developerPass, 
         deptPasswords: deptPasswords,
-        deptAccessGrants: deptAccessGrants 
+        deptPasswordMeta: deptPasswordMeta,
+        deptAccessGrants: deptAccessGrants,
+        deptForceLogout: DEPT_FORCE_LOGOUT
       },
       deptConfig: { depts: DEPT_POS, deptColors: DEPT_C, sections: DEPT_SECTIONS },
     }));
@@ -4189,7 +4217,9 @@ function reloadLocal() {
     if(settingsData && settingsData.managerPass) managerPass = settingsData.managerPass;
     if(settingsData && settingsData.developerPass) developerPass = settingsData.developerPass;
     if(settingsData && settingsData.deptPasswords) deptPasswords = settingsData.deptPasswords;
+    if(settingsData && settingsData.deptPasswordMeta) deptPasswordMeta = settingsData.deptPasswordMeta;
     if(settingsData && settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
+    if(settingsData && settingsData.deptForceLogout) DEPT_FORCE_LOGOUT = settingsData.deptForceLogout;
     if(settingsData && settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
         if(SHIFTS[k]) {
@@ -4295,7 +4325,12 @@ function setupRealtimeListeners() {
     if (settingsData.managerPass) managerPass = settingsData.managerPass;
     if (settingsData.developerPass) developerPass = settingsData.developerPass;
     if (settingsData.deptPasswords) deptPasswords = settingsData.deptPasswords;
+    if (settingsData.deptPasswordMeta) deptPasswordMeta = settingsData.deptPasswordMeta;
     if (settingsData.deptAccessGrants) deptAccessGrants = settingsData.deptAccessGrants;
+    if (settingsData.deptForceLogout) {
+      DEPT_FORCE_LOGOUT = settingsData.deptForceLogout;
+      if (typeof window.secCheckForceLogout === 'function') window.secCheckForceLogout();
+    }
     if (settingsData.shifts) {
       Object.entries(settingsData.shifts).forEach(([k,v])=>{
         if(SHIFTS[k]) {
@@ -4682,6 +4717,7 @@ function checkPass() {
     if (typeof secRecordAttempt === "function") secRecordAttempt(true);
     if (typeof logAccess === "function") logAccess("s", "Department login: " + dept);
     CURRENT_DEPT = dept;
+    try { localStorage.setItem('yph_dept_login_ts', JSON.stringify({ dept: dept, ts: Date.now() })); } catch(e) {}
     document.getElementById("passModal").classList.remove("show");
     enterAdmin();
   } else {
@@ -8609,17 +8645,37 @@ function cpDelShift(k){
   cpToast('🗑 Shift deleted');
 }
 
+function cpTimeAgo(ts){
+  if (!ts) return '';
+  const s = Math.max(0, Math.floor((Date.now()-ts)/1000));
+  if (s < 60) return 'just now';
+  const m = Math.floor(s/60); if (m < 60) return m+' min ago';
+  const h = Math.floor(m/60); if (h < 24) return h+' hr'+(h===1?'':'s')+' ago';
+  const d = Math.floor(h/24); if (d < 30) return d+' day'+(d===1?'':'s')+' ago';
+  const mo = Math.floor(d/30); if (mo < 12) return mo+' month'+(mo===1?'':'s')+' ago';
+  const y = Math.floor(mo/12); return y+' year'+(y===1?'':'s')+' ago';
+}
 function cpRenderAccess(){
   const list=document.getElementById('cpDeptPassList'); if(!list)return;
-  const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
-  list.innerHTML=getAllDepts().map(d=>`
-    <div class="cprow">
+  list.innerHTML=getAllDepts().map(d=>{
+    const hasPass = deptPasswords[d];
+    const setAt = deptPasswordMeta[d]?.setAt;
+    const sid = cpSafeId(d);
+    return `
+    <div class="cprow" style="flex-wrap:wrap">
       <div class="cpav" style="font-size:10px">${d.substring(0,2).toUpperCase()}</div>
-      <div style="flex:1"><div style="font-size:12px;font-weight:600;color:#fff">${d}</div>
-        <div style="font-size:10px;color:#64748B">${saved[d]?'✅ Password set':'No password'}</div>
+      <div style="flex:1;min-width:120px">
+        <div style="font-size:12px;font-weight:600;color:#fff">${d}</div>
+        <div style="font-size:10px;color:#64748B">${hasPass?'✅ Password set':'○ No password'}${hasPass && setAt?' · Set '+cpTimeAgo(setAt):''}</div>
+        ${hasPass?`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#C9963A;margin-top:3px;letter-spacing:1px" id="cpPassVal-${sid}" data-revealed="0">••••••••</div>`:''}
       </div>
-      ${saved[d]?`<button class="bx bxr" onclick="cpRmDeptPass('${d}')">Remove</button>`:''}
-    </div>`).join('');
+      <div style="display:flex;gap:4px;align-items:center">
+        ${hasPass?`<button class="bx bxn" title="Show/hide password" onclick="cpToggleDeptPassView('${d}',this)">👁</button>`:''}
+        ${hasPass?`<button class="bx bxn" title="Force-logout active sessions" onclick="cpForceLogoutDept('${d}')" style="color:#F59E0B">⛔ Logout</button>`:''}
+        ${hasPass?`<button class="bx bxr" onclick="cpRmDeptPass('${d}')">Remove</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
   const sel=document.getElementById('cpDeptPassSel');
   if(sel) sel.innerHTML=getAllDepts().map(d=>`<option value="${d}">${d}</option>`).join('');
 }
@@ -8636,25 +8692,117 @@ function cpChangeDevPass(){
   }
   logAccess('s','Dev password changed'); cpToast('✅ Password updated!');
 }
-function cpSetDeptPass(){
+async function cpSetDeptPass(){
   const dept=document.getElementById('cpDeptPassSel')?.value;
   const pass=document.getElementById('cpDeptPassInp')?.value;
-  if(!dept||!pass||pass.length<4){cpToast('❌ Min 4 chars','e');return;}
-  if(typeof setDeptPassword==='function'){
-    const s=document.getElementById('setDeptPassSelect'); if(s) s.value=dept;
-    const i=document.getElementById('setDeptPassInp'); if(i) i.value=pass;
-    setDeptPassword();
-  } else {
-    const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
-    saved[dept]=pass; localStorage.setItem('deptPasswords',JSON.stringify(saved));
+  if(!dept){cpToast('❌ Select a department','e');return;}
+  if(!pass||pass.length<4){cpToast('❌ Min 4 chars','e');return;}
+  deptPasswords[dept] = pass;
+  deptPasswordMeta[dept] = { setAt: Date.now() };
+  const safeDept = dept.replace(/[.#$[\]]/g, "_");
+  if (typeof db !== 'undefined' && db) {
+    try { await db.ref("settings/deptPasswords/" + safeDept).set(pass); } catch(e) {}
+    try { await db.ref("settings/deptPasswordMeta/" + safeDept).set(deptPasswordMeta[dept]); } catch(e) {}
   }
+  saveLocal();
+  const inp=document.getElementById('cpDeptPassInp'); if(inp) inp.value='';
   logAccess('s','Password set for: '+dept); cpToast('✅ Password set for '+dept);
   cpRenderAccess();
 }
-function cpRmDeptPass(dept){
-  const saved=JSON.parse(localStorage.getItem('deptPasswords')||'{}');
-  delete saved[dept]; localStorage.setItem('deptPasswords',JSON.stringify(saved));
+async function cpRmDeptPass(dept){
+  if(!confirm('Remove password for "'+dept+'"? Users will not be able to access until a new password is set.')) return;
+  delete deptPasswords[dept];
+  delete deptPasswordMeta[dept];
+  const safeDept = dept.replace(/[.#$[\]]/g, "_");
+  if (typeof db !== 'undefined' && db) {
+    try { await db.ref("settings/deptPasswords/" + safeDept).remove(); } catch(e) {}
+    try { await db.ref("settings/deptPasswordMeta/" + safeDept).remove(); } catch(e) {}
+  }
+  saveLocal();
+  logAccess('w','Password removed for: '+dept);
   cpToast('🗑 Password removed for '+dept); cpRenderAccess();
+}
+
+// ─── Password visibility toggle ───
+function cpToggleDeptPassView(dept, btn){
+  const span = document.getElementById('cpPassVal-'+cpSafeId(dept));
+  if (!span) return;
+  const revealed = span.dataset.revealed === '1';
+  if (revealed){
+    span.textContent = '••••••••';
+    span.dataset.revealed = '0';
+    if (btn) btn.textContent = '👁';
+  } else {
+    span.textContent = deptPasswords[dept] || '—';
+    span.dataset.revealed = '1';
+    if (btn) btn.textContent = '🙈';
+    logAccess('i','Password revealed for: '+dept);
+  }
+}
+function cpSafeId(s){ return String(s).replace(/[^a-zA-Z0-9]/g,'_'); }
+
+// ─── Force logout: instantly revoke a department's active session(s) ───
+async function cpForceLogoutDept(dept){
+  if (!confirm('⛔ Force-logout all active sessions for "'+dept+'"?\n\nAnyone currently logged in to this department will be kicked out immediately.')) return;
+  const ts = Date.now();
+  DEPT_FORCE_LOGOUT[dept] = ts;
+  const safeDept = dept.replace(/[.#$[\]]/g, "_");
+  if (typeof db !== 'undefined' && db) { try { await db.ref("settings/deptForceLogout/" + safeDept).set(ts); } catch(e) {} }
+  saveLocal();
+  logAccess('w','Force-logout triggered for: '+dept);
+  cpToast('⛔ Session revoked for '+dept);
+  if (typeof window.secCheckForceLogout === 'function') window.secCheckForceLogout();
+}
+
+// ─── Bulk password reset — generates fresh random passwords for every department ───
+async function cpBulkResetDeptPass(){
+  const depts = getAllDepts();
+  if (!depts.length){ cpToast('❌ No departments to reset','e'); return; }
+  if (!confirm('🔁 Reset passwords for ALL '+depts.length+' departments?\n\nEach department will get a brand-new random password, and current passwords will stop working immediately.')) return;
+  const genPass = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+    let p = ''; for (let i=0;i<8;i++) p += chars[Math.floor(Math.random()*chars.length)];
+    return p;
+  };
+  const results = [];
+  for (const dept of depts){
+    const pass = genPass();
+    deptPasswords[dept] = pass;
+    deptPasswordMeta[dept] = { setAt: Date.now() };
+    DEPT_FORCE_LOGOUT[dept] = Date.now(); // kick any active sessions using the old password
+    results.push({ dept, pass });
+    const safeDept = dept.replace(/[.#$[\]]/g, "_");
+    if (typeof db !== 'undefined' && db) {
+      try { await db.ref("settings/deptPasswords/" + safeDept).set(pass); } catch(e) {}
+      try { await db.ref("settings/deptPasswordMeta/" + safeDept).set(deptPasswordMeta[dept]); } catch(e) {}
+      try { await db.ref("settings/deptForceLogout/" + safeDept).set(DEPT_FORCE_LOGOUT[dept]); } catch(e) {}
+    }
+  }
+  saveLocal();
+  logAccess('w','Bulk password reset for ALL departments ('+depts.length+')');
+  cpRenderAccess();
+  if (typeof window.secCheckForceLogout === 'function') window.secCheckForceLogout();
+  cpShowBulkResetResults(results);
+}
+function cpShowBulkResetResults(results){
+  let m = document.getElementById('cpBulkResetModal');
+  if (!m){
+    m = document.createElement('div');
+    m.id = 'cpBulkResetModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px';
+    document.body.appendChild(m);
+  }
+  m.innerHTML = `
+    <div style="background:#101E33;border:1px solid rgba(201,150,58,.3);border-radius:14px;max-width:460px;width:100%;max-height:80vh;overflow-y:auto;padding:20px">
+      <div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:4px">🔁 New Department Passwords</div>
+      <div style="font-size:11px;color:#64748B;margin-bottom:14px">Copy these down now — they won't be shown in full again unless revealed individually.</div>
+      ${results.map(r=>`
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;margin-bottom:6px">
+          <span style="font-size:12px;font-weight:600;color:#fff">${r.dept}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:12px;color:#C9963A">${r.pass}</span>
+        </div>`).join('')}
+      <button class="bgold" style="width:100%;margin-top:10px" onclick="document.getElementById('cpBulkResetModal').remove()">Done</button>
+    </div>`;
 }
 
 function cpRenderLive(){
@@ -8919,8 +9067,31 @@ function cpSaveNotifs(){cpToast('✅ Notification settings saved!');}
 
 function cpRenderLogs(){
   const list=document.getElementById('cpLogList'); if(!list)return;
+
+  // Keep department filter options in sync with current departments
+  const deptSel = document.getElementById('cpLogDeptFilter');
+  if (deptSel && deptSel.dataset.built !== '1'){
+    deptSel.innerHTML = '<option value="">All Departments</option>' +
+      getAllDepts().map(d=>`<option value="${d}">${d}</option>`).join('');
+    deptSel.dataset.built = '1';
+  }
+
   if(!ACCESS_LOG?.length){list.innerHTML='<div style="font-size:12px;color:#64748B;padding:8px">No activity logged yet.</div>';return;}
-  list.innerHTML=ACCESS_LOG.slice(0,60).map(l=>`
+
+  const deptFilter = deptSel?.value || '';
+  const typeFilter = document.getElementById('cpLogTypeFilter')?.value || '';
+  const searchFilter = (document.getElementById('cpLogSearch')?.value || '').trim().toLowerCase();
+
+  const filtered = ACCESS_LOG.filter(l=>{
+    if (typeFilter && (l.type||'i') !== typeFilter) return false;
+    if (deptFilter && !(l.msg||'').toLowerCase().includes(deptFilter.toLowerCase())) return false;
+    if (searchFilter && !(l.msg||'').toLowerCase().includes(searchFilter)) return false;
+    return true;
+  });
+
+  if(!filtered.length){list.innerHTML='<div style="font-size:12px;color:#64748B;padding:8px">No matching log entries.</div>';return;}
+
+  list.innerHTML=filtered.slice(0,60).map(l=>`
     <div class="clog-item l${l.type||'i'}">
       <div class="clog-t">${l.msg}</div>
       <div class="clog-d">${l.date} ${l.time}</div>
@@ -12780,6 +12951,29 @@ async function ruApplyCopy() {
   );
   // Check every 2 minutes
   setInterval(window.secCheckSession, 2 * 60 * 1000);
+
+  // ── Force-logout: Developer can instantly revoke a department's session ──
+  window.secCheckForceLogout = function(){
+    try{
+      if (typeof CURRENT_DEPT === 'undefined' || !CURRENT_DEPT || CURRENT_DEPT === 'all') return;
+      if (typeof DEPT_FORCE_LOGOUT === 'undefined') return;
+      const revokedAt = DEPT_FORCE_LOGOUT[CURRENT_DEPT];
+      if (!revokedAt) return;
+      const raw = localStorage.getItem('yph_dept_login_ts');
+      const info = raw ? JSON.parse(raw) : null;
+      if (!info || info.dept !== CURRENT_DEPT) return;
+      if (revokedAt > info.ts){
+        try{ localStorage.removeItem('yph_dept_login_ts'); localStorage.removeItem(SKEY); }catch(e){}
+        CURRENT_DEPT = null;
+        ADMIN_ROLE = '';
+        if (typeof backToLanding === 'function') backToLanding();
+        showSecToast('⛔ Your access was revoked by the Developer.', 'danger');
+      }
+    }catch(e){}
+  };
+  // Poll every 5 seconds for near-instant revocation, plus immediate check on load
+  setInterval(window.secCheckForceLogout, 5000);
+  window.secCheckForceLogout();
 
   // ── Toast for security messages ──
   window.showSecToast = function(msg, type){
