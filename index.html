@@ -11310,7 +11310,7 @@ function devExportScheduleJSON() {
     const d = new Date(ds);
     return isNaN(d) ? ds : d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'});
   }
-  function dayKey(d){ return d.toISOString().slice(0,10); }
+  function dayKey(d){ var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+dd; }
 
   // Aggregate forecast rows by date for next N days across active hotel filter
   function buildSeries(days){
@@ -19426,4 +19426,453 @@ body.has-bg-image::after{
     window._exitDevPanelToApp = exitDevPanelToApp;
   })();
 </script>
+<!-- ═══════════════════════════════════════════════════════════════
+     OPS COMMAND CENTER — Today snapshot · Cluster heatmap · Gap
+     detector · Auto shift plan · Action inbox
+     Data sources (globals from earlier scripts):
+       staffData, schedData, hotelData, leaveRequests, swapRequests,
+       HOTELS_DATA, SHIFTS  +  localStorage 'yph_forecast_v2'
+     ═══════════════════════════════════════════════════════════════ -->
+<style>
+  #page-ops{padding:18px 22px;background:#F5F7FB}
+  .ops-h{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:#0F1E35;margin-bottom:2px}
+  .ops-sub{font-size:11px;color:#4A6080;margin-bottom:14px}
+  .ops-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(15,30,53,.08);margin-bottom:16px;overflow:hidden}
+  .ops-card-head{padding:12px 16px;border-bottom:1px solid #EEF3FA;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+  .ops-card-title{font-family:'Syne',sans-serif;font-weight:800;font-size:14px;color:#0F1E35}
+  .ops-card-body{padding:14px 16px}
+  .ops-kpi{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-top:3px solid #C9963A}
+  .ops-kpi-label{font-size:10px;font-weight:700;color:#4A6080;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+  .ops-kpi-val{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:#0F1E35;line-height:1}
+  .ops-kpi-sub{font-size:11px;color:#4A6080;margin-top:6px}
+  .ops-pill{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700}
+  .ops-heat td{width:44px;height:34px;text-align:center;font-size:10px;font-weight:700;border:1px solid #fff;color:#fff;font-family:'DM Mono',monospace}
+  .ops-heat th{padding:4px 6px;font-size:9px;color:#4A6080;text-align:center;font-weight:700;text-transform:uppercase}
+  .ops-heat th.left{text-align:left;padding-left:8px}
+  .ops-tbl{width:100%;border-collapse:collapse;font-size:11px}
+  .ops-tbl th{background:#F7FAFF;color:#4A6080;text-align:left;padding:8px;font-size:10px;text-transform:uppercase;letter-spacing:.4px;font-weight:800}
+  .ops-tbl td{padding:7px 8px;border-bottom:1px solid #EEF3FA;vertical-align:top}
+  .ops-badge-gap{background:#FDECEA;color:#B71C1C;padding:2px 7px;border-radius:6px;font-weight:800;font-size:11px}
+  .ops-badge-ok{background:#D4EDDA;color:#1B6B3A;padding:2px 7px;border-radius:6px;font-weight:800;font-size:11px}
+  .ops-badge-warn{background:#FFF3E0;color:#E65C00;padding:2px 7px;border-radius:6px;font-weight:800;font-size:11px}
+  .ops-shift-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .ops-shift-card{border:1.5px solid #E4EAF3;border-radius:10px;padding:10px 12px}
+  .ops-shift-title{font-size:10px;font-weight:800;text-transform:uppercase;color:#4A6080;letter-spacing:.4px}
+  .ops-shift-time{font-family:'DM Mono',monospace;font-size:10px;color:#7A95B8;margin-bottom:8px}
+  .ops-shift-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:11px}
+  .ops-shift-row b{font-family:'DM Mono',monospace;color:#0F1E35}
+  .ops-inbox-item{padding:8px 10px;border-radius:8px;background:#F7FAFF;margin-bottom:6px;font-size:11px;display:flex;justify-content:space-between;gap:8px;align-items:center}
+</style>
+
+<script>
+(function(){
+  'use strict';
+
+  // ─── Config: heuristics (kept simple; user can tweak in Dev Panel later) ───
+  var HEUR = {
+    fo_per_arr: 15,    // 1 Front Office per 15 arrivals (per shift-adjusted)
+    fo_per_dep: 25,    // 1 Front Office per 25 departures
+    fo_min: 3,         // min FO per hotel per shift
+    hk_per_room: 14,   // 1 Housekeeper per 14 occupied rooms (morning heavy)
+    hk_min: 4,
+    fb_per_room: 20,   // 1 F&B per 20 occupied rooms
+    fb_min: 2,
+    valet_per_arrdep: 12,
+    valet_min: 1
+  };
+
+  // Shift distribution (fraction of workload per shift)
+  var SHIFT_DIST = {
+    MOR:{arr:0.20, dep:0.60, rooms:0.55, label:'Morning',   time:'07–16'},
+    AFT:{arr:0.55, dep:0.30, rooms:0.30, label:'Afternoon', time:'14–23'},
+    EVE:{arr:0.25, dep:0.10, rooms:0.15, label:'Night',     time:'23–08'}
+  };
+
+  var HOTEL_ROOMS = { marina:290, circuit:122, staybridge:164, crowne:375, mangrove:347, bay:98 };
+  var HIGH_OCC = 85, CRIT_OCC = 92;
+
+  // ─── Data helpers ───
+  function ymd(d){ var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+dd; }
+  function loadForecast(){ try{var v=JSON.parse(localStorage.getItem('yph_forecast_v2')||'[]');return Array.isArray(v)?v:[];}catch(e){return[];} }
+  function hotels(){
+    var src = (typeof HOTELS_DATA!=='undefined' && Array.isArray(HOTELS_DATA)) ? HOTELS_DATA : [];
+    return src.filter(function(h){ return h && h.id && h.id!=='all' && h.active!==false; });
+  }
+  function next10(){
+    var out=[]; var t=new Date(); t.setHours(0,0,0,0);
+    for (var i=0;i<10;i++){ var d=new Date(t.getTime()+i*86400000); out.push({date:d, key:ymd(d)}); }
+    return out;
+  }
+  function fcRow(hotelId, dateKey){
+    var rows=loadForecast(); return rows.find(function(r){return r.hotel===hotelId && r.date===dateKey;});
+  }
+  function occRooms(hotelId, occPct){
+    var cap = HOTEL_ROOMS[hotelId] || 0;
+    return Math.round((occPct/100)*cap);
+  }
+
+  // Required staff per hotel per day per shift, split by department
+  function requiredStaff(hotelId, dateKey){
+    var r = fcRow(hotelId, dateKey) || {occ:0,arr:0,dep:0};
+    var rooms = occRooms(hotelId, +r.occ||0);
+    var arr = +r.arr||0, dep = +r.dep||0;
+    var out = {};
+    Object.keys(SHIFT_DIST).forEach(function(sh){
+      var d = SHIFT_DIST[sh];
+      var sArr = Math.round(arr*d.arr), sDep = Math.round(dep*d.dep), sRm = Math.round(rooms*d.rooms);
+      out[sh] = {
+        FrontOffice: Math.max(HEUR.fo_min, Math.ceil(sArr/HEUR.fo_per_arr) + Math.ceil(sDep/HEUR.fo_per_dep)),
+        Housekeeping: Math.max(HEUR.hk_min, Math.ceil(sRm/HEUR.hk_per_room)),
+        FoodBeverage: Math.max(HEUR.fb_min, Math.ceil(sRm/HEUR.fb_per_room)),
+        Valet: Math.max(HEUR.valet_min, Math.ceil((sArr+sDep)/HEUR.valet_per_arrdep))
+      };
+    });
+    return {byShift:out, arr:arr, dep:dep, occ:+r.occ||0, rooms:rooms, hasData:!!r};
+  }
+
+  // Rostered staff per hotel/day/shift/dept from schedData + hotelData
+  // schedData[empId][yyyy-m][day] = 'MOR'|'AFT'|'EVE'|'OFF'|'AL'|...
+  // hotelData[empId][yyyy-m][day] = hotelId (falls back to emp.hotelId)
+  function rosteredCounts(hotelId, dateObj){
+    var y=dateObj.getFullYear(), m=dateObj.getMonth(), d=dateObj.getDate();
+    var mKey = y+'-'+m;
+    var counts = {MOR:{}, AFT:{}, EVE:{}};
+    if (typeof staffData === 'undefined') return counts;
+    Object.keys(staffData).forEach(function(id){
+      var emp = staffData[id]; if (!emp) return;
+      var sched = (typeof schedData!=='undefined' && schedData[id] && schedData[id][mKey]) || {};
+      var hd    = (typeof hotelData!=='undefined' && hotelData[id] && hotelData[id][mKey]) || {};
+      var code = sched[d];
+      if (!code || code==='OFF' || code==='AL' || code==='EX' || code==='UNP' || code==='SICK' || code==='ABS' || code==='PH') return;
+      var hId = hd[d] || emp.hotelId || emp.hotel;
+      if (hId !== hotelId) return;
+      var dept = (emp.department||'Other');
+      // Normalise mid shifts into afternoon bucket
+      var sh = (code==='MOR') ? 'MOR' : (code==='EVE' ? 'EVE' : 'AFT');
+      counts[sh][dept] = (counts[sh][dept]||0) + 1;
+    });
+    return counts;
+  }
+
+  function pendingRequests(){
+    var swaps=[], leaves=[];
+    if (typeof swapRequests!=='undefined'){
+      Object.values(swapRequests).forEach(function(r){
+        if (r.status==='pending' || r.status==='partner_approved') swaps.push(r);
+      });
+    }
+    if (typeof leaveRequests!=='undefined'){
+      Object.values(leaveRequests).forEach(function(r){ if (r.status==='pending') leaves.push(r); });
+    }
+    return {swaps:swaps, leaves:leaves};
+  }
+
+  function occColor(o){ if (o>=CRIT_OCC) return '#B71C1C'; if (o>=HIGH_OCC) return '#E65C00'; if (o>=70) return '#C9963A'; if (o>0) return '#1B6B3A'; return '#94A3B8'; }
+  function fmtDay(d){ return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}); }
+  function fmtShort(d){ return d.toLocaleDateString('en-GB',{day:'2-digit'})+' '+d.toLocaleDateString('en-GB',{weekday:'short'}); }
+
+  // ─── Renderers ───
+  function renderSnapshot(){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayKey = ymd(today);
+    var hs = hotels();
+    var totArr=0, totDep=0, occRoomsSum=0, capSum=0;
+    var required = {FrontOffice:0, Housekeeping:0, FoodBeverage:0, Valet:0};
+    var rostered = {FrontOffice:0, Housekeeping:0, FoodBeverage:0, Valet:0};
+    hs.forEach(function(h){
+      var r = requiredStaff(h.id, todayKey);
+      totArr += r.arr; totDep += r.dep;
+      capSum += HOTEL_ROOMS[h.id]||0;
+      occRoomsSum += r.rooms;
+      ['MOR','AFT','EVE'].forEach(function(sh){
+        Object.keys(required).forEach(function(dept){
+          required[dept] += (r.byShift[sh][dept]||0);
+        });
+      });
+      var rc = rosteredCounts(h.id, today);
+      ['MOR','AFT','EVE'].forEach(function(sh){
+        Object.keys(required).forEach(function(dept){
+          rostered[dept] += (rc[sh][dept]||0);
+        });
+      });
+    });
+    var occPct = capSum ? Math.round(occRoomsSum/capSum*100) : 0;
+    var pr = pendingRequests();
+
+    var kpiHtml = ''+
+      '<div class="ops-kpi" style="border-top-color:'+occColor(occPct)+'">'+
+        '<div class="ops-kpi-label">Occupancy · Today</div>'+
+        '<div class="ops-kpi-val" style="color:'+occColor(occPct)+'">'+occPct+'%</div>'+
+        '<div class="ops-kpi-sub">'+occRoomsSum+' / '+capSum+' rooms · '+hs.length+' hotels</div>'+
+      '</div>'+
+      '<div class="ops-kpi" style="border-top-color:#4527A0">'+
+        '<div class="ops-kpi-label">Arrivals · Today</div>'+
+        '<div class="ops-kpi-val">'+totArr+'</div>'+
+        '<div class="ops-kpi-sub">Cluster total</div>'+
+      '</div>'+
+      '<div class="ops-kpi" style="border-top-color:#E65C00">'+
+        '<div class="ops-kpi-label">Departures · Today</div>'+
+        '<div class="ops-kpi-val">'+totDep+'</div>'+
+        '<div class="ops-kpi-sub">Cluster total</div>'+
+      '</div>'+
+      '<div class="ops-kpi" style="border-top-color:#1B6B3A">'+
+        '<div class="ops-kpi-label">Open Requests</div>'+
+        '<div class="ops-kpi-val">'+(pr.swaps.length+pr.leaves.length)+'</div>'+
+        '<div class="ops-kpi-sub">'+pr.swaps.length+' swaps · '+pr.leaves.length+' leaves</div>'+
+      '</div>';
+
+    // Coverage strip
+    var deptOrder = ['FrontOffice','Housekeeping','FoodBeverage','Valet'];
+    var deptLabels = {FrontOffice:'Front Office', Housekeeping:'Housekeeping', FoodBeverage:'F&B', Valet:'Valet'};
+    var covHtml = deptOrder.map(function(d){
+      var req = required[d], have = rostered[d], gap = req-have;
+      var badge = gap>0 ? '<span class="ops-badge-gap">-'+gap+' short</span>' :
+                  gap<0 ? '<span class="ops-badge-warn">+'+(-gap)+' extra</span>' :
+                          '<span class="ops-badge-ok">✓ matched</span>';
+      var pct = req>0 ? Math.min(100, Math.round(have/req*100)) : 100;
+      var barCol = gap>0 ? '#B71C1C' : (gap<0 ? '#C9963A' : '#1B6B3A');
+      return '<div style="padding:10px 14px;border:1px solid #EEF3FA;border-radius:10px;background:#FBFCFE">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+          '<div style="font-size:11px;font-weight:800;color:#0F1E35">'+deptLabels[d]+'</div>'+badge+
+        '</div>'+
+        '<div style="font-family:\'DM Mono\',monospace;font-size:13px;color:#0F1E35"><b>'+have+'</b> on duty <span style="color:#7A95B8">/ '+req+' required</span></div>'+
+        '<div style="height:6px;background:#EEF3FA;border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:'+barCol+'"></div></div>'+
+      '</div>';
+    }).join('');
+
+    return ''+
+      '<div class="ops-card">'+
+        '<div class="ops-card-head"><div class="ops-card-title">🎯 Today\'s Ops Snapshot · '+fmtDay(today)+'</div><div style="font-size:11px;color:#4A6080">Live from Forecast + Roster</div></div>'+
+        '<div class="ops-card-body">'+
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px">'+kpiHtml+'</div>'+
+          '<div style="font-size:10px;font-weight:800;color:#4A6080;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Coverage vs Requirement (all hotels, all shifts)</div>'+
+          '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">'+covHtml+'</div>'+
+        '</div>'+
+      '</div>';
+  }
+
+  function renderHeatmap(){
+    var days = next10();
+    var hs = hotels();
+    var headerCells = days.map(function(x){ return '<th>'+fmtShort(x.date).split(' ')[0]+'<br><span style="font-weight:500;color:#94A3B8">'+fmtShort(x.date).split(' ')[1]+'</span></th>'; }).join('');
+    var body = hs.map(function(h){
+      var cells = days.map(function(x){
+        var r = fcRow(h.id, x.key);
+        var o = r ? (+r.occ||0) : 0;
+        var col = occColor(o);
+        var txt = r ? o+'%' : '—';
+        return '<td style="background:'+col+';opacity:'+(r?1:.25)+'" title="'+h.name+' · '+fmtDay(x.date)+' → '+(r?o+'% occ, '+r.arr+' in, '+r.dep+' out':'no data')+'">'+txt+'</td>';
+      }).join('');
+      return '<tr><th class="left">'+h.name+'</th>'+cells+'</tr>';
+    }).join('');
+    return ''+
+      '<div class="ops-card">'+
+        '<div class="ops-card-head"><div class="ops-card-title">🌡️ Cluster Occupancy Heatmap · Next 10 Days</div><div style="font-size:11px;color:#4A6080">Green = calm · Amber ≥70% · Orange ≥85% · Red ≥92%</div></div>'+
+        '<div class="ops-card-body" style="overflow:auto"><table class="ops-heat" style="border-collapse:separate;border-spacing:2px;margin:0 auto"><thead><tr><th class="left">Hotel</th>'+headerCells+'</tr></thead><tbody>'+body+'</tbody></table></div>'+
+      '</div>';
+  }
+
+  function renderGapDetector(){
+    var days = next10();
+    var hs = hotels();
+    var rows = [];
+    hs.forEach(function(h){
+      days.forEach(function(x){
+        var req = requiredStaff(h.id, x.key);
+        if (!req.hasData) return;
+        var rc = rosteredCounts(h.id, x.date);
+        // total per dept across shifts
+        var deptReq = {FrontOffice:0, Housekeeping:0, FoodBeverage:0, Valet:0};
+        var deptHave= {FrontOffice:0, Housekeeping:0, FoodBeverage:0, Valet:0};
+        ['MOR','AFT','EVE'].forEach(function(sh){
+          Object.keys(deptReq).forEach(function(d){
+            deptReq[d] += (req.byShift[sh][d]||0);
+            deptHave[d] += (rc[sh][d]||0);
+          });
+        });
+        var gaps = [];
+        Object.keys(deptReq).forEach(function(d){
+          var g = deptReq[d]-deptHave[d];
+          if (g>0) gaps.push({dept:d, gap:g, req:deptReq[d], have:deptHave[d]});
+        });
+        if (gaps.length){
+          rows.push({hotel:h, date:x.date, occ:req.occ, arr:req.arr, dep:req.dep, gaps:gaps});
+        }
+      });
+    });
+    rows.sort(function(a,b){
+      var ga=a.gaps.reduce(function(s,x){return s+x.gap;},0);
+      var gb=b.gaps.reduce(function(s,x){return s+x.gap;},0);
+      return gb-ga;
+    });
+    var body;
+    if (!rows.length){
+      body = '<div style="padding:20px;text-align:center;color:#1B6B3A;font-weight:700">✅ No staffing gaps detected across the next 10 days.</div>';
+    } else {
+      body = '<div style="overflow:auto"><table class="ops-tbl">'+
+        '<thead><tr><th>Hotel</th><th>Date</th><th>Occ</th><th>Load</th><th>Gaps (Required vs Rostered)</th></tr></thead><tbody>'+
+        rows.slice(0,40).map(function(r){
+          var gapStr = r.gaps.map(function(g){
+            var lbl = {FrontOffice:'FO',Housekeeping:'HK',FoodBeverage:'F&B',Valet:'Valet'}[g.dept];
+            return '<span class="ops-badge-gap" style="margin-right:6px">'+lbl+' -'+g.gap+' <span style="opacity:.7;font-weight:500">('+g.have+'/'+g.req+')</span></span>';
+          }).join('');
+          return '<tr>'+
+            '<td style="font-weight:700;color:'+(r.hotel.color||'#0F1E35')+'">'+r.hotel.name+'</td>'+
+            '<td>'+fmtDay(r.date)+'</td>'+
+            '<td style="font-family:\'DM Mono\',monospace;color:'+occColor(r.occ)+';font-weight:800">'+r.occ+'%</td>'+
+            '<td style="font-family:\'DM Mono\',monospace">↓'+r.arr+' ↑'+r.dep+'</td>'+
+            '<td>'+gapStr+'</td>'+
+          '</tr>';
+        }).join('')+
+        '</tbody></table></div>'+
+        (rows.length>40 ? '<div style="font-size:10px;color:#4A6080;margin-top:8px;text-align:center">+ '+(rows.length-40)+' more gap-days (showing worst 40)</div>':'');
+    }
+    return ''+
+      '<div class="ops-card">'+
+        '<div class="ops-card-head"><div class="ops-card-title">🚨 Gap Detector · Under-Staffed Days</div><div style="font-size:11px;color:#4A6080">Required from forecast · Rostered from Roster page (all shifts combined)</div></div>'+
+        '<div class="ops-card-body">'+body+'</div>'+
+      '</div>';
+  }
+
+  function renderShiftPlan(){
+    var today = new Date(); today.setHours(0,0,0,0);
+    var todayKey = ymd(today);
+    var hs = hotels();
+    var body = hs.map(function(h){
+      var req = requiredStaff(h.id, todayKey);
+      var rc = rosteredCounts(h.id, today);
+      var shifts = ['MOR','AFT','EVE'].map(function(sh){
+        var d = SHIFT_DIST[sh];
+        var rows = ['FrontOffice','Housekeeping','FoodBeverage','Valet'].map(function(dept){
+          var need = req.byShift[sh][dept]||0;
+          var have = rc[sh][dept]||0;
+          var gap = need-have;
+          var color = gap>0?'#B71C1C':(gap<0?'#C9963A':'#1B6B3A');
+          var lbl = {FrontOffice:'Front Office',Housekeeping:'Housekeeping',FoodBeverage:'F&B',Valet:'Valet'}[dept];
+          return '<div class="ops-shift-row"><span>'+lbl+'</span><b style="color:'+color+'">'+have+' / '+need+(gap>0?' <span style="font-size:9px">(-'+gap+')</span>':'')+'</b></div>';
+        }).join('');
+        return '<div class="ops-shift-card"><div class="ops-shift-title">'+d.label+'</div><div class="ops-shift-time">'+d.time+'</div>'+rows+'</div>';
+      }).join('');
+      var badge = req.occ>=CRIT_OCC?'<span class="ops-badge-gap">'+req.occ+'% CRIT</span>':
+                  req.occ>=HIGH_OCC?'<span class="ops-badge-warn">'+req.occ+'% HIGH</span>':
+                  '<span class="ops-badge-ok">'+req.occ+'%</span>';
+      return '<div style="border:1px solid #EEF3FA;border-radius:12px;padding:12px;margin-bottom:12px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+          '<div style="font-family:\'Syne\',sans-serif;font-weight:800;color:'+(h.color||'#0F1E35')+';font-size:14px">🏨 '+h.name+'</div>'+
+          '<div style="font-size:11px;color:#4A6080">'+badge+' · ↓'+req.arr+' arr · ↑'+req.dep+' dep · '+req.rooms+' rooms</div>'+
+        '</div>'+
+        '<div class="ops-shift-grid">'+shifts+'</div>'+
+      '</div>';
+    }).join('');
+    return ''+
+      '<div class="ops-card">'+
+        '<div class="ops-card-head"><div class="ops-card-title">📋 Auto Shift Plan · Today ('+fmtDay(today)+')</div><div style="font-size:11px;color:#4A6080">Rostered / Required per hotel · per shift · per department</div></div>'+
+        '<div class="ops-card-body">'+(body||'<div style="color:#4A6080">No hotels configured.</div>')+'</div>'+
+      '</div>';
+  }
+
+  function renderInbox(){
+    var pr = pendingRequests();
+    var items = [];
+    pr.swaps.slice(0,5).forEach(function(r){
+      var from = (typeof staffData!=='undefined' && staffData[r.fromEmp]) || {};
+      var to   = (typeof staffData!=='undefined' && staffData[r.toEmp]) || {};
+      items.push({
+        html:'<span>🔄 <b>Swap</b> · '+(from.name||r.fromEmp)+' ↔ '+(to.name||r.toEmp)+' · day '+r.day+'</span>'+
+             '<button onclick="switchPage(\'requests\')" style="background:#0F1E35;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer">REVIEW</button>'
+      });
+    });
+    pr.leaves.slice(0,5).forEach(function(r){
+      var emp = (typeof staffData!=='undefined' && staffData[r.empId]) || {};
+      items.push({
+        html:'<span>🌴 <b>Leave</b> · '+(emp.name||r.empId)+' · '+(r.type||'—')+' · '+r.fromDay+(r.toDay!==r.fromDay?('–'+r.toDay):'')+'</span>'+
+             '<button onclick="switchPage(\'requests\')" style="background:#0F1E35;color:#fff;border:none;padding:4px 10px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer">REVIEW</button>'
+      });
+    });
+    var body = items.length
+      ? items.map(function(i){ return '<div class="ops-inbox-item">'+i.html+'</div>'; }).join('') +
+        (pr.swaps.length+pr.leaves.length>10 ? '<div style="font-size:10px;color:#4A6080;text-align:center;margin-top:6px">+ '+(pr.swaps.length+pr.leaves.length-10)+' more pending</div>':'')
+      : '<div style="color:#1B6B3A;padding:12px;text-align:center;font-weight:700">✓ Inbox clear — no pending swaps or leaves.</div>';
+    return ''+
+      '<div class="ops-card">'+
+        '<div class="ops-card-head"><div class="ops-card-title">📥 Action Inbox</div><div style="font-size:11px;color:#4A6080">'+(pr.swaps.length+pr.leaves.length)+' pending</div></div>'+
+        '<div class="ops-card-body">'+body+'</div>'+
+      '</div>';
+  }
+
+  function renderOps(){
+    var root = document.getElementById('opsRoot'); if (!root) return;
+    try {
+      root.innerHTML =
+        '<div class="ops-h">🎯 Ops Command Center</div>'+
+        '<div class="ops-sub">Today\'s coverage · 10-day heatmap · gap detector · auto shift plan · action inbox</div>'+
+        renderSnapshot() +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="ops-two">'+
+          '<div>'+renderHeatmap()+'</div>'+
+          '<div>'+renderInbox()+'</div>'+
+        '</div>'+
+        renderShiftPlan() +
+        renderGapDetector();
+    } catch(e){
+      root.innerHTML = '<div style="padding:20px;color:#B71C1C;font-family:monospace;white-space:pre-wrap">Ops Center error: '+(e.message||e)+'\n\n'+(e.stack||'')+'</div>';
+      console.error('Ops Center:', e);
+    }
+  }
+  window.renderOpsCenter = renderOps;
+
+  // Responsive: stack the two columns on narrow screens
+  var mq = document.createElement('style');
+  mq.textContent = '@media (max-width:1100px){ .ops-two{grid-template-columns:1fr !important} }';
+  document.head.appendChild(mq);
+
+  // ─── Inject nav tab + page ───
+  function inject(){
+    if (document.getElementById('page-ops')) return true;
+    var tabs = document.querySelector('.tabs') || document.querySelector('[class*="tab"]')?.parentElement;
+    // find the Dev Panel tab and insert before it
+    var devTab = document.querySelector('.tab[data-p="settings"]');
+    if (!devTab || !devTab.parentElement) return false;
+    var t = document.createElement('button');
+    t.className = 'tab';
+    t.setAttribute('data-p','ops');
+    t.innerHTML = '🎯 Ops Center';
+    t.onclick = function(){ switchPage('ops'); setTimeout(renderOps, 60); };
+    devTab.parentElement.insertBefore(t, devTab);
+
+    // page container — insert alongside other pages
+    var anyPage = document.querySelector('.page');
+    if (!anyPage || !anyPage.parentElement) return false;
+    var pg = document.createElement('div');
+    pg.className = 'page';
+    pg.id = 'page-ops';
+    pg.innerHTML = '<div id="opsRoot"><div style="padding:40px;text-align:center;color:#4A6080">Loading Ops Center…</div></div>';
+    anyPage.parentElement.appendChild(pg);
+    return true;
+  }
+
+  function boot(){
+    if (!inject()) { setTimeout(boot, 400); return; }
+    // wrap switchPage so we re-render when user lands on Ops
+    var orig = window.switchPage;
+    if (orig && !orig.__opsWrapped){
+      var w = function(name){ orig.apply(this, arguments); if (name==='ops') setTimeout(renderOps, 60); };
+      w.__opsWrapped = true;
+      window.switchPage = w;
+    }
+    // Refresh every 60s while visible
+    setInterval(function(){
+      var p = document.getElementById('page-ops');
+      if (p && p.classList.contains('active')) renderOps();
+    }, 60000);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ setTimeout(boot, 500); });
+  } else {
+    setTimeout(boot, 500);
+  }
+  window.addEventListener('load', function(){ setTimeout(boot, 900); setTimeout(boot, 2000); });
+})();
+</script>
 </body></html>
+
