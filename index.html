@@ -1200,13 +1200,16 @@ html, body {
       <div class="estat"><div class="esv" id="es-h" style="color:#60A5FA">—</div><div class="esl">Total Hours</div></div>
     </div>
 
-    <div class="wtitle">📅 Next 7 Days <span class="wtag" id="eWkRange"></span></div>
+    <div class="wtitle">📅 Next 7 Days <span class="wtag" id="eWkRange"></span>
+      <button onclick="toggleShiftLegend()" style="margin-left:auto;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.65);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:600;cursor:pointer">ℹ️ Shift Codes</button>
+    </div>
+    <div id="shiftLegendBox" style="display:none;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;margin-bottom:10px;font-size:10px"></div>
     <div class="wgrid" id="eWkGrid"></div>
 
     <div style="display:flex;gap:6px;margin-bottom:12px">
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('schedule')" id="btnTabSchedule">📅 Schedule</button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('swap')" id="btnTabSwap">🔄 Swap Board</button>
-      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('leave')" id="btnTabLeave">📨 Requests</button>
+      <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none;position:relative" onclick="showEmpTab('leave')" id="btnTabLeave">📨 Requests<span id="reqBadge" style="display:none;position:absolute;top:-6px;right:-6px;background:var(--gold);color:#1B2D4A;font-size:9px;font-weight:800;border-radius:100px;padding:1px 5px;min-width:14px"></span></button>
       <button class="elb" style="flex:1;padding:10px;font-size:12px;background:rgba(255,255,255,.08);box-shadow:none" onclick="showEmpTab('break')" id="btnTabBreak">☕ Break</button>
     </div>
 
@@ -1250,6 +1253,7 @@ html, body {
       </div>
       <div class="esmbox" style="margin-top:10px">
         <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">📋 My Swap Requests</div>
+        <div id="swapStatusStrip" style="display:none;gap:6px;margin-bottom:10px"></div>
         <div id="swapList" style="font-size:11px"></div>
       </div>
     </div>
@@ -1284,6 +1288,7 @@ html, body {
       </div>
       <div class="esmbox" style="margin-top:10px">
         <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#fff;margin-bottom:10px">📋 My Requests</div>
+        <div id="leaveStatusStrip" style="display:none;gap:6px;margin-bottom:10px"></div>
         <div id="leaveList" style="font-size:11px"></div>
       </div>
     </div>
@@ -3279,11 +3284,11 @@ function showRequestPopup(item) {
 function buildPendingRequestItems() {
   const swapItems = Object.values(swapRequests).filter(r => r.status === 'partner_approved').map(r => {
     const from = staffData[r.fromEmp] || {}; const to = staffData[r.toEmp] || {};
-    return {id:r.id, created:r.created || 0, kind:'swap', title:`Swap request · Day ${r.day}`, text:`${from.name || r.fromEmp} wants to swap with ${to.name || r.toEmp}.`};
+    return {id:r.id, created:r.created || 0, kind:'swap', title:`Swap request · ${fmtRosterDate(r.day, r.monthKey)}`, text:`${from.name || r.fromEmp} wants to swap with ${to.name || r.toEmp}.`};
   });
   const leaveItems = Object.values(leaveRequests).filter(r => r.status === 'pending').map(r => {
     const emp = staffData[r.empId] || {};
-    return {id:r.id, created:r.created || 0, kind:'leave', title:`${reqTypeLabel(r.type)} · ${emp.name || r.empId}`, text:`Day ${r.fromDay}${r.fromDay !== r.toDay ? '–' + r.toDay : ''}${r.reason ? ' · ' + r.reason : ''}`};
+    return {id:r.id, created:r.created || 0, kind:'leave', title:`${reqTypeLabel(r.type)} · ${emp.name || r.empId}`, text:`${fmtRosterDate(r.fromDay, r.monthKey)}${r.fromDay !== r.toDay ? '–' + fmtRosterDate(r.toDay, r.monthKey) : ''}${r.reason ? ' · ' + r.reason : ''}`};
   });
   return [...swapItems, ...leaveItems].sort((a,b)=>b.created-a.created);
 }
@@ -3373,7 +3378,7 @@ function populateSwapForm() {
 
   // My available days (working days only)
   myDaySel.innerHTML = Object.entries(sch).filter(([d,c]) => c && c!=="OFF" && c!=="AL" && c!=="EX" && c!=="UNP")
-    .map(([d,c]) => `<option value="${d}">Day ${d} (${c})</option>`).join("") || '<option>No working days</option>';
+    .map(([d,c]) => `<option value="${d}">${fmtRosterDate(d)} (${c})</option>`).join("") || '<option>No working days</option>';
 
   // Build partner list — same department, same section, same position only
   window._swapPartners = Object.values(staffData).filter(e =>
@@ -3463,13 +3468,13 @@ function updateSwapPreview() {
     <div style="display:flex;justify-content:space-between;gap:10px">
       <div style="text-align:center;flex:1">
         <div style="font-size:9px;color:var(--gold2);margin-bottom:3px">YOU</div>
-        <div style="font-weight:700">Day ${myDay}</div>
+        <div style="font-weight:700">${fmtRosterDate(myDay)}</div>
         <span class="sp sp-${myShift}" style="font-size:10px;margin-top:4px;display:inline-block">${myShift}</span>
       </div>
       <div style="display:flex;align-items:center;color:var(--gold2);font-size:16px">⇄</div>
       <div style="text-align:center;flex:1">
         <div style="font-size:9px;color:#4ADE80;margin-bottom:3px">${partner?.name?.split(" ")[0] || "Partner"}</div>
-        <div style="font-weight:700">Day ${myDay}</div>
+        <div style="font-weight:700">${fmtRosterDate(myDay)}</div>
         <span class="sp sp-${partnerShift}" style="font-size:10px;margin-top:4px;display:inline-block">${partnerShift}</span>
       </div>
     </div>`;
@@ -3501,9 +3506,52 @@ async function submitSwapRequest() {
   renderSwapList();
 }
 
+function updateRequestsBadge() {
+  if (!currentEmpId) return;
+  const mySwaps = Object.values(swapRequests).filter(r => r.fromEmp===currentEmpId || r.toEmp===currentEmpId);
+  const myLeaves = Object.values(leaveRequests).filter(r => r.empId===currentEmpId);
+
+  // Header badge = anything still awaiting a decision
+  const pendingTotal = mySwaps.filter(r => r.status==="pending" || r.status==="partner_approved").length
+                      + myLeaves.filter(r => r.status==="pending").length;
+  const badge = document.getElementById("reqBadge");
+  if (badge) { badge.style.display = pendingTotal ? "inline-block" : "none"; badge.textContent = pendingTotal; }
+
+  // Swap tab strip
+  const swapStrip = document.getElementById("swapStatusStrip");
+  if (swapStrip) {
+    const pend = mySwaps.filter(r=>r.status==="pending"||r.status==="partner_approved").length;
+    const appr = mySwaps.filter(r=>r.status==="admin_approved").length;
+    const rej  = mySwaps.filter(r=>r.status==="rejected").length;
+    if (mySwaps.length) {
+      swapStrip.style.display = "flex";
+      swapStrip.innerHTML = `
+        <div style="flex:1;background:rgba(251,191,36,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#FBBF24">${pend}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">PENDING</div></div>
+        <div style="flex:1;background:rgba(74,222,128,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#4ADE80">${appr}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">APPROVED</div></div>
+        <div style="flex:1;background:rgba(248,113,113,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#F87171">${rej}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">REJECTED</div></div>`;
+    } else { swapStrip.style.display = "none"; }
+  }
+
+  // Leave tab strip
+  const leaveStrip = document.getElementById("leaveStatusStrip");
+  if (leaveStrip) {
+    const pend = myLeaves.filter(r=>r.status==="pending").length;
+    const appr = myLeaves.filter(r=>r.status==="approved").length;
+    const rej  = myLeaves.filter(r=>r.status==="rejected").length;
+    if (myLeaves.length) {
+      leaveStrip.style.display = "flex";
+      leaveStrip.innerHTML = `
+        <div style="flex:1;background:rgba(251,191,36,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#FBBF24">${pend}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">PENDING</div></div>
+        <div style="flex:1;background:rgba(74,222,128,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#4ADE80">${appr}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">APPROVED</div></div>
+        <div style="flex:1;background:rgba(248,113,113,.12);border-radius:8px;padding:6px;text-align:center"><div style="font-size:14px;font-weight:800;color:#F87171">${rej}</div><div style="font-size:8px;color:rgba(255,255,255,.5)">REJECTED</div></div>`;
+    } else { leaveStrip.style.display = "none"; }
+  }
+}
+
 function renderSwapList() {
   const el = document.getElementById("swapList");
   if (!el || !currentEmpId) return;
+  updateRequestsBadge();
 
   const myReqs = Object.values(swapRequests).filter(r => 
     (r.fromEmp===currentEmpId || r.toEmp===currentEmpId) && r.monthKey===schKey()
@@ -3524,7 +3572,7 @@ function renderSwapList() {
 
     return `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:10px;margin-bottom:6px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <span style="font-weight:700">Swap Day ${r.day}</span>
+        <span style="font-weight:700">Swap · ${fmtRosterDate(r.day, r.monthKey)}</span>
         <span style="font-size:9px;color:${statusColors[r.status]}">${statusLabels[r.status]}</span>
       </div>
       <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${isFromMe ? "To" : "From"}: ${other?.name || "?"} (${other?.id || "?"})</div>
@@ -3559,7 +3607,7 @@ function populateLeaveForm() {
   const fromSel = document.getElementById("leaveFrom");
   const toSel = document.getElementById("leaveTo");
   if (!fromSel || !toSel) return;
-  const opts = Array.from({length:numDays},(_,i)=>`<option value="${i+1}">Day ${i+1}</option>`).join("");
+  const opts = Array.from({length:numDays},(_,i)=>`<option value="${i+1}">${fmtRosterDate(i+1)}</option>`).join("");
   fromSel.innerHTML = opts;
   toSel.innerHTML = opts;
 }
@@ -3615,6 +3663,7 @@ async function submitLeaveRequest() {
 function renderLeaveList() {
   const el = document.getElementById("leaveList");
   if (!el || !currentEmpId) return;
+  updateRequestsBadge();
 
   const myReqs = Object.values(leaveRequests).filter(r => 
     r.empId===currentEmpId && r.monthKey===schKey()
@@ -3630,7 +3679,7 @@ function renderLeaveList() {
         <span style="font-weight:700">${typeLabels[r.type]}</span>
         <span style="font-size:9px;color:${statusColors[r.status]}">${r.status==="pending"?"⏳ Pending":r.status==="approved"?"✅ Approved":"❌ Rejected"}</span>
       </div>
-      <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">Day ${r.fromDay}${r.fromDay!==r.toDay?" – "+r.toDay:""} · ${r.reason || "No reason"}</div>
+      <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:3px">${fmtRosterDate(r.fromDay, r.monthKey)}${r.fromDay!==r.toDay?" – "+fmtRosterDate(r.toDay, r.monthKey):""} · ${r.reason || "No reason"}</div>
     </div>`;
   }).join("");
 }
@@ -5350,6 +5399,17 @@ function renderAll() {
 // HELPERS
 // ═══════════════════════════════════════════════════
 function schKey(y,m) { return `${y||YEAR}-${m!==undefined?m:MONTH}`; }
+// Format a day number as a roster-style date, e.g. "15 Jan" — uses monthKey ("YYYY-M") if given, else current MONTH
+function fmtRosterDate(day, monthKey) {
+  let m = MONTH;
+  if (monthKey && monthKey.includes("-")) {
+    const parts = monthKey.split("-");
+    m = parseInt(parts[1]);
+    if (isNaN(m)) m = MONTH;
+  }
+  const mName = MONTHS[m] ? MONTHS[m].substring(0,3) : "";
+  return `${day} ${mName}`;
+}
 function getEmpSch(id,y,m) { return schedData[id]?.[schKey(y,m)] || {}; }
 function getDIM(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
 function getDaysInMonth(y,m) { return new Date(y||YEAR,(m!==undefined?m:MONTH)+1,0).getDate(); }
@@ -8211,6 +8271,23 @@ function showEmpDash(emp) {
   document.getElementById("empLoginForm").style.display="none";
   document.getElementById("empDash").classList.add("show");
 }
+function toggleShiftLegend() {
+  const box = document.getElementById("shiftLegendBox");
+  if (!box) return;
+  const show = box.style.display === "none";
+  if (show) {
+    const codes = ["MOR","AFT","EVE","M11","M12","FLEX","SPL","TRN","SH","OFF","AL","EX","UNP","SICK","PH"];
+    box.innerHTML = `<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">` + codes.filter(c=>SHIFTS[c]).map(c => {
+      const s = SHIFTS[c];
+      return `<div style="display:flex;align-items:center;gap:6px">
+        <div style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;background:${s.bg};color:${s.color};flex-shrink:0">${c}</div>
+        <div style="color:rgba(255,255,255,.6)">${s.label}${s.time&&s.time!=="—"?" · "+s.time:""}</div>
+      </div>`;
+    }).join("") + `</div>`;
+  }
+  box.style.display = show ? "block" : "none";
+}
+
 function refreshEmpDash(id) {
   const emp=staffData[id]; if(!emp)return;
   showEmpDash(emp);
