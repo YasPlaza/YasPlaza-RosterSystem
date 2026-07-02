@@ -3790,7 +3790,7 @@ function renderReqHistory() {
         return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa">
           <span style="font-size:16px">🔄</span>
           <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--navy)">${from?.name||r.fromEmp} ↔ ${to?.name||r.toEmp}</div>
-          <div style="font-size:10px;color:var(--slate2)">Swap · Day ${r.day}</div></div>
+          <div style="font-size:10px;color:var(--slate2)">Swap · ${fmtRosterDate(r.day, r.monthKey)}</div></div>
           ${statusLabel(r.status)}
         </div>`;
       } else {
@@ -3799,7 +3799,7 @@ function renderReqHistory() {
         return `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa">
           <span style="font-size:16px">${typeIcons[r.type]||'📋'}</span>
           <div style="flex:1"><div style="font-size:12px;font-weight:600;color:var(--navy)">${emp?.name||r.empId}</div>
-          <div style="font-size:10px;color:var(--slate2)">${r.type} · Day ${r.fromDay}${r.toDay!==r.fromDay?'–'+r.toDay:''}</div></div>
+          <div style="font-size:10px;color:var(--slate2)">${r.type} · ${fmtRosterDate(r.fromDay, r.monthKey)}${r.toDay!==r.fromDay?'–'+fmtRosterDate(r.toDay, r.monthKey):''}</div></div>
           ${statusLabel(r.status)}
         </div>`;
       }
@@ -3919,7 +3919,7 @@ function renderAdminRequests() {
                 <div style="margin-top:4px"><span style="font-size:11px;background:var(--purple-l);color:var(--purple);padding:2px 8px;border-radius:6px;font-weight:700">${toShift}</span></div>
               </div>
             </div>
-            <div style="font-size:11px;color:var(--slate);margin-bottom:8px">📅 Day ${r.day}${r.monthKey ? ' · '+r.monthKey : ''}${r.note?'<br>💬 '+r.note:''}</div>
+            <div style="font-size:11px;color:var(--slate);margin-bottom:8px">📅 ${fmtRosterDate(r.day, r.monthKey)}${r.note?'<br>💬 '+r.note:''}</div>
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
@@ -3975,7 +3975,7 @@ function renderAdminRequests() {
                   <div style="width:26px;height:26px;border-radius:50%;background:${isBest?'#10B981':'#F59E0B'};color:#fff;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">${i+1}</div>
                   <div style="flex:1">
                     <div style="font-size:11px;font-weight:700;color:var(--navy)">${s.name}</div>
-                    <div style="font-size:9px;color:var(--slate)">${s.position} · ${s.section||s.department||''} · Day ${r.fromDay}: <b style="color:${s.dayShift==='OFF'?'#10B981':'#E65C00'}">${s.dayShift||'—'}</b></div>
+                    <div style="font-size:9px;color:var(--slate)">${s.position} · ${s.section||s.department||''} · ${fmtRosterDate(r.fromDay, r.monthKey)}: <b style="color:${s.dayShift==='OFF'?'#10B981':'#E65C00'}">${s.dayShift||'—'}</b></div>
                   </div>
                   <span style="font-size:9px;background:${isBest?'#D4EDDA':'#FFF3E0'};color:${isBest?'#1B6B3A':'#E65C00'};padding:3px 8px;border-radius:100px;font-weight:700;flex-shrink:0">${isBest?'⭐ Best':'👍 Good'}</span>
                 </label>`;
@@ -4008,7 +4008,7 @@ function renderAdminRequests() {
             </div>
             <!-- Leave details -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:7px;margin-bottom:4px">
-              <span style="background:var(--ice2);border-radius:7px;padding:4px 10px;font-size:11px">📅 Day ${r.fromDay}${r.fromDay!==r.toDay?" – Day "+r.toDay:""}</span>
+              <span style="background:var(--ice2);border-radius:7px;padding:4px 10px;font-size:11px">📅 ${fmtRosterDate(r.fromDay, r.monthKey)}${r.fromDay!==r.toDay?" – "+fmtRosterDate(r.toDay, r.monthKey):""}</span>
               <span style="background:var(--ice2);border-radius:7px;padding:4px 10px;font-size:11px">⏱ ${days} day${days!==1?'s':''}</span>
               ${r.type==="AL" ? `<span style="background:${days>alLeft?'var(--red-l)':'var(--green-l)'};color:${days>alLeft?'var(--red)':'var(--green)'};border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700">🏖 ${alLeft} days AL left</span>` : ""}
             </div>
@@ -4058,7 +4058,7 @@ function reqViewSwapDetail(reqId) {
   const r = swapRequests[reqId];
   if (!r) return;
   const from = staffData[r.fromEmp], to = staffData[r.toEmp];
-  alert(`SWAP REQUEST DETAIL\n\nFrom: ${from?.name||r.fromEmp} (${r.fromEmp})\nTo: ${to?.name||r.toEmp} (${r.toEmp})\nDay: ${r.day}\nMonth: ${r.monthKey||'N/A'}\nStatus: ${r.status}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
+  alert(`SWAP REQUEST DETAIL\n\nFrom: ${from?.name||r.fromEmp} (${r.fromEmp})\nTo: ${to?.name||r.toEmp} (${r.toEmp})\nDate: ${fmtRosterDate(r.day, r.monthKey)}\nStatus: ${r.status}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
 }
 
 function reqViewLeaveDetail(reqId) {
@@ -4066,7 +4066,7 @@ function reqViewLeaveDetail(reqId) {
   if (!r) return;
   const emp = staffData[r.empId];
   const typeLabels = {AL:"Annual Leave",EX:"Extra Off",UNP:"Unpaid",TRN:"Training",SICK:"Sick Leave",ABS:"Absent"};
-  alert(`LEAVE REQUEST DETAIL\n\nEmployee: ${emp?.name||r.empId}\nDept: ${emp?.department||'N/A'} · ${emp?.position||''}\nType: ${typeLabels[r.type]||r.type}\nDays: ${r.fromDay}–${r.toDay} (${r.toDay-r.fromDay+1} days)\nReason: ${r.reason||'None provided'}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
+  alert(`LEAVE REQUEST DETAIL\n\nEmployee: ${emp?.name||r.empId}\nDept: ${emp?.department||'N/A'} · ${emp?.position||''}\nType: ${typeLabels[r.type]||r.type}\nDates: ${fmtRosterDate(r.fromDay, r.monthKey)}–${fmtRosterDate(r.toDay, r.monthKey)} (${r.toDay-r.fromDay+1} days)\nReason: ${r.reason||'None provided'}\nRequested: ${r.created ? new Date(r.created).toLocaleString() : 'Unknown'}`);
 }
 
 async function adminApproveSwap(reqId) {
