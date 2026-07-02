@@ -1180,7 +1180,7 @@ html, body {
 
   <div class="ed" id="empDash">
     <div class="ehdr">
-      <div class="eav" id="eAvatar">?</div>
+      <div class="eav" id="eAvatar" onclick="empPhotoPick()" title="Click to change your photo" style="cursor:pointer;position:relative;background-size:cover;background-position:center">?<div id="eAvatarEdit" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;border-radius:inherit;opacity:0;transition:opacity .2s;pointer-events:none">📷 Change</div></div><input type="file" id="empPhotoInput" accept="image/*" style="display:none" onchange="empPhotoUpload(event)">
       <div style="flex:1">
         <div class="enm" id="eNm">—</div>
         <div class="eps" id="ePs">—</div>
@@ -8314,7 +8314,7 @@ function showEmpDash(emp) {
   const sch=getEmpSch(emp.id); const st=calcStats(emp,sch);
   const hotel=HOTELS.find(h=>h.id===emp.hotel);
   const dc=getDeptColor(emp.department);
-  document.getElementById("eAvatar").textContent=emp.name.charAt(0);
+  renderEmpAvatar(emp);
   document.getElementById("eNm").textContent=emp.name;
   document.getElementById("ePs").textContent=emp.position;
   document.getElementById("eHt").innerHTML=`🏨 ${hotel?.name||emp.hotel}`;
@@ -18187,6 +18187,124 @@ select { color-scheme: dark; }
   document.addEventListener('DOMContentLoaded', function(){ setTimeout(tryRender, 300); });
 })();
 </script>
+
+<style>
+  #eAvatar:hover #eAvatarEdit{opacity:1}
+  #eAvatarPhotoMenu button{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;
+    border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+  #eAvatarPhotoMenu button:hover{background:rgba(255,255,255,.16)}
+  #eAvatarPhotoMenu button.danger{background:rgba(183,28,28,.25);border-color:rgba(183,28,28,.5);color:#FCA5A5}
+</style>
+<script>
+/* ══ SELF-SERVICE PROFILE PHOTO (localStorage) ══ */
+(function(){
+  const KEY = id => 'empPhoto_' + id;
+  const MAX = 256;         // px, square
+  const QUALITY = 0.82;    // JPEG quality
+  const SIZE_LIMIT = 5 * 1024 * 1024; // 5 MB raw upload
+
+  window._currentEmpForPhoto = null;
+
+  window.renderEmpAvatar = function(emp){
+    window._currentEmpForPhoto = emp;
+    const av = document.getElementById('eAvatar');
+    if(!av) return;
+    const data = localStorage.getItem(KEY(emp.id));
+    if(data){
+      av.style.backgroundImage = 'url(' + data + ')';
+      av.style.color = 'transparent';
+      av.textContent = '';
+      // keep the edit overlay child
+      const edit = document.createElement('div');
+      edit.id = 'eAvatarEdit';
+      edit.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;border-radius:inherit;opacity:0;transition:opacity .2s;pointer-events:none';
+      edit.textContent = '📷 Change';
+      av.appendChild(edit);
+    } else {
+      av.style.backgroundImage = '';
+      av.style.color = '';
+      av.textContent = (emp.name||'?').charAt(0).toUpperCase();
+      const edit = document.createElement('div');
+      edit.id = 'eAvatarEdit';
+      edit.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55);color:#fff;font-size:10px;font-weight:700;border-radius:inherit;opacity:0;transition:opacity .2s;pointer-events:none';
+      edit.textContent = '📷 Add';
+      av.appendChild(edit);
+    }
+  };
+
+  window.empPhotoPick = function(){
+    const emp = window._currentEmpForPhoto;
+    if(!emp) return;
+    // If a photo already exists, offer change/remove; otherwise open picker directly
+    if(localStorage.getItem(KEY(emp.id))){
+      showPhotoMenu();
+    } else {
+      document.getElementById('empPhotoInput').click();
+    }
+  };
+
+  function showPhotoMenu(){
+    let m = document.getElementById('eAvatarPhotoMenu');
+    if(m) { m.remove(); return; }
+    m = document.createElement('div');
+    m.id = 'eAvatarPhotoMenu';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    m.innerHTML = `
+      <div style="background:#1B2D4A;border:1px solid rgba(255,255,255,.15);border-radius:14px;padding:22px;max-width:280px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5);font-family:'DM Sans',sans-serif">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:#fff;margin-bottom:14px;text-align:center">Profile Photo</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button onclick="document.getElementById('empPhotoInput').click();document.getElementById('eAvatarPhotoMenu').remove()">📷 Change photo</button>
+          <button class="danger" onclick="empPhotoRemove()">🗑 Remove photo</button>
+          <button onclick="document.getElementById('eAvatarPhotoMenu').remove()" style="margin-top:4px;opacity:.7">Cancel</button>
+        </div>
+      </div>`;
+    m.addEventListener('click', e => { if(e.target === m) m.remove(); });
+    document.body.appendChild(m);
+  }
+
+  window.empPhotoRemove = function(){
+    const emp = window._currentEmpForPhoto;
+    if(!emp) return;
+    localStorage.removeItem(KEY(emp.id));
+    const menu = document.getElementById('eAvatarPhotoMenu'); if(menu) menu.remove();
+    renderEmpAvatar(emp);
+  };
+
+  window.empPhotoUpload = function(ev){
+    const file = ev.target.files && ev.target.files[0];
+    ev.target.value = ''; // reset so same file can be re-picked
+    const emp = window._currentEmpForPhoto;
+    if(!file || !emp) return;
+    if(!file.type.startsWith('image/')){ alert('Please choose an image file.'); return; }
+    if(file.size > SIZE_LIMIT){ alert('Image too large. Max 5 MB.'); return; }
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          // Center-crop square, downscale to MAX
+          const side = Math.min(img.width, img.height);
+          const sx = (img.width - side)/2, sy = (img.height - side)/2;
+          const canvas = document.createElement('canvas');
+          canvas.width = MAX; canvas.height = MAX;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, sx, sy, side, side, 0, 0, MAX, MAX);
+          const dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+          localStorage.setItem(KEY(emp.id), dataUrl);
+          renderEmpAvatar(emp);
+        } catch(err){
+          console.error(err);
+          alert('Could not save photo: ' + (err && err.message || err));
+        }
+      };
+      img.onerror = () => alert('Could not read that image.');
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+})();
+</script>
+
 </body></html><script>
 /* YPH FIX: Forecast render + Dev Panel Live Access tab mounting */
 (function(){
