@@ -3776,13 +3776,17 @@ function reqSetTab(tab) {
 
 function reqBulkApprove() {
   const tab = _reqTab;
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
   if (tab === 'swap' || tab === 'all') {
-    const pendingSwaps = Object.values(swapRequests).filter(r => r.status === 'partner_approved');
+    let pendingSwaps = Object.values(swapRequests).filter(r => r.status === 'partner_approved');
+    if (isDeptUser) pendingSwaps = pendingSwaps.filter(r => staffData[r.fromEmp]?.department === CURRENT_DEPT || staffData[r.toEmp]?.department === CURRENT_DEPT);
     pendingSwaps.forEach(r => adminApproveSwap(r.id));
   }
   if (tab === 'leave' || tab === 'sick' || tab === 'all') {
     const filter = tab === 'sick' ? (r => r.status==='pending' && r.type==='SICK') : (r => r.status==='pending');
-    Object.values(leaveRequests).filter(filter).forEach(r => adminApproveLeave(r.id));
+    let pendingLeaves = Object.values(leaveRequests).filter(filter);
+    if (isDeptUser) pendingLeaves = pendingLeaves.filter(r => staffData[r.empId]?.department === CURRENT_DEPT);
+    pendingLeaves.forEach(r => adminApproveLeave(r.id));
   }
 }
 
@@ -3798,8 +3802,13 @@ function reqToggleHistory(btn) {
 function renderReqHistory() {
   const el = document.getElementById('reqHistory');
   if (!el) return;
-  const doneSwaps = Object.values(swapRequests).filter(r => r.status === 'admin_approved' || r.status === 'rejected');
-  const doneLeaves = Object.values(leaveRequests).filter(r => r.status === 'approved' || r.status === 'rejected');
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
+  let doneSwaps = Object.values(swapRequests).filter(r => r.status === 'admin_approved' || r.status === 'rejected');
+  let doneLeaves = Object.values(leaveRequests).filter(r => r.status === 'approved' || r.status === 'rejected');
+  if (isDeptUser) {
+    doneSwaps = doneSwaps.filter(r => staffData[r.fromEmp]?.department === CURRENT_DEPT || staffData[r.toEmp]?.department === CURRENT_DEPT);
+    doneLeaves = doneLeaves.filter(r => staffData[r.empId]?.department === CURRENT_DEPT);
+  }
   const all = [
     ...doneSwaps.map(r => ({...r, _kind:'swap'})),
     ...doneLeaves.map(r => ({...r, _kind:'leave'}))
@@ -3836,6 +3845,7 @@ function renderReqHistory() {
 function _reqRenderStatsBar(pendingSwaps, pendingLeaves) {
   const el = document.getElementById('reqStatsBar');
   if (!el) return;
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
   const sickCount = pendingLeaves.filter(r => r.type === 'SICK').length;
   const alCount = pendingLeaves.filter(r => r.type === 'AL').length;
   const totalPending = pendingSwaps.length + pendingLeaves.length;
@@ -3843,7 +3853,16 @@ function _reqRenderStatsBar(pendingSwaps, pendingLeaves) {
     .filter(r => {
       const d = new Date((r.updated||r.created||0));
       const now = new Date();
-      return d.toDateString() === now.toDateString() && (r.status === 'approved' || r.status === 'admin_approved' || r.status === 'rejected');
+      if (d.toDateString() !== now.toDateString()) return false;
+      if (!(r.status === 'approved' || r.status === 'admin_approved' || r.status === 'rejected')) return false;
+      if (isDeptUser) {
+        // Scope to requests belonging to (or touching) this department only
+        const dept1 = staffData[r.empId]?.department;
+        const dept2 = staffData[r.fromEmp]?.department;
+        const dept3 = staffData[r.toEmp]?.department;
+        return dept1 === CURRENT_DEPT || dept2 === CURRENT_DEPT || dept3 === CURRENT_DEPT;
+      }
+      return true;
     }).length;
   const card = (icon, label, val, bg, color) =>
     `<div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 12px rgba(15,30,53,.07);border-left:4px solid ${color}">
@@ -3864,16 +3883,26 @@ function _reqRenderStatsBar(pendingSwaps, pendingLeaves) {
     const depts = [...new Set([...Object.values(staffData)].map(s => s.department).filter(Boolean))].sort();
     depts.forEach(d => { const o = document.createElement('option'); o.value = d; o.textContent = d; df.appendChild(o); });
   }
+  if (df && isDeptUser) {
+    df.value = CURRENT_DEPT;
+    df.disabled = true;
+    df.style.opacity = "0.6";
+    df.title = "Locked to your department";
+  }
 }
 
 function renderAdminRequests() {
   const search = (document.getElementById('reqSearch')?.value || '').toLowerCase().trim();
   const filterDept = document.getElementById('reqFilterDept')?.value || '';
   const tab = _reqTab;
+  // A department-level login must only ever see its own department's requests —
+  // this is enforced regardless of what the (locked) dropdown says.
+  const isDeptUser = (ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all");
 
   // Swap requests
   const swapEl = document.getElementById("adminSwapList");
   let pendingSwaps = Object.values(swapRequests).filter(r => r.status === "partner_approved").sort((a,b) => b.created - a.created);
+  if (isDeptUser) pendingSwaps = pendingSwaps.filter(r => staffData[r.fromEmp]?.department === CURRENT_DEPT || staffData[r.toEmp]?.department === CURRENT_DEPT);
   if (search) pendingSwaps = pendingSwaps.filter(r => {
     const from = staffData[r.fromEmp], to = staffData[r.toEmp];
     const str = [(from?.name||''),(to?.name||''),(from?.department||''),(to?.department||'')].join(' ').toLowerCase();
@@ -3887,6 +3916,7 @@ function renderAdminRequests() {
     if (b.type === 'SICK' && a.type !== 'SICK') return 1;
     return b.created - a.created;
   });
+  if (isDeptUser) pendingLeaves = pendingLeaves.filter(r => staffData[r.empId]?.department === CURRENT_DEPT);
   if (tab === 'sick') pendingLeaves = pendingLeaves.filter(r => r.type === 'SICK');
   if (search) pendingLeaves = pendingLeaves.filter(r => {
     const emp = staffData[r.empId];
@@ -4062,6 +4092,13 @@ function _reqTimeAgo(ts) {
   return 'just now';
 }
 
+// Defense-in-depth: a department login must never act on another department's
+// request, even if triggered directly (stale UI, console, etc).
+function _reqDeptAllowed(depts) {
+  if (!(ADMIN_ROLE === "dept" && CURRENT_DEPT && CURRENT_DEPT !== "all")) return true; // Developer/manager: unrestricted
+  return depts.includes(CURRENT_DEPT);
+}
+
 function adminApproveLeaveWithCover(reqId) {
   const covRadio = document.querySelector(`input[name="cover_${reqId}"]:checked`);
   const coverName = covRadio ? covRadio.value : null;
@@ -4098,6 +4135,10 @@ function reqViewLeaveDetail(reqId) {
 async function adminApproveSwap(reqId) {
   const req = swapRequests[reqId];
   if (!req) return;
+  if (!_reqDeptAllowed([staffData[req.fromEmp]?.department, staffData[req.toEmp]?.department])) {
+    alert('🔒 This swap request belongs to another department.');
+    return;
+  }
 
   // Execute the swap
   const k = req.monthKey;
@@ -4128,6 +4169,10 @@ async function adminApproveSwap(reqId) {
 async function adminRejectSwap(reqId) {
   const req = swapRequests[reqId];
   if (!req) return;
+  if (!_reqDeptAllowed([staffData[req.fromEmp]?.department, staffData[req.toEmp]?.department])) {
+    alert('🔒 This swap request belongs to another department.');
+    return;
+  }
   req.status = "rejected";
   if (db) { try { await db.ref("swaps/" + reqId + "/status").set("rejected"); } catch(e) {} }
   saveLocal();
@@ -4137,6 +4182,10 @@ async function adminRejectSwap(reqId) {
 async function adminApproveLeave(reqId) {
   const req = leaveRequests[reqId];
   if (!req) return;
+  if (!_reqDeptAllowed([staffData[req.empId]?.department])) {
+    alert('🔒 This leave request belongs to another department.');
+    return;
+  }
 
   const emp = staffData[req.empId];
   const k = req.monthKey;
@@ -4168,6 +4217,10 @@ async function adminApproveLeave(reqId) {
 async function adminRejectLeave(reqId) {
   const req = leaveRequests[reqId];
   if (!req) return;
+  if (!_reqDeptAllowed([staffData[req.empId]?.department])) {
+    alert('🔒 This leave request belongs to another department.');
+    return;
+  }
   req.status = "rejected";
   if (db) { try { await db.ref("leaves/" + reqId + "/status").set("rejected"); } catch(e) {} }
   saveLocal();
